@@ -1,8 +1,14 @@
-# LLM.Giving
+# Folding@home, but for AI usage.
 
-**Put your AI time toward questions that matter.**
+Folding@home lets people donate unused computing power to advance scientific research. LLM.Giving brings that same concept to AI.
 
-LLM.Giving brings people together to turn research questions into public knowledge. Submit a question, contribute with your own AI tools, or help review someone else's findings. Sources, methods, and limitations stay with the work so others can understand it, challenge it, and build on it.
+Millions of people have access to powerful AI tools with 5-hour and weekly usage limits. Whether you have unused AI tokens available now or know you have an upcoming usage reset, you can put that capacity toward research instead of letting it go to waste.
+
+Anyone can submit a research question. Volunteers use their own AI tools to investigate questions, contribute evidence-backed findings, and independently review each other's work.
+
+LLM.Giving organizes the research, coordinates contributions, and makes the results publicly available with transparent sources, methods, and review history.
+
+**Your unused AI usage could help answer someone else's important question.**
 
 [Explore research](https://llm.giving/research) · [Submit a question](https://llm.giving/submit) · [Read the guides](https://llm.giving/blog)
 
