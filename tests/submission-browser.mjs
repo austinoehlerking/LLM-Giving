@@ -1,0 +1,79 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {root} from '../tools/runtime.mjs';
+export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,password}){
+ const out=path.join(root,'storage/qa/submission-ux');fs.mkdirSync(out,{recursive:true});
+ const shots=[],errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+ const brief=JSON.parse(fs.readFileSync(path.join(root,'storage/research/plastic-carbon-pump.json'),'utf8'));
+ const before=JSON.parse(runPhp(['tools/local-research-state.php','inspect'])).research;
+ const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}];
+ async function shot(name,fullPage=false,mask=[]){await page.screenshot({path:path.join(out,name+'.png'),fullPage,mask});shots.push(name+'.png');}
+ for(const size of sizes){
+  await page.setViewportSize(size);await page.goto(base+'/submit');await shot('01-form-'+size.width+'x'+size.height);
+  await visibleActions(page,'.form-actions button','Updated submission '+size.width);
+  check('Title and objective fully visible '+size.width,await page.locator('[name=title],[name=question]').evaluateAll(els=>els.every(el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;})));
+ }
+ await page.setViewportSize(sizes[0]);await page.goto(base+'/submit');
+ await page.locator('[name=title]').fill(brief.title);await page.locator('[name=question]').fill(brief.question);await page.locator('[name=category_id]').selectOption({label:'Environment & Climate'});
+ await page.getByText('Background, objectives & references',{exact:true}).click();
+ for(const key of ['context','success','previous','constraints_text','questions','references_text','tags'])await page.locator('[name='+key+']').fill(brief[key]);
+ check('Long text expands without internal clipping',await page.locator('textarea').evaluateAll(els=>els.every(el=>el.scrollHeight<=el.clientHeight+2)));
+ await page.locator('[name=context]').scrollIntoViewIfNeeded();await shot('02-expanding-fields');
+ await page.getByRole('button',{name:'Review your request',exact:true}).click();
+ check('Review includes the entire original context',await page.locator('#request-preview-content').textContent().then(t=>t.includes(brief.context)));
+ await shot('03-complete-review',true);await shot('04-review-desktop');
+ await page.getByRole('button',{name:'Back to editing',exact:true}).click();
+ await page.locator('[name=question]').fill(brief.question+' <script>window.untrustedPreview=true</script>');
+ await page.getByRole('button',{name:'Review your request',exact:true}).click();
+ check('Preview renders source text inertly',await page.locator('#request-preview-content').textContent().then(t=>t.includes('<script>')));
+ check('Preview never executes source text',await page.evaluate(()=>!window.untrustedPreview));
+ await page.getByRole('button',{name:'Back to editing',exact:true}).click();await page.locator('[name=question]').fill(brief.question);
+ await page.setViewportSize(sizes[2]);await page.getByRole('button',{name:'Review your request',exact:true}).click();await visibleActions(page,'#request-preview .actions > *','Mobile review');await shot('05-review-mobile');
+ check('Mobile review has no horizontal clipping',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+ await page.getByRole('button',{name:'Back to editing',exact:true}).click();
+ await page.locator('[name=title]').fill('[QA] '+brief.title);
+ await page.locator('[name=terms]').check();
+ await page.getByRole('button',{name:'Review your request',exact:true}).click();
+ await page.locator('#request-preview').getByRole('button',{name:'Submit for approval',exact:true}).click();
+ await page.locator('#management-link').waitFor();
+ check('Clear successful submission heading',await page.getByRole('heading',{name:'Research request submitted',exact:true}).isVisible());
+ check('Receipt identifies submitted title',await page.locator('.receipt-title').textContent()==='[QA] '+brief.title);
+ const link=await page.locator('#management-link').inputValue(),rid=new URL(link).pathname.split('/').pop();
+ for(const size of sizes){
+  await page.setViewportSize(size);await page.evaluate(()=>scrollTo(0,0));await shot('06-receipt-'+size.width+'x'+size.height,false,[page.locator('#management-link')]);
+  await visibleActions(page,'.receipt .primary-actions > *','Updated receipt '+size.width);
+ }
+ await page.getByRole('button',{name:'Copy management link'}).click();
+ check('Receipt copy action works',await page.evaluate(()=>navigator.clipboard.readText())===link);
+ runPhp(['bin/console.php','admin','browser-qa@example.invalid'],password);
+ await page.setViewportSize(sizes[0]);await page.goto(base+'/admin/login');await page.locator('[name=email]').fill('browser-qa@example.invalid');await page.locator('[name=password]').fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ // Inspect the user's real pending record without modifying it.
+ const real=before.find(r=>!r.title.startsWith('[QA]'));
+ check('Real research record available',!!real);
+ for(const size of sizes){
+  await page.setViewportSize(size);await page.goto(base+'/admin/research/'+real.id);await shot('07-admin-'+size.width+'x'+size.height);
+  await visibleActions(page,'.admin-review-heading .primary-actions > *','Admin review '+size.width);
+ }
+ await page.setViewportSize(sizes[0]);await page.goto(base+'/admin/research/'+real.id);
+ await page.getByRole('link',{name:'Moderate request',exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector('#request-decision').getBoundingClientRect().top>=0&&document.querySelector('#request-decision').getBoundingClientRect().top<100);
+ await shot('08-direct-decision');
+ check('Moderate request jumps to decision controls',await page.locator('#request-decision').evaluate(el=>el.getBoundingClientRect().top>=0&&el.getBoundingClientRect().top<100));
+ await page.getByRole('link',{name:'complete research brief',exact:true}).click();
+ check('Decision links back to complete brief',new URL(page.url()).hash==='#request-moderation');
+ for(const route of ['/submit','/admin/research/'+real.id]){
+  await page.setViewportSize({width:683,height:384});await page.goto(base+route);
+  await page.evaluate(()=>document.body.style.fontSize='200%');
+  check('Enlarged text reflow '+route,await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  await shot(route==='/submit'?'09-submit-enlarged':'10-admin-enlarged');
+ }
+ const nojs=await ctx.browser().newContext({javaScriptEnabled:false});
+ const np=await nojs.newPage();await np.goto(base+'/submit');
+ check('No-JS submission remains available',await np.locator('.form-actions').getByRole('button',{name:'Submit for approval',exact:true}).isVisible());
+ check('No-JS preview control is hidden',!await np.locator('#review-request').isVisible());await nojs.close();
+ const after=JSON.parse(runPhp(['tools/local-research-state.php','inspect'])).research.filter(r=>!r.title.startsWith('[QA]'));
+ check('Real request unchanged',JSON.stringify(before.filter(r=>!r.title.startsWith('[QA]')))===JSON.stringify(after));
+ check('No browser errors in updated workflow',errors.length===0);
+ fs.writeFileSync(path.join(out,'index.html'),'<!doctype html><meta charset="utf-8"><title>LLM.Giving — submission UX updates</title><style>body{font:16px system-ui;background:#141e28;color:#eaf0f5;max-width:1100px;margin:24px auto;padding:20px}a{color:#c1ee9c}img{max-width:100%;border:1px solid #42574c}figure{margin:32px 0}</style><h1>Submission UX updates</h1><p>Real research brief in the form and preview. Receipt uses a disposable [QA] copy to avoid resubmitting your request. Admin screenshots show the real request unchanged. Pink blocks conceal private management links.</p>'+shots.map(s=>'<figure><figcaption>'+s+'</figcaption><a href="'+s+'"><img loading="lazy" src="'+s+'"></a></figure>').join(''));
+ console.log('Submission UX: '+shots.length+' fresh screenshots. Real request unchanged.');
+}

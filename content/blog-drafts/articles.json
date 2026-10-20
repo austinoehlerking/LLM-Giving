@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "researchDate": "2026-10-19",
+  "scope": "Four reviewed articles selected for the site blog; the original tokenmaxxing explainer is excluded.",
+  "integrationStatus": "Integrated and verified locally at /blog, with four article pages and shared navigation. Production deployment has not been performed.",
+  "keywordValidation": "US English autocomplete/search-intent shortlist. Volume and difficulty were unavailable because the Ubersuggest daily report allowance was exhausted. No traffic or ranking claims are made. AI usage and unused AI usage were supplied by the site owner as audience-language variants; their search volume and difficulty have not been measured.",
+  "articles": [
+    {
+      "slug": "unused-ai-tokens",
+      "source": "content/blog-drafts/unused-ai-tokens.md",
+      "primaryKeyword": "unused AI tokens",
+      "secondaryKeywords": [
+        "what to do with unused AI tokens",
+        "spare AI capacity",
+        "excess AI tokens",
+        "leftover AI credits",
+        "AI usage",
+        "unused AI usage"
+      ],
+      "seoTitle": "Unused AI Usage and Tokens: 7 Ways to Help Research",
+      "metaDescription": "Have unused AI usage or tokens left in your plan? Explore seven practical ways to help shared research, from finding sources to checking claims.",
+      "excerpt": "Put spare AI usage toward source maps, checked claims, practical comparisons, and independent reviews that a shared research project can build on.",
+      "intent": "Practical uses for existing AI access",
+      "relatedSlugs": [
+        "folding-at-home-for-ai",
+        "citizen-science-ai"
+      ],
+      "title": "What to Do With Unused AI Tokens: 7 Ways to Help Research",
+      "status": "published",
+      "language": "en",
+      "market": "US",
+      "publicationDate": null
+    },
+    {
+      "slug": "folding-at-home-for-ai",
+      "source": "content/blog-drafts/folding-at-home-for-ai.md",
+      "primaryKeyword": "folding at home for AI",
+      "secondaryKeywords": [
+        "Folding@home AI equivalent",
+        "volunteer computing for AI",
+        "donate AI capacity",
+        "distributed AI inference",
+        "AI usage",
+        "unused AI usage"
+      ],
+      "seoTitle": "Folding@home for AI: Ways to Contribute",
+      "metaDescription": "Looking for Folding@home for AI? Compare volunteer computing, distributed inference, and ways to put unused AI usage toward shared research.",
+      "excerpt": "Understand the differences between donating hardware, running model inference, and contributing your own AI-assisted research to a shared question.",
+      "intent": "Explain and compare ways to contribute capacity",
+      "relatedSlugs": [
+        "unused-ai-tokens",
+        "ai-for-good-projects"
+      ],
+      "title": "Is There a Folding@home for AI? Ways to Contribute Spare Capacity",
+      "status": "published",
+      "language": "en",
+      "market": "US",
+      "publicationDate": null
+    },
+    {
+      "slug": "ai-for-good-projects",
+      "source": "content/blog-drafts/ai-for-good-projects.md",
+      "primaryKeyword": "AI for good projects",
+      "secondaryKeywords": [
+        "AI volunteering opportunities",
+        "AI for social good projects",
+        "contribute to AI research",
+        "AI projects for nonprofits",
+        "AI usage",
+        "unused AI usage"
+      ],
+      "seoTitle": "AI for Good Projects You Can Contribute to From Home",
+      "metaDescription": "Find AI for good projects that fit your skills, from putting spare AI usage toward shared research to data science volunteering and citizen science.",
+      "excerpt": "Compare participation routes through LLM.Giving, DataKind, AI for Good Foundation, and Zooniverse, then choose a contribution that fits your skills.",
+      "intent": "Find suitable participation opportunities",
+      "relatedSlugs": [
+        "citizen-science-ai",
+        "unused-ai-tokens"
+      ],
+      "title": "AI for Good Projects You Can Contribute to From Home",
+      "status": "published",
+      "language": "en",
+      "market": "US",
+      "publicationDate": null
+    },
+    {
+      "slug": "citizen-science-ai",
+      "source": "content/blog-drafts/citizen-science-ai.md",
+      "primaryKeyword": "citizen science AI",
+      "secondaryKeywords": [
+        "citizen science with AI",
+        "AI-assisted citizen science",
+        "research without a PhD",
+        "citizen science online",
+        "AI usage",
+        "unused AI usage"
+      ],
+      "seoTitle": "Citizen Science With AI: Help Research Without a PhD",
+      "metaDescription": "Explore citizen science with AI: choose a research question, collect reliable evidence, check claims, and contribute work that others can build on.",
+      "excerpt": "Put unused AI usage toward citizen science, from learning a project’s method to sharing evidence that the next researcher can check.",
+      "intent": "Beginner research participation and method",
+      "relatedSlugs": [
+        "folding-at-home-for-ai",
+        "ai-for-good-projects"
+      ],
+      "title": "Citizen Science With AI: Help Research Without a PhD",
+      "status": "published",
+      "language": "en",
+      "market": "US",
+      "publicationDate": null
+    }
+  ],
+  "integrationReview": "storage/editorial/2026-10-19/blog-integration/summary.json"
+}

@@ -1,0 +1,1 @@
+<section class="narrow page-heading"><h1><?=e($title)?></h1><p class="lead"><?=e($message)?></p><div class="actions"><a class="button secondary" href="<?=e($href??'/research')?>">Return to research</a><button type="button" class="secondary" data-back>Back to previous page</button></div></section>

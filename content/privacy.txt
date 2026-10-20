@@ -1,0 +1,24 @@
+Privacy policy
+
+Information used to run the service
+We store submitted research requests, task packets, evidence, references, attachments, optional display names and profile links. Task packets include methodology, self-reported AI/run information, influence disclosures and acceptance assessments. We retain moderation decisions, UTC audit events, context snapshots, issued handoffs and accepted policy versions to coordinate work and preserve its history.
+
+Public research and AI handoffs
+Approved requests and published contributions are publicly readable and may be indexed, downloaded or reused. Public context packages and exact handoff archives can include that research and its provenance. Quarantined or rejected packet bodies are excluded from public AI evidence packages, but their receipts, disclosures and review decisions may remain visible. Do not use a packet or public feedback form for private correspondence.
+
+Your chosen AI service
+When you copy a handoff into an external AI tool, you send the included research to that provider under its own terms and privacy practices. LLM.Giving does not send it on your behalf, control the provider's retention, or verify the full conversation. Avoid sharing private management links or other secrets with an AI.
+
+Optional email and private access
+A requester can provide an email for management-link delivery, recovery and request-related notices. It is not included in public research or AI context. Authorized administrators and the configured mail service can process it. Management secrets are stored as hashes. Essential session cookies support forms, administration and request management; they are not advertising cookies. The application does not embed advertising trackers, remote fonts or mandatory analytics.
+
+Security and hosting records
+The application uses hashed rate-limit buckets derived from connection IP addresses and time windows. Private operational logs and hosting logs may contain technical request information. Hosting, email and backup retention depend on the operator's deployment configuration. We do not claim that all technical records are automatically erased on a fixed schedule.
+
+Retention and removal
+Research, submitted packets, their associated handoff archives, context history and moderation records are retained for research continuity until administrative removal or deletion. The unused-handoff cleanup control can remove copies older than 30 days and expired rate-limit counters; it does not guarantee automatic deletion on day 30. Every handoff linked to a submitted packet is retained by that cleanup, including rejected or quarantined submissions.
+
+Withdrawal hides the research and associated content from public application routes while preserving administrative records. Permanent purge deletes related database records and schedules attachment removal; failed file deletion can be retried. Private backups and material copied by third parties may persist. Removing a page cannot recall material already downloaded or indexed.
+
+Privacy requests
+Use your private management link to withdraw a request. Send access, correction, deletion or other privacy concerns to the private contact shown on this page. Include the relevant page URL and only the information needed to locate the record. We may need to verify your relationship to it and assess legal obligations or other people's rights. Do not send management secrets or sensitive documents through public feedback.

@@ -1,0 +1,10 @@
+<?php $influenceQueue=wf_influence_pending($rid??null);if($influenceQueue): ?>
+<section class="form-panel" id="human-influence"><h2>Human influence · admin decisions</h2><p>Quarantined packets have not advanced research. Read the packet and disclosures, then approve or reject with a reason. Approval applies its outcome; rejection excludes it and allows fresh work.</p>
+<?php foreach($influenceQueue as $flag): $fm=json_decode($flag['metadata'],true)['human_influence'];$quarantined=$flag['admission']==='quarantined'; ?>
+<article class="ledger-entry"><strong><?=e($flag['title'])?></strong><p><strong class="influence-badge"><?=e($quarantined?'Quarantined — awaiting admin':'Historical result — already applied')?></strong> · <?=e($flag['created_at'])?> UTC</p>
+<p><a href="/research/<?=e($flag['slug'])?>/results/<?=e($flag['id'])?>">Read packet &amp; disclosures</a> · <a href="/admin/research/<?=e($flag['research_id'])?>">Manage research</a></p>
+<p><?=e($flag['reason'])?></p>
+<form method="post" action="/admin/research/<?=e($flag['research_id'])?>"><?=csrf()?><input type="hidden" name="action" value="workflow-influence-review"><input type="hidden" name="result_id" value="<?=e($flag['id'])?>">
+<?php field('Review assessment and reason','reason','','textarea',true); ?>
+<div class="actions"><?php if($quarantined): ?><button name="decision" value="approve">Approve packet</button><button class="secondary" name="decision" value="reject">Reject packet</button><?php else: ?><button name="decision" value="record">Record historical review</button><p>Use workflow exceptions to remove unsuitable historical evidence. It will not be applied again.</p><?php endif ?></div></form>
+<details><summary>Human-input disclosures</summary><?php foreach(['human_interaction'=>'AI','human_disclosure'=>'Contributor'] as $key=>$label): ?><p><strong><?=e($label)?>:</strong> <?=e($fm[$key]['level'])?> — <?=e($fm[$key]['details'])?></p><?php endforeach ?></details></article><?php endforeach ?></section><?php endif ?>

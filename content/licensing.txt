@@ -1,0 +1,24 @@
+Licensing and citation
+
+Research contributions: CC BY 4.0
+All eligible original research contributions on LLM.Giving, including the existing local contributions authorized by their contributor, are offered under Creative Commons Attribution 4.0 International (CC BY 4.0). You may share and adapt this material for free, including for commercial use, subject to the license conditions.
+
+Credit and citation
+When sharing or adapting covered material, give appropriate credit to the named contributors and LLM.Giving, link to the specific research result and to the license, and indicate whether changes were made. In a study, report or publication that reuses covered material, include this attribution in a citation or another reasonable location. Use the Cite this research button for a citation with the result URL and UTC date. Cite the underlying scientific sources separately; citing LLM.Giving does not replace them. Do not imply endorsement.
+Official license: https://creativecommons.org/licenses/by/4.0/
+
+What the license covers
+The license applies only to rights the contributor has authority to license. Facts, public-domain material and uses permitted by applicable exceptions do not acquire new restrictions from this notice. Third-party papers, datasets, quotations, images and attachments retain their own rights. Credit does not substitute for permission where permission is required. Patent, trademark, privacy and publicity rights are not automatically cleared.
+
+AI output and scientific status
+We do not promise that every AI output is copyrightable, owned by the submitter or free of third-party claims. Publication and a citation do not establish accuracy, independent verification or endorsement. Keep uncertainties and source qualifications with reused findings.
+
+Requests, feedback and removal
+Research requests and feedback use the platform permissions in the Terms unless separately licensed. Removing research from the site does not revoke CC BY 4.0 permissions already granted while users comply with that license. It cannot erase lawful copies elsewhere.
+
+Research tool source and tests
+For Build a research tool projects, contributors separately offer eligible original source and test code under GNU AGPL version 3.0 (AGPL-3.0-only). The submission form requires explicit software consent; accepted bundles include the software license. Original research narrative remains CC BY 4.0. Third-party dependencies, code and datasets retain their own rights and must be identified. The platform does not promise maintenance or scientific validation.
+
+Application source code
+The application code remains under GNU Affero General Public License version 3.0 (AGPL-3.0), separate from research content. The published repository will be linked here when available.
+Official software license: https://www.gnu.org/licenses/agpl-3.0.html

@@ -1,0 +1,2039 @@
+{
+  "version": 1,
+  "posts": [
+    {
+      "slug": "unused-ai-tokens",
+      "title": "What to Do With Unused AI Tokens: 7 Ways to Help Research",
+      "seoTitle": "Unused AI Usage and Tokens: 7 Ways to Help Research",
+      "description": "Have unused AI usage or tokens left in your plan? Explore seven practical ways to help shared research, from finding sources to checking claims.",
+      "excerpt": "Put spare AI usage toward source maps, checked claims, practical comparisons, and independent reviews that a shared research project can build on.",
+      "readingMinutes": 6,
+      "relatedSlugs": [
+        "folding-at-home-for-ai",
+        "citizen-science-ai"
+      ],
+      "blocks": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "If you have unused AI tokens or spare AI usage in a subscription, put that capacity toward a question that someone else needs answered. You could find original sources, compare competing claims, organize public data, or check an existing research result. A contribution becomes useful when another person can inspect the evidence and continue the work."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Start with one bounded task. For example, compare the published methods of three public datasets, then record their coverage, update dates, and limitations. That leaves a usable research artifact after the AI session ends."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "what-is-unused-ai-usage",
+          "content": [
+            {
+              "type": "text",
+              "text": "What is unused AI usage?"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Unused AI usage is capacity you still have available in an AI tool. You might also call it spare AI allowance, remaining usage, or unused AI tokens. It could mean room under a subscription’s limits, remaining API credits, or available capacity on a local model."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Those resources have different costs and controls. Check your own plan’s usage, reset schedule, and billing settings before deciding what to contribute."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "On LLM.Giving, you use your own AI tools and share the resulting research. The site does not connect to your subscription or take custody of your API keys. You choose the work and run it yourself. The "
+            },
+            {
+              "type": "link",
+              "href": "/about",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "participation guide"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": " explains the workflow."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "1-build-a-source-map-for-a-focused-question",
+          "content": [
+            {
+              "type": "text",
+              "text": "1. Build a source map for a focused question"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "A source map helps the next researcher find the material worth reading. Choose a question with clear boundaries, such as which public datasets could support a local heat-mapping project."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Ask your AI to identify original datasets, methodology documents, and relevant research papers. Open the sources yourself and record who published each one, when it was updated, what it covers, and why it matters. Include a direct link to the relevant document or dataset."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "The deliverable is a short annotated bibliography. Explain what each source contributes and which part of the research question it helps answer. That gives the next volunteer a reason to read it."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "2-turn-a-broad-question-into-a-workable-research-plan",
+          "content": [
+            {
+              "type": "text",
+              "text": "2. Turn a broad question into a workable research plan"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "A question such as “How can our community improve digital accessibility?” needs narrower investigations before anyone can answer it usefully."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Use AI to propose a sequence: identify the intended users, inventory existing services, compare accessibility guidance, and define a small evaluation. For each task, specify the expected output and what evidence would make it complete. Make dependencies explicit so volunteers know which work can begin now."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "On LLM.Giving, approved topics begin with a planning task. Read that task’s current model requirements and use its supplied prompt and output format. The plan can then guide research, synthesis, and independent review."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "3-compare-public-information-in-a-consistent-table",
+          "content": [
+            {
+              "type": "text",
+              "text": "3. Compare public information in a consistent table"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Comparison work is useful when several sources describe the same thing differently. For a hypothetical community mapping project, you might compare open mapping tools by supported formats, documentation, license, and maintenance activity."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Choose the columns before collecting the data. Ask the AI to attach a source to every factual entry and to leave a field empty when it cannot establish the answer. Then check the entries against the original pages."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Include the date you checked changing information. A comparison becomes easier to maintain when a later contributor can see exactly where each entry came from."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "4-check-a-claim-against-its-cited-evidence",
+          "content": [
+            {
+              "type": "text",
+              "text": "4. Check a claim against its cited evidence"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Take one consequential claim from a research result and follow its citation. Does the source discuss the same population, place, time period, and outcome? Does it support the strength of the wording?"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "AI can help identify the relevant passages and compare the claim with the source. Your contribution should show the passage you checked, explain the match or mismatch, and propose a correction when needed."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Suppose a report says a program improved access nationwide, while its source describes one pilot location. A useful correction would retain the pilot finding and narrow the geographic claim."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "5-document-a-public-dataset-so-others-can-use-it",
+          "content": [
+            {
+              "type": "text",
+              "text": "5. Document a public dataset so others can use it"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "A dataset can be hard to evaluate without a clear explanation of its fields, units, missing values, and coverage. Use AI to help read the documentation and draft a compact data dictionary."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Work from public data that you are permitted to use. Check a small sample against the original schema, preserve the source values, and document any transformations. If you identify inconsistent dates or units, show the rule you used to normalize them."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "The output might be a data dictionary, an issue log, or a reproducible cleaning script. Keep personal or confidential records out of a public research contribution."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "6-explain-a-technical-result-for-a-specific-reader",
+          "content": [
+            {
+              "type": "text",
+              "text": "6. Explain a technical result for a specific reader"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "A community group may need a clear explanation of a technical report before it can decide what to investigate next. Ask your AI to draft an explanation for that audience, preserving the original result’s scope and uncertainty."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Define unfamiliar terms, connect each important claim to its source, and distinguish findings from proposed next steps. Check that the explanation has not turned an association into a causal claim or a preliminary result into settled guidance."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "A useful deliverable could be a one-page briefing with a short glossary and links to the underlying material."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "7-review-someone-else-s-completed-work",
+          "content": [
+            {
+              "type": "text",
+              "text": "7. Review someone else’s completed work"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Review helps a shared project catch mistakes and identify the next useful investigation. Choose work you did not produce, read the research question, and assess whether the submitted result answers it."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Check citations, calculations, omitted alternatives, and whether the stated conclusion follows from the evidence. Keep the review specific: name the claim, show the issue, and describe the change needed. Use a fresh AI run and follow the project’s independence requirements."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "A result that holds up after careful checking is useful too. Explain what you examined so the next reader can understand the scope of the review."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "make-your-first-contribution-manageable",
+          "content": [
+            {
+              "type": "text",
+              "text": "Make your first contribution manageable"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Pick an output you can finish and inspect in the time you have. Reserve enough capacity to review the result and return it in the required format. If the work cannot be completed, report the actual progress and remaining steps rather than marking it finished."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Keep paid overages under your control. Use only resources you are authorized to use, and respect the rules of the project receiving your contribution. Spare capacity is an opportunity to help; there is no need to exhaust an allowance to make the work worthwhile."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "If you prefer hands-on classification tasks, "
+            },
+            {
+              "type": "link",
+              "href": "https://www.zooniverse.org/get-involved/volunteer",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "Zooniverse’s volunteer guide"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": " describes another route into research, with no minimum time commitment. Follow each project’s instructions about the use of AI."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "To contribute your own AI-assisted research, "
+            },
+            {
+              "type": "link",
+              "href": "/research",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "explore LLM.Giving’s research requests"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": ", open a project, and read its available tasks. Choose a deliverable whose evidence you can check and whose result another contributor can build on."
+            }
+          ]
+        }
+      ],
+      "headings": [
+        {
+          "id": "what-is-unused-ai-usage",
+          "text": "What is unused AI usage?"
+        },
+        {
+          "id": "1-build-a-source-map-for-a-focused-question",
+          "text": "1. Build a source map for a focused question"
+        },
+        {
+          "id": "2-turn-a-broad-question-into-a-workable-research-plan",
+          "text": "2. Turn a broad question into a workable research plan"
+        },
+        {
+          "id": "3-compare-public-information-in-a-consistent-table",
+          "text": "3. Compare public information in a consistent table"
+        },
+        {
+          "id": "4-check-a-claim-against-its-cited-evidence",
+          "text": "4. Check a claim against its cited evidence"
+        },
+        {
+          "id": "5-document-a-public-dataset-so-others-can-use-it",
+          "text": "5. Document a public dataset so others can use it"
+        },
+        {
+          "id": "6-explain-a-technical-result-for-a-specific-reader",
+          "text": "6. Explain a technical result for a specific reader"
+        },
+        {
+          "id": "7-review-someone-else-s-completed-work",
+          "text": "7. Review someone else’s completed work"
+        },
+        {
+          "id": "make-your-first-contribution-manageable",
+          "text": "Make your first contribution manageable"
+        }
+      ]
+    },
+    {
+      "slug": "folding-at-home-for-ai",
+      "title": "Is There a Folding@home for AI? Ways to Contribute Spare Capacity",
+      "seoTitle": "Folding@home for AI: Ways to Contribute",
+      "description": "Looking for Folding@home for AI? Compare volunteer computing, distributed inference, and ways to put unused AI usage toward shared research.",
+      "excerpt": "Understand the differences between donating hardware, running model inference, and contributing your own AI-assisted research to a shared question.",
+      "readingMinutes": 5,
+      "relatedSlugs": [
+        "unused-ai-tokens",
+        "ai-for-good-projects"
+      ],
+      "blocks": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Yes. The idea behind Folding@home can be applied to AI in several ways: volunteers can contribute computing hardware, run model inference, or use their own AI tools to complete research tasks. The right choice depends on the resource you want to contribute and how actively you want to participate."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "If you have AI usage left in a subscription, LLM.Giving offers a way to contribute research with the tools you already use. You choose a question, investigate it, and return evidence that others can examine."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "what-the-folding-home-comparison-means",
+          "content": [
+            {
+              "type": "text",
+              "text": "What the Folding@home comparison means"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "link",
+              "href": "https://foldingathome.org/",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "Folding@home"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": " uses volunteers’ computers to run pieces of biomedical research simulations. Its software downloads a work unit, performs the calculation, and returns the result. The shared resource is computing power."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "An AI contribution can use a similar pattern: define a task, distribute the work, return a result, and check it before combining it with other contributions. But an AI-written research report needs different checks from a numerical simulation. Citations, reasoning, and unsupported conclusions all need attention."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "It helps to separate three forms of participation."
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "header": [
+            [
+              {
+                "type": "text",
+                "text": "Contribution"
+              }
+            ],
+            [
+              {
+                "type": "text",
+                "text": "What you provide"
+              }
+            ],
+            [
+              {
+                "type": "text",
+                "text": "What you should expect to do"
+              }
+            ]
+          ],
+          "rows": [
+            [
+              [
+                {
+                  "type": "text",
+                  "text": "Volunteer computing"
+                }
+              ],
+              [
+                {
+                  "type": "text",
+                  "text": "CPU or GPU time on your hardware"
+                }
+              ],
+              [
+                {
+                  "type": "text",
+                  "text": "Install approved software and manage its resource use"
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "type": "text",
+                  "text": "Volunteer AI inference"
+                }
+              ],
+              [
+                {
+                  "type": "text",
+                  "text": "A model run on local hardware or an authorized API"
+                }
+              ],
+              [
+                {
+                  "type": "text",
+                  "text": "Configure a worker, model, and any spending limits"
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "type": "text",
+                  "text": "AI-assisted shared research"
+                }
+              ],
+              [
+                {
+                  "type": "text",
+                  "text": "Your own AI access, attention, and checked findings"
+                }
+              ],
+              [
+                {
+                  "type": "text",
+                  "text": "Choose a task, investigate it, inspect the output, and submit a result"
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "These approaches serve different needs. A person with an idle GPU may prefer hardware work. A person with an AI subscription and an interest in a research question may prefer an active research task."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "if-you-want-to-contribute-hardware",
+          "content": [
+            {
+              "type": "text",
+              "text": "If you want to contribute hardware"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "link",
+              "href": "https://boinc.berkeley.edu/",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "BOINC"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": " is an established volunteer-computing platform. Its application runs scientific computing jobs on participating computers, and volunteers can choose projects or science areas. Folding@home remains another option for people interested in biomedical simulations."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Before joining a hardware-based project, read its current requirements and resource controls. Consider power consumption, heat, noise, bandwidth, and whether the machine is yours to use for volunteer work. Choose a project whose scientific purpose you understand."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "These projects help explain the volunteer-computing model. Check the work a particular project performs rather than assuming that any distributed-computing project trains or runs language models."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "if-you-want-to-run-ai-inference-for-a-shared-workload",
+          "content": [
+            {
+              "type": "text",
+              "text": "If you want to run AI inference for a shared workload"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Inference means running a trained model to produce an output. A distributed inference project assigns those model runs to participating workers. Depending on its design, a volunteer might supply a local model, GPU time, or explicitly authorized API usage."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "One example is the open-source "
+            },
+            {
+              "type": "link",
+              "href": "https://github.com/tartalonllc/ai-commons",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "AI Commons project"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": ". Its README describes volunteer inference for shared workloads. It also labels the software an early MVP beta and says there is no public coordinator to join yet."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "For any inference network, find out what tasks it distributes, who receives the outputs, how results are checked, and what access the worker needs. If it can use a paid API, understand how its spending limit is enforced before connecting a key."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "put-unused-ai-usage-toward-shared-research",
+          "content": [
+            {
+              "type": "text",
+              "text": "Put unused AI usage toward shared research"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "LLM.Giving coordinates research that volunteers perform with their own AI tools. It does not install a background computing worker or connect to your subscription. You keep control of the AI session and submit the resulting work."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "A research request has an objective. After topic approval, a planning task defines bounded investigations and their completion criteria. Research tasks feed into synthesis, followed by independent review. The project’s history lets later contributors see earlier work and corrections."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "For example, a hypothetical request might ask which public datasets are suitable for comparing urban tree cover across several cities. One task could investigate geographic coverage, another could examine update frequency, and a third could compare licensing. Synthesis would bring the evidence together, while a reviewer would check the result."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "That division makes room for useful contributions without requiring one volunteer to complete the whole investigation."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "how-to-join-a-research-task-on-llm-giving",
+          "content": [
+            {
+              "type": "text",
+              "text": "How to join a research task on LLM.Giving"
+            }
+          ]
+        },
+        {
+          "type": "list",
+          "ordered": true,
+          "items": [
+            [
+              {
+                "type": "link",
+                "href": "/research",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Browse research requests"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "text": " and open a question that interests you."
+              }
+            ],
+            [
+              {
+                "type": "text",
+                "text": "Read the brief and workflow. Look for a task that is ready and whose deliverable matches the time and tools you have."
+              }
+            ],
+            [
+              {
+                "type": "text",
+                "text": "Open the task and use "
+              },
+              {
+                "type": "strong",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Copy task prompt"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "text": ". Read the completion criteria and any model requirements."
+              }
+            ],
+            [
+              {
+                "type": "text",
+                "text": "Run the investigation with your own AI. Inspect the cited sources and check the result against the criteria."
+              }
+            ],
+            [
+              {
+                "type": "text",
+                "text": "Return the complete structured output through the task’s submission form, including its required identifiers."
+              }
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Keep useful uncertainties in the result. If the available evidence leaves the question unresolved, explain what you investigated and what remains unknown. A well-documented inconclusive finding can give the next researcher a clear direction."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "how-should-an-ai-research-result-be-checked",
+          "content": [
+            {
+              "type": "text",
+              "text": "How should an AI research result be checked?"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "A useful shared result needs evidence that other people can inspect. Start by asking whether its sources exist, whether they support the claims attached to them, and whether the conclusion answers the original question."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "For calculations, record the inputs, units, and method. For comparisons, use consistent criteria. For a synthesis, show how conflicting findings were handled. Independent review should examine the evidence and reasoning in a separate run."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "LLM.Giving requires evidence tied to task completion criteria and supports correction of earlier results. Those checks make a contribution easier to assess; scientific confidence still depends on the underlying methods and evidence."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "choose-the-resource-you-actually-want-to-share",
+          "content": [
+            {
+              "type": "text",
+              "text": "Choose the resource you actually want to share"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "For background computation, investigate a hardware-based project and its controls. For distributed model execution, evaluate an inference project’s technical requirements and current availability. For hands-on research using AI access you already have, choose a bounded research task."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Read "
+            },
+            {
+              "type": "link",
+              "href": "/about",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "how LLM.Giving works"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": ", then find a question where you can leave a clear, checkable result. A defined task and an inspectable result let the next volunteer build on your contribution."
+            }
+          ]
+        }
+      ],
+      "headings": [
+        {
+          "id": "what-the-folding-home-comparison-means",
+          "text": "What the Folding@home comparison means"
+        },
+        {
+          "id": "if-you-want-to-contribute-hardware",
+          "text": "If you want to contribute hardware"
+        },
+        {
+          "id": "if-you-want-to-run-ai-inference-for-a-shared-workload",
+          "text": "If you want to run AI inference for a shared workload"
+        },
+        {
+          "id": "put-unused-ai-usage-toward-shared-research",
+          "text": "Put unused AI usage toward shared research"
+        },
+        {
+          "id": "how-to-join-a-research-task-on-llm-giving",
+          "text": "How to join a research task on LLM.Giving"
+        },
+        {
+          "id": "how-should-an-ai-research-result-be-checked",
+          "text": "How should an AI research result be checked?"
+        },
+        {
+          "id": "choose-the-resource-you-actually-want-to-share",
+          "text": "Choose the resource you actually want to share"
+        }
+      ]
+    },
+    {
+      "slug": "ai-for-good-projects",
+      "title": "AI for Good Projects You Can Contribute to From Home",
+      "seoTitle": "AI for Good Projects You Can Contribute to From Home",
+      "description": "Find AI for good projects that fit your skills, from putting spare AI usage toward shared research to data science volunteering and citizen science.",
+      "excerpt": "Compare participation routes through LLM.Giving, DataKind, AI for Good Foundation, and Zooniverse, then choose a contribution that fits your skills.",
+      "readingMinutes": 5,
+      "relatedSlugs": [
+        "citizen-science-ai",
+        "unused-ai-tokens"
+      ],
+      "blocks": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "AI for good projects give you a way to apply technical skills, research time, or careful review to a public-interest problem. To find a useful fit, start with the contribution you can make: investigate a question, analyze data, review model outputs, or help a team explain its work."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "You do not need to train a model to participate. Some routes suit experienced data scientists; others begin with reading instructions and checking a small piece of evidence."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "choose-a-contribution-that-matches-your-resources",
+          "content": [
+            {
+              "type": "text",
+              "text": "Choose a contribution that matches your resources"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "header": [
+            [
+              {
+                "type": "text",
+                "text": "Your starting point"
+              }
+            ],
+            [
+              {
+                "type": "text",
+                "text": "A route to explore"
+              }
+            ],
+            [
+              {
+                "type": "text",
+                "text": "What to check first"
+              }
+            ]
+          ],
+          "rows": [
+            [
+              [
+                {
+                  "type": "text",
+                  "text": "Spare AI usage and an interest in research"
+                }
+              ],
+              [
+                {
+                  "type": "text",
+                  "text": "LLM.Giving research tasks"
+                }
+              ],
+              [
+                {
+                  "type": "text",
+                  "text": "The task objective, completion criteria, and model requirements"
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "type": "text",
+                  "text": "Data science or quantitative experience"
+                }
+              ],
+              [
+                {
+                  "type": "text",
+                  "text": "DataKind volunteering"
+                }
+              ],
+              [
+                {
+                  "type": "text",
+                  "text": "Skills, application process, and project commitment"
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "type": "text",
+                  "text": "Research, communication, or policy interests"
+                }
+              ],
+              [
+                {
+                  "type": "text",
+                  "text": "AI for Good Foundation volunteering"
+                }
+              ],
+              [
+                {
+                  "type": "text",
+                  "text": "The requirements of the particular role"
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "type": "text",
+                  "text": "Interest in hands-on citizen science"
+                }
+              ],
+              [
+                {
+                  "type": "text",
+                  "text": "Zooniverse projects"
+                }
+              ],
+              [
+                {
+                  "type": "text",
+                  "text": "The tutorial and how AI is used in that project"
+                }
+              ]
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Choose work whose purpose and requested output you understand. A small contribution with a clear recipient is a useful place to begin."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "contribute-ai-assisted-research-with-llm-giving",
+          "content": [
+            {
+              "type": "text",
+              "text": "Contribute AI-assisted research with LLM.Giving"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "LLM.Giving is built around shared research questions. Volunteers use their own AI tools to investigate a task, gather evidence, and return a structured result. You can take part without a public account, and the site does not connect to your AI subscription."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Put unused AI usage toward a research task with an output you can inspect. You could compare public datasets, check the evidence behind a claim, synthesize earlier findings, or independently review a completed investigation. Reserve enough capacity to check the result and finish the submission."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "For an illustrative community project, imagine a group comparing ways to make a public information service more accessible. A useful task could identify relevant guidance and document which recommendations apply to the group’s actual materials. The output would include source links, an explanation of the comparison, and questions for later testing."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Start by "
+            },
+            {
+              "type": "link",
+              "href": "/research",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "browsing research requests"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": ". Read the brief before choosing a ready task, and follow the supplied prompt and required return format. If you want to propose a question, "
+            },
+            {
+              "type": "link",
+              "href": "/submit",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "submit a research request"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": "; new topics are reviewed before becoming public."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "apply-data-skills-through-datakind",
+          "content": [
+            {
+              "type": "text",
+              "text": "Apply data skills through DataKind"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "link",
+              "href": "https://www.datakind.org/join-us/volunteer/",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "DataKind’s volunteer program"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": " connects quantitative experts with social-impact work. Its volunteer page describes remote participation, a profile-based application process, and projects involving issues such as poverty, healthcare access, and climate change."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "This is a route for people who want to contribute relevant professional skills in a team setting. A particular project may call for experience in analysis, engineering, statistics, or another discipline. Read the role requirements and expected commitment before applying."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "To begin, follow the current volunteer page to create a profile, describe your skills accurately, and look for opportunities that fit your experience. Project selection and team onboarding matter here, so plan for a different process from picking up a short open research task."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "explore-research-and-communication-roles-at-ai-for-good-foundation",
+          "content": [
+            {
+              "type": "text",
+              "text": "Explore research and communication roles at AI for Good Foundation"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "The "
+            },
+            {
+              "type": "link",
+              "href": "https://ai4good.org/get-involved/volunteer/",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "AI for Good Foundation volunteer page"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": " describes opportunities spanning research, sustainable-development policy, writing, and outreach. Individual roles have different eligibility and time requirements."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "This route may suit someone who wants to support an organization’s broader work rather than contribute model runs alone. Read the complete description of a role and consider the deliverable you could maintain consistently. Writing experience, domain knowledge, or an ability to explain technical work can be relevant contributions."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "If you need a role you can do from home, confirm that arrangement before applying through the organization’s stated process. Ask about permission before using personal AI tools with project materials, especially when a role involves internal documents or information about other people."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "join-citizen-science-projects-that-combine-people-and-ai",
+          "content": [
+            {
+              "type": "text",
+              "text": "Join citizen-science projects that combine people and AI"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "link",
+              "href": "https://www.zooniverse.org/get-involved/volunteer",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "Zooniverse"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": " offers research participation through tasks such as classifying project data. Its volunteer guide states that there is no minimum time commitment. That makes it an option for someone who wants to begin with a small contribution."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "AI involvement differs by project. Zooniverse’s "
+            },
+            {
+              "type": "link",
+              "href": "https://www.zooniverse.org/about/ai-ethics",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "AI ethics framework"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": " describes several arrangements: machines may pre-sort data, volunteer classifications may help train models, or people may check machine-generated classifications. Other projects have no AI component."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Read the project’s About page and tutorial to understand the role of your work. Follow the requested classification method; bring a question to the research team if you are unsure whether outside AI assistance is appropriate."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "five-project-ideas-for-a-community-group",
+          "content": [
+            {
+              "type": "text",
+              "text": "Five project ideas for a community group"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "If you already work with a nonprofit, library, or local group, start by asking what information would help it make a decision. Discuss a project shape that meets that need:"
+            }
+          ]
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            [
+              {
+                "type": "strong",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Public-source evidence map:"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "text": " identify original sources relevant to a specific community question, with dates and scope notes."
+              }
+            ],
+            [
+              {
+                "type": "strong",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Accessibility review:"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "text": " compare a group’s public materials against an agreed checklist, then have people who use those materials test the proposed improvements."
+              }
+            ],
+            [
+              {
+                "type": "strong",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Open-data documentation:"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "text": " explain the fields, units, coverage, and limitations of a public dataset that a group wants to use."
+              }
+            ],
+            [
+              {
+                "type": "strong",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Research translation:"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "text": " turn an approved technical report into a plain-language briefing while retaining its sources and important qualifications."
+              }
+            ],
+            [
+              {
+                "type": "strong",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Independent claim review:"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "text": " examine a small set of consequential claims and document whether their cited sources support them."
+              }
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Agree on the output and its intended user before beginning. For example, an accessibility checklist should help someone review a particular document or service. A dataset guide should explain enough for the next analyst to use the data correctly."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "decide-what-useful-progress-will-look-like",
+          "content": [
+            {
+              "type": "text",
+              "text": "Decide what useful progress will look like"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Before committing, answer three questions: who will use the result, what decision or task will it support, and who will review it? These questions help keep the work connected to an actual need."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Choose a small first deliverable and get feedback before expanding it. Preserve source links and document any important assumptions so another volunteer can continue the work. Keep sensitive information within the receiving organization’s approved tools and permissions."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "If you already have AI access and want a research task, "
+            },
+            {
+              "type": "link",
+              "href": "/research",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "explore LLM.Giving"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": ". Choose a question you care about, read what the next task requires, and contribute a result that another person can check."
+            }
+          ]
+        }
+      ],
+      "headings": [
+        {
+          "id": "choose-a-contribution-that-matches-your-resources",
+          "text": "Choose a contribution that matches your resources"
+        },
+        {
+          "id": "contribute-ai-assisted-research-with-llm-giving",
+          "text": "Contribute AI-assisted research with LLM.Giving"
+        },
+        {
+          "id": "apply-data-skills-through-datakind",
+          "text": "Apply data skills through DataKind"
+        },
+        {
+          "id": "explore-research-and-communication-roles-at-ai-for-good-foundation",
+          "text": "Explore research and communication roles at AI for Good Foundation"
+        },
+        {
+          "id": "join-citizen-science-projects-that-combine-people-and-ai",
+          "text": "Join citizen-science projects that combine people and AI"
+        },
+        {
+          "id": "five-project-ideas-for-a-community-group",
+          "text": "Five project ideas for a community group"
+        },
+        {
+          "id": "decide-what-useful-progress-will-look-like",
+          "text": "Decide what useful progress will look like"
+        }
+      ]
+    },
+    {
+      "slug": "citizen-science-ai",
+      "title": "Citizen Science With AI: Help Research Without a PhD",
+      "seoTitle": "Citizen Science With AI: Help Research Without a PhD",
+      "description": "Explore citizen science with AI: choose a research question, collect reliable evidence, check claims, and contribute work that others can build on.",
+      "excerpt": "Put unused AI usage toward citizen science, from learning a project’s method to sharing evidence that the next researcher can check.",
+      "readingMinutes": 5,
+      "relatedSlugs": [
+        "folding-at-home-for-ai",
+        "ai-for-good-projects"
+      ],
+      "blocks": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Citizen science gives people outside a professional research team a way to contribute to scientific work. AI can support that participation by helping explain unfamiliar terms, organize public evidence, draft analysis code, or prepare a clearer account of an investigation."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "A good starting point is a small task with a defined method. Follow the project’s instructions, keep track of your sources and observations, and make your contribution understandable to the next person who reads it. You can build research skills while doing work that fits into a larger effort."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "how-do-citizen-science-and-ai-work-together",
+          "content": [
+            {
+              "type": "text",
+              "text": "How do citizen science and AI work together?"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "There are two useful ways to think about the connection. In one, volunteers help a research team develop or evaluate AI. In the other, participants use AI tools to assist their own research activities. A project can involve either approach, both, or neither."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Zooniverse’s "
+            },
+            {
+              "type": "link",
+              "href": "https://www.zooniverse.org/about/ai-ethics",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "AI ethics framework"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": " gives concrete examples of the first approach: human classifications can help train models, and volunteers can check machine-generated classifications. The project team defines how human and machine work fit together."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "For the second approach, an AI assistant might help you understand a dataset’s documentation or write code for a calculation. You remain responsible for following the research method and checking the output you contribute."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "find-a-project-that-gives-you-a-clear-first-task",
+          "content": [
+            {
+              "type": "text",
+              "text": "Find a project that gives you a clear first task"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "If you want to contribute observations or classifications, start with an established project finder. "
+            },
+            {
+              "type": "link",
+              "href": "https://science.nasa.gov/citizen-science/",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "NASA’s citizen-science directory"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": " lists projects with different equipment and participation requirements. Some involve a smartphone or laptop; others need a particular location or specialist equipment. "
+            },
+            {
+              "type": "link",
+              "href": "https://scistarter.org/",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "SciStarter"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": " also lets you search for projects by topic and find online opportunities."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "For shared research that asks contributors to bring their own AI tools, explore "
+            },
+            {
+              "type": "link",
+              "href": "/research",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "LLM.Giving’s research library"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": ". You can put unused AI usage toward a task with a clear output and completion criteria. Open a question, read its brief, and choose a ready task whose method you understand."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Pick a project where you can explain the purpose of your contribution in one sentence. “I am checking whether these sources cover the same time period” is a workable first objective."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "use-ai-to-learn-the-method-before-doing-the-work",
+          "content": [
+            {
+              "type": "text",
+              "text": "Use AI to learn the method before doing the work"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Begin with the project’s own tutorial, protocol, or task prompt. If a term is unfamiliar, ask your AI to explain it using the supplied documentation. Then compare that explanation with the original material."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "A useful learning prompt is:"
+            }
+          ]
+        },
+        {
+          "type": "quote",
+          "content": [
+            {
+              "type": "text",
+              "text": "Explain the terms in these project instructions for a new volunteer. Separate the steps I must follow from background information. Point to the part of the supplied instructions that supports each required step, and list anything I should ask the research team to clarify."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "This can help you prepare without changing the method. For a classification project, follow its rules on whether you may use outside AI tools while classifying data. The fact that a project uses machine learning does not automatically authorize a volunteer to replace a requested human judgment with an AI answer."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "work-through-one-bounded-investigation",
+          "content": [
+            {
+              "type": "text",
+              "text": "Work through one bounded investigation"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Consider a hypothetical shared-research question: which public datasets could help a community group compare local air-quality measurements? A first contribution could investigate one dataset and document whether it fits the group’s needs."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "You could use AI to help locate the publisher’s documentation and extract a draft comparison. Your checks would include the pollutants measured, reporting units, station locations, observation period, and reuse conditions. For each entry, save the source and the relevant passage or page location."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "When a detail is missing from the documentation, record it as an open question. A later contributor can contact the publisher, inspect the data, or look for another source."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "keep-observations-calculations-and-interpretation-distinct",
+          "content": [
+            {
+              "type": "text",
+              "text": "Keep observations, calculations, and interpretation distinct"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "A research note is easier to review when it separates three things:"
+            }
+          ]
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "items": [
+            [
+              {
+                "type": "strong",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "What you observed:"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "text": " the source passage, classification, measurement, or original data value."
+              }
+            ],
+            [
+              {
+                "type": "strong",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "What you did:"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "text": " the selection rule, transformation, comparison, or calculation."
+              }
+            ],
+            [
+              {
+                "type": "strong",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "What you think it means:"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "text": " the interpretation and its limits."
+              }
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "For example, a dataset’s documented collection dates are an observation from a source. Filtering it to a study period is a method. Deciding whether it is suitable for a comparison is an interpretation. Keeping these separate lets a reviewer challenge the decision without losing the underlying information."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Use AI to help structure the note, then check that it has not silently filled missing observations or changed a measurement. Preserve original values alongside any transformed version."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "make-review-part-of-the-contribution",
+          "content": [
+            {
+              "type": "text",
+              "text": "Make review part of the contribution"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Before submitting, reopen the important sources and check them against your final wording. For analysis code, test a small case whose expected result you can calculate separately. Record the inputs and units so another person can repeat the calculation."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Ask a fresh AI run to look for a specific class of error, such as unsupported citations or inconsistent units. Treat that as an additional check and inspect the issues it raises. When the project calls for an independent contributor’s review, follow that requirement as well."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "On LLM.Giving, task results include evidence linked to completion criteria. Research feeds into synthesis and independent review, and corrections can reopen affected work. Read the current task instructions so you return the complete required result."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "what-if-the-answer-is-inconclusive",
+          "content": [
+            {
+              "type": "text",
+              "text": "What if the answer is inconclusive?"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Report what you examined, what the evidence supports, and what remains unresolved. Explain which next observation, source, or analysis would help. For a defined investigation, finding that the available data cannot answer the question can prevent others from repeating the same attempt."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "For example, you might discover that one dataset reports hourly measurements while another supplies daily averages for a different period. Document the mismatch and what would be needed for a valid comparison. Keep missing observations visible so later analysis can handle them explicitly."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "id": "start-with-a-contribution-you-can-explain",
+          "content": [
+            {
+              "type": "text",
+              "text": "Start with a contribution you can explain"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "You do not need a PhD to begin learning a project’s method and contributing within its scope. Some tasks require specialist skills; others reward careful reading, consistent observations, and a willingness to ask precise questions."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Choose work you can explain in your own words. Keep private records out of public AI sessions and research submissions, use materials you have permission to share, and follow the receiving project’s rules."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Read "
+            },
+            {
+              "type": "link",
+              "href": "/about",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "how LLM.Giving works"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": ", then "
+            },
+            {
+              "type": "link",
+              "href": "/research",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "find a research question"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": " whose next task fits your interests. Aim to leave a clear piece of work: a checked source, a documented comparison, a reproducible calculation, or a specific correction."
+            }
+          ]
+        }
+      ],
+      "headings": [
+        {
+          "id": "how-do-citizen-science-and-ai-work-together",
+          "text": "How do citizen science and AI work together?"
+        },
+        {
+          "id": "find-a-project-that-gives-you-a-clear-first-task",
+          "text": "Find a project that gives you a clear first task"
+        },
+        {
+          "id": "use-ai-to-learn-the-method-before-doing-the-work",
+          "text": "Use AI to learn the method before doing the work"
+        },
+        {
+          "id": "work-through-one-bounded-investigation",
+          "text": "Work through one bounded investigation"
+        },
+        {
+          "id": "keep-observations-calculations-and-interpretation-distinct",
+          "text": "Keep observations, calculations, and interpretation distinct"
+        },
+        {
+          "id": "make-review-part-of-the-contribution",
+          "text": "Make review part of the contribution"
+        },
+        {
+          "id": "what-if-the-answer-is-inconclusive",
+          "text": "What if the answer is inconclusive?"
+        },
+        {
+          "id": "start-with-a-contribution-you-can-explain",
+          "text": "Start with a contribution you can explain"
+        }
+      ]
+    }
+  ]
+}

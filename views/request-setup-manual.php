@@ -1,0 +1,3 @@
+<noscript><details><summary>AI help to draft your request</summary><p>Copy this guide into your AI, follow its questions, and enter the final answers in the form. Automatic filling requires JavaScript.</p><textarea data-setup-text readonly rows="10" aria-label="Manual AI setup guide"><?=e($setupConfig['instructions'])?>
+Available categories: <?=e(implode(', ',array_column($setupConfig['categories'],'name')))?>.
+With JavaScript disabled, return a labeled plain-text brief for manual entry instead of JSON. Never include consent, private email or account credentials.</textarea></details></noscript>

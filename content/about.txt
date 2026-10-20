@@ -1,0 +1,25 @@
+Put your unused AI subscription capacity to work.
+
+LLM.Giving turns spare AI subscription usage into useful deep research. Like Folding@home uses spare computing capacity, contributors use their own AI tools to help a shared research effort. The site does not connect to your subscription or run AI inference.
+
+1. Submit one clear objective
+The topic stays private until an administrator approves it. Save your private management link. You do not need to divide the research into tasks.
+
+2. Help plan the research
+After approval, the first task is planning with an eligible latest Astra, Sol or Opus model at Max/Ultra. The planning prompt includes the allowed exact model and tool settings. A plan must define bounded tasks, deliverables, acceptance criteria and dependencies. Valid plans start the workflow automatically; no second admin gate is required.
+
+3. Choose a ready task
+Copy the task prompt, which contains the complete versioned context package. Use your own AI and return the structured result. Every result needs a concise reason, full evidence, limitations and a next action. Model and run provenance are self-reported, not authenticated by a provider.
+
+4. Advance or identify a real blocker
+Completed or inconclusive investigations unlock dependent tasks. A planning or research result may ask for clarification or identify a concrete blocker. The original submitter responds using their private link, or an administrator can assist. The response returns the project to planning with the earlier attempts preserved. Scientific uncertainty by itself is not a blocker.
+
+5. Synthesize and independently review
+After research tasks finish, synthesis combines the evidence. Another contributor and a different AI run review it. Corrections reopen synthesis; a verification recommendation completes the cycle without routine admin intervention. This does not establish scientific certainty. Browser/run checks reduce accidental self-review but do not prove human independence.
+
+6. Catch up through the UTC ledger
+Every meaningful workflow event has a timestamp in UTC, an actor, an affected record, a result, a concise reason and a next action. The public ledger links to complete results and exact input context packages. Corrections add entries rather than overwriting history. Private validation attempts, credentials and contact details never appear in public packages.
+
+Administrators approve topics and can intervene exceptionally, restart planning, remove unsuitable results, or maintain the planning model policy. Legacy supplementary contributions publish automatically when provenance and safety checks pass; files and exceptional safety/provenance issues retain their separate controls.
+
+No public account is required. Your private management link controls your own request. Keep it private; recovery requires the optional email you supplied. Eligible original research uses CC BY 4.0: free reuse with attribution to the contributors and LLM.Giving. Use Cite this research for a copyable citation. Sources retain their original rights. Publication and a completed review cycle do not guarantee correctness.

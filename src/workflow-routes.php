@@ -1,0 +1,59 @@
+<?php
+function wf_route(array $r,string $suffix,string $method): bool {
+    $rid=$r['id'];$base='/research/'.$r['slug'];
+    if(ra_route($r,$suffix,$method)||rc_route($r,$suffix,$method)||rt_route($r,$suffix,$method))return true;
+    if($suffix==='work'){
+        if($method==='POST'){throttle('workflow-review-request',5);if(empty($_POST['terms']))fail(422,'Accept the public-content terms.');wf_request_review($rid,text_field($_POST,'reason',10,500),text_field($_POST,'display_name',0,120));flash('Another independent review is now available.');redirect($base.'/work');}
+        render('workflow',['title'=>'Research tasks','r'=>$r]);return true;
+    }
+    if($suffix==='handoff.md'){wf_send_handoff(wf_issue_handoff($rid));return true;}
+    if(preg_match('~^issued/([a-f0-9]{32})$~',$suffix,$m)){wf_send_handoff(wf_read_handoff($rid,$m[1]));return true;}
+    if($suffix==='agents.md'){header('Content-Type: text/plain; charset=utf-8');echo file_get_contents(ROOT.'/templates/safety.txt')."\n".wf_agent_guide($r);return true;}
+    if($suffix==='ledger'){
+        render('workflow-ledger',['title'=>'UTC activity ledger','r'=>$r,'private'=>false]);return true;
+    }
+    if($suffix==='package.json'){
+        $s=wf_snapshot($rid);header('Content-Type: application/json; charset=utf-8');header('X-Context-ID: '.$s['id']);header('X-Context-SHA256: '.$s['sha256']);echo $s['package_json'];return true;
+    }
+    if(preg_match('~^packages/([a-f0-9]{32})$~',$suffix,$m)){
+        $s=wf_read_snapshot($rid,$m[1]);header('Content-Type: application/json; charset=utf-8');header('X-Context-SHA256: '.$s['sha256']);echo $s['package_json'];return true;
+    }
+    if(preg_match('~^results/([a-f0-9]{32})$~',$suffix,$m)){
+        $result=one("SELECT * FROM workflow_submissions WHERE id=? AND research_id=? AND visibility='public'",[$m[1],$rid])??fail(404,'Result not found.');
+        render('workflow-result',['title'=>'Research task result','r'=>$r,'result'=>$result]);return true;
+    }
+    if(preg_match('~^tasks/([a-f0-9]{32})(/prompt.md)?$~',$suffix,$m)){
+        $t=wf_task($rid,$m[1]);if($t['visibility']!=='public')fail(404,'Task not found.');
+        if(!empty($m[2])){wf_send_handoff(wf_issue_handoff($rid,$t['id']));return true;}
+        $error='';$input='';$checked=false;$repair='';
+        if($method==='POST'){
+            $checkOnly=($_POST['operation']??'')==='check';
+            $jsonCheck=$checkOnly&&str_contains($_SERVER['HTTP_ACCEPT']??'','application/json');
+            throttle($checkOnly?'workflow-check':'workflow-result',$checkOnly?60:(int)setting('submission_limit','12'));
+            try{
+                $input=text_field($_POST,'payload',2,200000);
+                try{$d=json_decode($input,true,32,JSON_THROW_ON_ERROR);}catch(JsonException){fail(422,'The AI output is not valid JSON. Paste only its complete JSON object, without code fences or extra text. Do not edit it yourself; return the repair prompt to your AI.');}
+                if(!is_array($d)||array_is_list($d))fail(422,'The AI must return one complete JSON object.');
+                // Contributor declarations come only from separate form controls, never the AI packet.
+                $d['human_disclosure']=['level'=>$_POST['human_level']??'','details'=>$_POST['human_details']??''];
+                $d['terms']=$checkOnly?1:($_POST['terms']??null);
+                $d['tool_terms']=$checkOnly?1:($_POST['tool_terms']??null);
+                $id=wf_submit($rid,$t['id'],$d,wf_actor(),$checkOnly);
+                if($checkOnly){
+                    $checked=true;
+                    if($jsonCheck){header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode(['ok'=>true,'message'=>'Packet checks passed. Nothing has been submitted. Confirm the terms, then submit the unchanged packet.','influence_review'=>wf_influence($d)['review_status']==='needed']);return true;}
+                }else{flash('Packet recorded. See its acceptance or quarantine status below.');redirect($base.'/results/'.$id);}
+            }catch(HttpError $e){
+                http_response_code($e->status);$error=$e->getMessage();$repair=wf_repair_prompt($r,$t,$error);
+                if($jsonCheck){header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode(['ok'=>false,'message'=>$error,'repair_prompt'=>$repair]);return true;}
+                if(!$checkOnly&&(!isset($d)||!is_array($d)||array_is_list($d))){
+                    insert('workflow_attempts',['id'=>uid(),'research_id'=>$rid,'task_id'=>$t['id'],'payload'=>$input,'reason'=>$error,'created_at'=>now()]);
+                    audit_event($rid,'Submission not accepted',$error,'task',$t['id'],'','No change','Return the repair prompt to your AI.','contributor','Anonymous volunteer',[],'private');
+                }
+            }
+        }
+        $s=wf_snapshot($rid);
+        render('workflow-task',['title'=>$t['title'],'r'=>$r,'task'=>$t,'snapshot'=>$s,'error'=>$error,'input'=>$input,'checked'=>$checked,'repair'=>$repair]);return true;
+    }
+    return false;
+}

@@ -1,0 +1,3 @@
+-- Refresh only the original default marketing copy and preserve administrator customization.
+UPDATE settings SET value='Put your unused AI subscription capacity to work.' WHERE name='home_title' AND value='Put unused AI capacity to good use.';
+UPDATE settings SET value='Use the AI tools you already pay for to tackle useful deep research requests. Choose a brief, investigate with your remaining usage, and share findings with sources and limitations.' WHERE name='home_intro' AND value='Help someone find an answer. Bring your own AI to open research questions, build on what others have learned, and share the results.';

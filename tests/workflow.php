@@ -1,0 +1,130 @@
+<?php
+require __DIR__.'/bootstrap.php';require __DIR__.'/workflow-fixture.php';
+session_start_safe();$_SESSION['admin']=1;$checks=[];$ids=[];
+function wcheck(bool $ok,string $label): void {global $checks;if(!$ok)throw new RuntimeException($label);$checks[]=$label;}
+function wdeny(callable $fn,int $code,string $label): void {try{$fn();}catch(HttpError $e){wcheck($e->status===$code,$label.' ('.$e->getMessage().')');return;}throw new RuntimeException('Expected rejection: '.$label);}
+function wt(string $rid,string $kind): array {foreach(wf_tasks($rid) as $t)if($t['kind']===$kind)return $t;throw new RuntimeException('Missing task');}
+try {
+ $cat=(int)one('SELECT id FROM categories LIMIT 1')['id'];
+ foreach(['primary','foreign'] as $name){$c=create_research(['title'=>'[QA] Workflow '.$name.' '.uid(),'question'=>'A synthetic research objective for local workflow verification.','category_id'=>$cat,'terms'=>1]);$ids[]=$c['id'];}
+ [$rid,$other]=$ids;
+ wdeny(fn()=>wf_snapshot($rid),404,'Pending topic context remains private');
+ wdeny(fn()=>wf_handoff_text($rid),404,'Pending topic handoff remains private');
+ moderate('request',$rid,'Approved','Initial topic approval for disposable workflow test.');
+ moderate('request',$other,'Approved','Initial topic approval for isolation test.');
+ $p=wt($rid,'planning');wf_start($rid);wcheck(count(wf_tasks($rid))===1,'Repeated initialization is idempotent');
+ $agentPrompt=wf_prompt($rid,$p['id']);foreach(wf_policy() as $model){wcheck(str_contains($agentPrompt,$model['model'].': reasoning = '.implode(' or ',$model['efforts'])), 'Task prompt spells out exact model and reasoning: '.$model['model']);}
+ wcheck(str_contains($agentPrompt,'ultra is allowed only with tool = Codex.')&&str_contains($agentPrompt,'THIS IS A PLANNING TASK.'),'Prompt includes mandatory planning and Ultra tool restriction');
+ $guide=wf_agent_guide(research($rid));wcheck(str_contains($guide,'/tasks/'.$p['id'].'/prompt.md')&&str_contains($guide,'/package.json')&&str_contains($guide,'acceptance check'),'Agent guide links the real ready task and required context');
+ $handoff=wf_handoff_text($rid);wcheck(str_contains($handoff,'NEXT READY TASK PROMPT')&&str_contains($handoff,'Task ID: '.$p['id'])&&str_contains($handoff,'REQUIRED OUTPUT JSON'),'Single handoff includes selected ready task and output schema');
+ wcheck(substr_count($handoff,wf_snapshot($rid)['package_json'])===1&&str_contains($handoff,'THIS IS A PLANNING TASK.'),'Handoff includes exact complete context once and mandatory model instructions');
+ $d=wf_test_payload($rid,$p);
+ $beforeCounts=[count(all('SELECT id FROM workflow_submissions WHERE research_id=?',[$rid])),count(wf_ledger($rid,true)),count(all('SELECT id FROM workflow_attempts WHERE research_id=?',[$rid]))];
+ wf_submit($rid,$p['id'],$d,str_repeat('a',64),true);
+ wcheck($beforeCounts===[count(all('SELECT id FROM workflow_submissions WHERE research_id=?',[$rid])),count(wf_ledger($rid,true)),count(all('SELECT id FROM workflow_attempts WHERE research_id=?',[$rid]))]&&wf_task($rid,$p['id'])['state']==='Ready','Check packet validates without publishing, audit mutation or task advancement');
+ $invalid=$d;$invalid['handoff_code']='bad';wdeny(fn()=>wf_submit($rid,$p['id'],$invalid,str_repeat('a',64),true),422,'Check packet uses signed-code validation');
+ wcheck(count(all('SELECT id FROM workflow_attempts WHERE research_id=?',[$rid]))===$beforeCounts[2],'Failed check does not create a submitted attempt');
+ $missing=$d;unset($missing['human_interaction']);wdeny(fn()=>wf_submit($rid,$p['id'],$missing,str_repeat('a',64),true),422,'Missing AI influence disclosure rejected');
+ $missing=$d;unset($missing['human_disclosure']);wdeny(fn()=>wf_submit($rid,$p['id'],$missing,str_repeat('a',64),true),422,'Missing contributor disclosure rejected');
+ $flag=$d;$flag['human_interaction']=['level'=>'influenced','details'=>'A human supplied a preferred scientific conclusion.'];
+ wcheck(wf_influence($flag)['review_status']==='needed','AI influence disclosure independently flags review');
+ $flag=$d;$flag['human_disclosure']=['level'=>'unsure','details'=>'Unsure whether the additional guidance changed the research.'];
+ wcheck(wf_influence($flag)['review_status']==='needed','Contributor uncertainty independently flags review');
+ $repair=$d;$repair['human_interaction']['level']='repair_only';$repair['human_disclosure']['level']='repair_only';
+ wcheck(wf_influence($repair)['review_status']==='not_requested','Format-only repair is disclosed without a substantive influence flag');
+ $influenced=wf_test_payload($rid,$p,'progress');$influenced['human_interaction']=['level'=>'influenced','details'=>'Synthetic additional human research guidance after the original handoff.'];
+ $influenceId=wf_submit($rid,$p['id'],$influenced,str_repeat('a',64));
+ wcheck(json_decode(one('SELECT metadata FROM workflow_submissions WHERE id=?',[$influenceId])['metadata'],true)['human_influence']['review_status']==='needed','Accepted influenced packet retains human-review-needed status');
+ unset($_SESSION['admin']);wdeny(fn()=>wf_review_influence($rid,$influenceId,'Unauthorized attempt to clear a review flag.','approve'),403,'Only administrators can record influence review');$_SESSION['admin']=1;
+ wdeny(fn()=>wf_review_influence($other,$influenceId,'Attempt to clear a foreign research flag.','approve'),404,'Influence review enforces research parent');
+ wf_review_influence($rid,$influenceId,'Synthetic test: reviewed the disclosed input and recorded the assessment.','approve');
+ wcheck(json_decode(one('SELECT metadata FROM workflow_submissions WHERE id=?',[$influenceId])['metadata'],true)['human_influence']['review_status']==='approved','Influence review stored with audit context');
+ wdeny(fn()=>wf_review_influence($rid,$influenceId,'Duplicate attempt to clear the influence flag.','approve'),409,'Repeated influence review rejected');
+ $bad=$d;unset($bad['handoff_code']);wdeny(fn()=>wf_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Missing issued handoff code rejected');
+ $bad=$d;$bad['handoff_code']=str_repeat('0',64);wdeny(fn()=>wf_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Tampered handoff code rejected');
+ $bad=$d;$bad['submission_key']=uid();wdeny(fn()=>wf_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Code binds submission key');
+ $bad=$d;$bad['handoff_code']=wf_test_payload($other,wt($other,'planning'))['handoff_code'];wdeny(fn()=>wf_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Foreign task handoff code rejected');
+ $bad=$d;$bad['metadata']['reasoning']='high';wdeny(fn()=>wf_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Planning rejects low effort');
+ $bad=$d;$bad['metadata']['model']='unknown-model';wdeny(fn()=>wf_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Planning rejects unknown model');
+ $bad=$d;$bad['metadata']['model']='claude-opus-5-5';$bad['metadata']['reasoning']='ultra';wdeny(fn()=>wf_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Opus Ultra is not invented');
+ $bad=$d;$bad['tasks'][0]['dependencies']=['transport'];wdeny(fn()=>wf_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Cycles rejected atomically');
+ wcheck(count(wf_tasks($rid))===1,'Invalid plan leaves no partial tasks');
+ $bad=$d;$bad['tasks'][1]['dependencies']=['foreign'];wdeny(fn()=>wf_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Foreign dependencies rejected');
+ $bad=$d;$bad['context_id']=wf_snapshot($other)['id'];wdeny(fn()=>wf_submit($rid,$p['id'],$bad,str_repeat('a',64)),404,'Cross-project context denied');
+ $bad=$d;$bad['terms']=0;wdeny(fn()=>wf_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Terms required before publication');
+ $oldSnapshot=$d['context_id'];
+ $d['outcome']='needs_clarification';$sid=wf_submit($rid,$p['id'],$d,str_repeat('a',64));
+ wcheck(research($rid)['status']==='Needs Clarification','Clarification pauses all work');
+ wcheck(wf_submit($rid,$p['id'],$d,str_repeat('a',64))===$sid,'Retry is idempotent even after state change');
+ $collision=$d;$collision['reason']='Changed result must never overwrite a previous submission.';wdeny(fn()=>wf_submit($rid,$p['id'],$collision,str_repeat('a',64)),409,'Idempotency key collision cannot overwrite history');
+ $stale=wf_test_payload($rid,$p);wdeny(fn()=>wf_submit($rid,$p['id'],$stale,str_repeat('a',64)),409,'Paused tasks cannot advance');
+ unset($_SESSION['admin']);wdeny(fn()=>wf_resolve($rid,'A useful response with corrected scope.','Clarified the missing scope.','requester',1),403,'Unauthorized clarification denied');$_SESSION['admin']=1;
+ $token=rotate_token($rid);redeem($rid,parse_url($token,PHP_URL_FRAGMENT));
+ wf_resolve($rid,'Use 1,000 metres as the depth threshold and report shallower export separately.','Defined the requested depth threshold.','requester',1);
+ wcheck(research($rid)['status']==='Needs Research Plan'&&wf_project($rid)['round_no']==2,'Submitter response restarts planning without admin approval');
+ wdeny(fn()=>wf_submit($rid,$p['id'],$stale,str_repeat('a',64)),409,'Superseded task rejected');
+ $p=wt($rid,'planning');$d=wf_test_payload($rid,$p);$planId=wf_submit($rid,$p['id'],$d,str_repeat('a',64));
+ wcheck(research($rid)['status']==='Open for Research'&&count(wf_tasks($rid))===5,'Plan automatically creates research synthesis and review tasks');
+ $tasks=wf_tasks($rid);$a=array_values(array_filter($tasks,fn($t)=>$t['task_key']==='exposure'))[0];$b=array_values(array_filter($tasks,fn($t)=>$t['task_key']==='transport'))[0];
+ $controlId=wf_new_task($rid,(int)wf_project($rid)['round_no'],'control','research','Independent control branch','Check an independent evidence branch for selective invalidation.','Document the synthetic control evidence.','Record the control evidence and limitations.');$syn=wt($rid,'synthesis');$deps=json_decode($syn['dependencies'],true);$deps[]=$controlId;query('UPDATE workflow_tasks SET dependencies=? WHERE id=?',[json_encode($deps),$syn['id']]);$controlResult=wf_submit($rid,$controlId,wf_test_payload($rid,wf_task($rid,$controlId)),str_repeat('b',64));
+ wdeny(fn()=>wf_submit($rid,$b['id'],wf_test_payload($rid,$b),str_repeat('b',64)),409,'Waiting dependency cannot be skipped');
+ $valid=wf_test_payload($rid,$a);$bad=$valid;$bad['acceptance_checks']=[];wdeny(fn()=>wf_submit($rid,$a['id'],$bad,str_repeat('b',64)),422,'Missing checks cannot complete work');
+ $bad=$valid;$bad['acceptance_checks'][0]['evidence_quote']='This invented quotation is absent from the evidence.';wdeny(fn()=>wf_submit($rid,$a['id'],$bad,str_repeat('b',64)),422,'Invented evidence pointer rejected');
+ $bad=$valid;$bad['acceptance_checks'][0]['status']='not_met';wdeny(fn()=>wf_submit($rid,$a['id'],$bad,str_repeat('b',64)),422,'Unmet criteria cannot complete work');
+ $bad=$valid;$bad['acceptance_checks'][]=$bad['acceptance_checks'][0];wdeny(fn()=>wf_submit($rid,$a['id'],$bad,str_repeat('b',64)),422,'Duplicate checks rejected');
+ $result=wf_submit($rid,$a['id'],wf_test_payload($rid,$a,'inconclusive'),str_repeat('b',64));
+ wcheck(wf_task($rid,$b['id'])['state']==='Ready','Inconclusive evidence counts as a documented task result');
+ $b=wf_task($rid,$b['id']);wf_submit($rid,$b['id'],wf_test_payload($rid,$b),str_repeat('b',64));
+ wcheck(research($rid)['status']==='Synthesis','Research completion unlocks synthesis');
+ $s=wt($rid,'synthesis');$sd=wf_test_payload($rid,$s);wf_submit($rid,$s['id'],$sd,str_repeat('b',64));
+ $review=wt($rid,'review');$rd=wf_test_payload($rid,$review,'verified');
+ wdeny(fn()=>wf_submit($rid,$review['id'],$rd,str_repeat('b',64)),422,'Same browser cannot independently review synthesis');
+ $same=$rd;$same['metadata']['run_id']=$sd['metadata']['run_id'];wdeny(fn()=>wf_submit($rid,$review['id'],$same,str_repeat('c',64)),422,'Same AI run cannot independently review itself');
+ $rd=wf_test_payload($rid,$review,'needs_correction');wf_submit($rid,$review['id'],$rd,str_repeat('c',64));
+ wcheck(research($rid)['status']==='Synthesis'&&wt($rid,'synthesis')['revision']==2,'Correction reopens synthesis and preserves old outputs');
+ $s=wt($rid,'synthesis');$old=$sd;$old['submission_key']=uid();wdeny(fn()=>wf_submit($rid,$s['id'],$old,str_repeat('b',64)),409,'Outdated revision rejected');
+ $missingResponse=wf_test_payload($rid,$s);unset($missingResponse['acceptance_checks'][0]['correction_response']);wdeny(fn()=>wf_submit($rid,$s['id'],$missingResponse,str_repeat('b',64)),422,'Revision must explicitly address correction');
+ wf_submit($rid,$s['id'],wf_test_payload($rid,$s),str_repeat('b',64));
+ $review=wt($rid,'review');wf_submit($rid,$review['id'],wf_test_payload($rid,$review,'verified'),str_repeat('c',64));
+ wcheck(research($rid)['status']==='Review Complete','Independent result finishes cycle without administrator action');
+ $doneHandoff=wf_handoff_text($rid);wcheck(str_contains($doneHandoff,'NO READY TASK')&&str_contains($doneHandoff,'/work#request-review')&&!str_contains($doneHandoff,'REQUIRED OUTPUT JSON')&&str_contains($doneHandoff,wf_snapshot($rid)['package_json']),'Completed handoff explains human next action with full context and no closed-task schema');
+ wf_request_review($rid,'New evidence merits another independent verification.','Another volunteer');wcheck(research($rid)['status']==='Independent Verification','Additional review reopens autonomously');
+ $extra=array_values(array_filter(wf_tasks($rid),fn($x)=>$x['kind']==='review'&&$x['state']==='Ready'))[0];$correct=wf_test_payload($rid,$extra,'needs_correction');$a=wf_task($rid,$a['id']);$correct['corrections'][0]['task_id']=$a['id'];$correct['corrections'][0]['result_id']=$a['accepted_id'];
+ $bad=$correct;$bad['corrections'][0]['result_id']=uid();wdeny(fn()=>wf_submit($rid,$extra['id'],$bad,str_repeat('c',64)),422,'Stale correction result rejected');
+ $bad=$correct;$bad['corrections'][0]['task_id']=wt($other,'planning')['id'];wdeny(fn()=>wf_submit($rid,$extra['id'],$bad,str_repeat('c',64)),404,'Foreign correction target rejected');
+ wf_submit($rid,$extra['id'],$correct,str_repeat('c',64));
+ wcheck(wf_task($rid,$a['id'])['state']==='Ready'&&wf_task($rid,$b['id'])['state']==='Waiting'&&wt($rid,'synthesis')['accepted_id']===null,'Upstream correction invalidates every dependent result');
+ wcheck(wt($rid,'planning')['state']==='Completed'&&research($rid)['status']==='Open for Research','Unaffected planning preserved and old verification no longer completes project');
+ wcheck(wf_task($rid,$controlId)['accepted_id']===$controlResult&&wf_task($rid,$controlId)['revision']==1,'Unrelated completed research branch retains accepted result and revision');
+ wcheck(wf_findings($rid)===null,'Stale synthesis is excluded from findings');
+ $ctx=context_data($rid);wcheck(count($ctx['workflow']['submissions'])>=7&&count($ctx['workflow']['clarifications'])===1,'Full context contains complete history and clarification');
+ wcheck(!str_contains(json_encode($ctx),'actor_hash')&&!str_contains(json_encode($ctx),'payload_hash'),'Private provenance capabilities excluded');
+ $snap=wf_read_snapshot($rid,$oldSnapshot);wcheck(hash('sha256',$snap['package_json'])===$snap['sha256'],'Historical snapshot hash is stable');
+ wcheck(!str_contains($snap['package_json'],'Use 1,000 metres as the depth threshold'),'Old snapshot retains exact earlier context');
+ $assessmentResult=one('SELECT * FROM workflow_submissions WHERE id=?',[$planId]);
+ $historicalTasks=wf_assessment_tasks($assessmentResult);
+ wcheck(isset($historicalTasks[$assessmentResult['task_id']])&&str_contains($historicalTasks[$assessmentResult['task_id']]['acceptance'],'Max/Ultra'),'Readable acceptance comes from original public context');
+ $reading=wf_findings_overview(['body'=>"A bounded conclusion.\n\nBuilding findings (source S1). Lower cooling demand was measured. Local uncertainty remains.\n\nLimits. No health outcome was measured.",'reason'=>'Fallback']);
+ wcheck($reading['summary']==='A bounded conclusion.'&&$reading['takeaways'][0]['title']==='Building findings'&&$reading['takeaways'][1]['text']==='No health outcome was measured.','Summary and takeaways retain authored sentences and limitations');
+ $eid=one('SELECT id FROM audit_events WHERE research_id=? LIMIT 1',[$rid])['id'];
+ try{query('UPDATE audit_events SET reason=? WHERE id=?',['rewrite',$eid]);throw new RuntimeException('Ledger mutable');}catch(PDOException){wcheck(true,'Database rejects ledger edits');}
+ try{query('DELETE FROM audit_events WHERE id=?',[$eid]);throw new RuntimeException('Ledger deletable');}catch(PDOException){wcheck(true,'Database rejects ledger deletion');}
+ wcheck(count(all('SELECT id FROM workflow_attempts WHERE research_id=?',[$rid]))>=10,'Failed attempts retained privately with reasons');
+ wf_remove_result($rid,$planId,'Remove synthetic planning evidence for visibility regression.');
+ wdeny(fn()=>wf_read_snapshot($rid,$oldSnapshot),404,'Removed source revokes old public packages');
+ wcheck(wf_assessment_tasks($assessmentResult)===[],'Readable criteria do not expose revoked context');
+ wcheck(!str_contains(json_encode(wf_public_data($rid)),$planId),'Removed plan content and result reference excluded from public package');
+ wcheck(wf_read_snapshot($rid,$oldSnapshot,true)['sha256']===$snap['sha256'],'Administrator retains exact historical package');
+ $p=wt($rid,'planning');wf_submit($rid,$p['id'],wf_test_payload($rid,$p,'blocked'),str_repeat('a',64));wcheck(research($rid)['status']==='Blocked','Blocker outcome pauses planning');
+ wcheck(str_contains(wf_handoff_text($rid),'original submitter can respond')&&wf_handoff_next(research($rid))===null,'Blocked handoff asks for resolution rather than assigning work');
+ wf_resolve($rid,'The missing material is now available in the clarified scope.','Administrator supplied the missing scope.','administrator',(int)wf_project($rid)['round_no']);
+ wcheck(research($rid)['status']==='Needs Research Plan','Admin can assist with blocker response');
+ moderate('request',$rid,'Removed','Parent isolation test.');wdeny(fn()=>wf_public_data($rid),404,'All workflow context inherits parent visibility');
+ $backup=create_backup();$sql=file_get_contents(storage('backups/'.$backup['name']));wcheck(str_contains($sql,'workflow_snapshots')&&str_contains($sql,'workflow_submissions')&&str_contains($sql,'audit_events_no_update'),'Backup includes workflow records and audit protection triggers');
+ foreach(all("SHOW FULL TABLES WHERE Table_type = 'BASE TABLE'") as $table) {
+  $name=array_values($table)[0];wcheck(str_contains($sql,'CREATE TABLE `'.$name.'`'),'Backup includes table '.$name);
+ }
+ wcheck(str_contains($sql,'SET NAMES utf8mb4;')&&!str_contains($sql,'DEFINER='),'Backup preserves Unicode and does not retain source account definers');
+ echo count($checks)." workflow checks passed.\n";
+ file_put_contents(storage('qa/workflow-integration.json'),json_encode($checks,JSON_PRETTY_PRINT));
+} finally {foreach($ids as $id)if(one('SELECT id FROM research WHERE id=?',[$id]))purge_request($id,$id);}

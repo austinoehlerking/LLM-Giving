@@ -1,0 +1,20 @@
+{
+  "name": "llm-giving-local-tools",
+  "private": true,
+  "description": "Development and QA tools for the server-rendered LLM.Giving application",
+  "type": "module",
+  "engines": {
+    "node": ">=22.16.0"
+  },
+  "scripts": {
+    "dev": "node tools/dev.mjs start",
+    "setup": "node tools/dev.mjs setup",
+    "test": "node tools/check.mjs",
+    "check:source": "node tools/source-check.mjs",
+    "qa": "node tools/qa.mjs",
+    "qa:all": "node tools/qa-all.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.0"
+  }
+}

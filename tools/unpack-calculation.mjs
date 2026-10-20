@@ -1,0 +1,10 @@
+// Extract inert files only; never execute bundle content.
+import {fileURLToPath} from 'node:url';
+import fs from 'node:fs';import path from 'node:path';import {createHash} from 'node:crypto';
+export function unpack(bundle,destination){
+ if(bundle.format!=='llm-giving-calculation-v1'||!Array.isArray(bundle.calculation?.files)||bundle.calculation.files.length>8)throw Error('Unsupported calculation bundle.');
+ const target=path.resolve(destination);if(fs.existsSync(target))throw Error('Output directory already exists; choose a new directory.');
+ const names=new Set();let bytes=0;for(const file of bundle.calculation.files){if(typeof file.name!=='string'||!(/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,79}$/).test(file.name)||file.name.includes('..')||file.name.endsWith('.')||/^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\.|$)/i.test(file.name)||names.has(file.name.toLowerCase()))throw Error('Unsafe or duplicate filename.');names.add(file.name.toLowerCase());if(typeof file.content!=='string'||Buffer.byteLength(file.content)>30000||file.content.includes('\0'))throw Error('Invalid file content.');bytes+=Buffer.byteLength(file.content);if(bytes>100000||createHash('sha256').update(file.content,'utf8').digest('hex')!==file.sha256)throw Error('Bundle checksum or size validation failed.');}
+ fs.mkdirSync(target,{recursive:true});for(const file of bundle.calculation.files)fs.writeFileSync(path.join(target,file.name),file.content,{flag:'wx'});return bundle.calculation.files.map(f=>({name:f.name,sha256:f.sha256}));
+}
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){try{const [file,directory]=process.argv.slice(2);if(!file||!directory)throw Error('Usage: node tools/unpack-calculation.mjs bundle.json path/to/new-directory');console.log(JSON.stringify({files:unpack(JSON.parse(fs.readFileSync(file,'utf8')),directory),notice:'No code was run. Inspect extracted code and commands before executing locally.'},null,2));}catch(error){console.error(error.message);process.exitCode=1;}}

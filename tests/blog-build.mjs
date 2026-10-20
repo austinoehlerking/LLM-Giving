@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {inline,compileMarkdown,compileCatalogue} from '../tools/build-blog.mjs';
+const catalog=JSON.parse(fs.readFileSync('content/blog-drafts/articles.json','utf8'));
+const posts=compileCatalogue(catalog,file=>fs.readFileSync(file,'utf8')).posts;
+assert.equal(posts.length,4);
+assert.ok(posts.every(post=>post.blocks.length>15&&post.headings.length>5));
+const example=compileMarkdown('# Test\n\n## Repeat\n\nText **bold** and [source](https://example.org).\n\n## Repeat\n\n- One\n- Two\n\n> Quoted example\n\n| Name | Value |\n| --- | --- |\n| A | B |','Test');
+assert.deepEqual(example.headings.map(h=>h.id),['repeat','repeat-2']);
+assert.ok(example.blocks.some(b=>b.type==='table')&&example.blocks.some(b=>b.type==='quote')&&example.blocks.some(b=>b.type==='list'));
+for(const href of ['javascript:alert','//example.org','https://user:pass@example.org','http://example.org','/admin'])assert.throws(()=>inline('[unsafe]('+href+')'));
+assert.equal(inline('<script>alert(1)</script>')[0].type,'text');
+assert.throws(()=>compileCatalogue({articles:[{...catalog.articles[0],source:'../../.env'}]},()=>''));
+const draft={...catalog.articles[0],status:'draft'};
+assert.equal(compileCatalogue({articles:[draft]},()=>{throw new Error('Draft source must not be read');}).posts.length,0);
+assert.throws(()=>compileCatalogue({articles:[catalog.articles[0],catalog.articles[0]]},file=>fs.readFileSync(file,'utf8')));
+console.log('Blog compiler checks passed: published selection, draft isolation, source boundaries, supported formatting and unsafe links.');

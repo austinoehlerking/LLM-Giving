@@ -1,0 +1,20 @@
+{
+  "format": "llm-giving-climate-input-v1",
+  "source": {
+    "title": "LaHue et al. 2016: alternate wetting and drying",
+    "url": "https://linquist.ucdavis.edu/sites/g/files/dgvnsk6581/files/inline-files/LaHue-et-al.-2016-AEE.pdf",
+    "locator": "Table 3 annual 2013 WS-C and WS-AWD; Table 2 paired 2013 grain yields; section 2.7 factors",
+    "scope": "Rounded published treatment means. Annual gas budgets, yield at 14% moisture. No new field observations or inferential statistics."
+  },
+  "factors": {"label":"source-paper GWP100 (34/298)","ch4":34,"n2o":298},
+  "quantities": [
+    {"id":"control_ch4_c","value":139,"unit":"kg CH4-C/ha/year"},
+    {"id":"control_n2o_n","value":0.103,"unit":"kg N2O-N/ha/year"},
+    {"id":"awd_ch4_c","value":60.8,"unit":"kg CH4-C/ha/year"},
+    {"id":"awd_n2o_n","value":0.161,"unit":"kg N2O-N/ha/year"},
+    {"id":"control_yield","value":10700,"unit":"kg grain/ha"},
+    {"id":"awd_yield","value":10100,"unit":"kg grain/ha"},
+    {"id":"control_published","value":6354,"unit":"kg CO2e/ha/year"},
+    {"id":"awd_published","value":2835,"unit":"kg CO2e/ha/year"}
+  ]
+}

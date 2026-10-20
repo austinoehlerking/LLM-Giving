@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const field={source:'LaHue2016 Table3 annual2013; Table2 same treatment-year grain at14%moisture',control:{ch4_C:139,n2o_N:0.103,yield_kg:10700,published_co2e:6354},awd:{ch4_C:60.8,n2o_N:0.161,yield_kg:10100,published_co2e:2835}};
+const factors={paper_AR5_100:{ch4:34,n2o:298},original_AR6_100:{ch4:27,n2o:273},original_AR6_20:{ch4:79.7,n2o:273},corrected_AR6_100:{ch4:25.3,n2o:267},corrected_AR6_20:{ch4:74.7,n2o:267}};
+const total=(x,f)=>x.ch4_C*(16/12)*f.ch4+x.n2o_N*(44/28)*f.n2o;
+const results=Object.entries(factors).map(([basis,f])=>{const c=total(field.control,f),a=total(field.awd,f);return {basis,control_kgCO2e_ha:c,awd_kgCO2e_ha:a,delta_awd_minus_control:a-c,reduction_percent:100*(1-a/c),control_kgCO2e_kg_grain:c/field.control.yield_kg,awd_kgCO2e_kg_grain:a/field.awd.yield_kg,break_even_N2O_per_CH4:f.ch4/f.n2o};});
+const reproduce=results[0];assert.ok(Math.abs(reproduce.control_kgCO2e_ha-field.control.published_co2e)/field.control.published_co2e<0.005);assert.ok(Math.abs(reproduce.awd_kgCO2e_ha-field.awd.published_co2e)/field.awd.published_co2e<0.005);
+const illustrative=[5,10,15].map(addedN2O=>({avoidedCH4_kg:100,addedN2O_kg:addedN2O,delta100:-100*25.3+addedN2O*267,delta20:-100*74.7+addedN2O*267}));
+assert.ok(illustrative[0].delta100<0&&illustrative[1].delta100>0);
+const loss=100*(1-field.awd.yield_kg/field.control.yield_kg);
+const report={field,factors,results,illustrative,yield_loss_percent:loss,yield_scenarios:[2,5,10].map(delta=>({allowed_loss_percent:delta,point_estimate_passes:loss<=delta,inference:'No non-inferiority claim: paired covariance and chosen confidence rule missing'})),limitations:'Arithmetic reproduction from rounded published means, not independent field replication. No confidence interval or probability is computed. AR6 originals and2025errata labeled separately; annual emissions assigned to the corresponding single rice harvest, not the paper growing-season intensity. Unknown broader lifecycle terms are not zero.',utc:new Date().toISOString()};
+fs.writeFileSync(new URL('../storage/research/climate-awd/calculations.json',import.meta.url),JSON.stringify(report,null,2));
+console.log(JSON.stringify(report,null,2));

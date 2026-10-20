@@ -1,0 +1,19 @@
+/** One catalogue shared by the single-suite and complete-suite runners. */
+export const qaReports = Object.freeze({
+  viewport: 'viewport-report.json',
+  full: 'browser-report.json',
+  library: 'library-report.json',
+  blog: 'blog-report.json',
+  submission: 'submission-ux-report.json',
+  workflow: 'workflow-browser-report.json',
+  artifacts: 'artifacts/browser-report.json',
+  quarantine: 'quarantine-browser-report.json',
+  handoffs: 'handoff-browser-report.json',
+  launch: 'launch-browser-report.json',
+  legal: 'legal-browser-report.json',
+  citations: 'citations/browser-report.json',
+  requirements: 'ai-requirements/browser-report.json',
+  setup: 'setup-assist/browser-report.json',
+  tools: 'tool-builds/browser-report.json',
+  calculations: 'calculations/browser-report.json',
+});

@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+/storage/
+/node_modules/
+*.safe-edit-*.tmp
+*.codex-safe-edit-*.tmp
+*.codex-safe-edit-*.bak

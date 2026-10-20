@@ -1,0 +1,52 @@
+// Repo-owned local HTTP end-to-end fallback. Uses real routes, CSRF and separate sessions.
+import {unpack} from './unpack-calculation.mjs';
+import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {spawnSync} from 'node:child_process';import {createHash,randomBytes} from 'node:crypto';import {root,env,spawnPhp,runPhp,ready} from './runtime.mjs';
+const preparation=spawnSync(process.execPath,['tests/calculation-model.mjs'],{env,encoding:'utf8',windowsHide:true});assert.equal(preparation.status,0,preparation.stdout+preparation.stderr);
+const base='http://127.0.0.1:8089',out=path.join(root,'storage/qa/calculations');fs.mkdirSync(out,{recursive:true});
+const server=spawnPhp(['-S','127.0.0.1:8089','-t','public','public/router.php'],{APP_URL:base,RATE_LIMIT_NAMESPACE:'calculation-pilot-'+randomBytes(8).toString('hex')});
+const checks=[];const check=(label,ok)=>{assert.ok(ok,label);checks.push(label);};const hash=text=>createHash('sha256').update(text,'utf8').digest('hex');
+class Session{
+ jar=new Map();
+ async request(route,fields){const response=await fetch(base+route,{method:fields?'POST':'GET',body:fields?new URLSearchParams(fields):undefined,headers:{Cookie:[...this.jar].map(([k,v])=>k+'='+v).join('; '),...(fields?{'Content-Type':'application/x-www-form-urlencoded'}:{})},redirect:'manual'});for(const raw of response.headers.getSetCookie()){const [k,v]=raw.split(';')[0].split('=');this.jar.set(k,v);}return response;}
+ async get(route){const response=await this.request(route);assert.equal(response.status,200,'GET '+route);return response.text();}
+ async post(route,fields){const html=await this.get(route);const csrf=html.match(/name="csrf" value="([^"]+)"/)[1];return this.request(route,{...fields,csrf});}
+}
+const volunteer=new Session(),second=new Session(),reviewer=new Session(),admin=new Session();let identity;const urls={};
+try{
+ await ready(base+'/',server);
+ const password=randomBytes(24).toString('hex');runPhp(['bin/console.php','admin','calculation-pilot@example.invalid'],password);
+ const login=await admin.post('/admin/login',{email:'calculation-pilot@example.invalid',password});check('Temporary QA administrator signs in through the real route',login.status===303);
+ const html=await volunteer.get('/submit');const category=html.match(/<option value="([0-9]+)"[^>]*>Environment &amp; Climate<\/option>/)[1];
+ const created=await volunteer.post('/submit',{title:'[Pilot] Climate calculation — reproducibility, interruption and units '+randomBytes(3).toString('hex'),question:'Reproduce our existing climate research arithmetic from LaHue 2016, retaining files, explicit unit conversions, a resumable checkpoint and an independent reproduction. This is a software/workflow pilot; it creates no new field evidence.',context:'Uses our existing climate-awd research and rounded source means. No real AI provenance is claimed by the software-test packets.',category_id:category,computational_models:'1',terms:'1'});const receipt=await created.text();assert.equal(created.status,200);identity=receipt.match(/\/manage\/([a-f0-9]{32})#/)[1];
+ check('Real request POST retains the computational-model checkbox',receipt.includes('Research request submitted'));
+ const pending=await second.request('/research/'+identity+'/context.json');check('Pending pilot stays private',pending.status===404);
+ const moderationHtml=await admin.get('/admin/research/'+identity);const csrf=moderationHtml.match(/name="csrf" value="([^"]+)"/)[1];const moderation=await admin.request('/admin/moderate',{csrf,type:'request',id:identity,state:'Approved',reason:'Approve this local, clearly labeled calculation workflow pilot.'});check('Initial moderation uses the existing admin controls',moderation.status===303);
+ const data=async()=>JSON.parse(await volunteer.get('/research/'+identity+'/context.json'));const initial=await data();const route='/research/'+initial.research.slug;urls.research=route;check('Opt-in survives approval and public context',initial.research.computational_models===true);
+ const task=async kind=>(await data()).workflow.tasks.find(t=>t.kind===kind&&t.state==='Ready');
+ const packet=(action,t,resume='')=>JSON.parse(runPhp(['tests/calculation-state.php',action,identity,t.id,resume]));
+ async function submit(session,t,d){const response=await session.post(route+'/tasks/'+t.id,{payload:JSON.stringify(d),human_level:'none',operation:'submit',terms:'1'});const text=await response.text();assert.equal(response.status,303,text);const location=response.headers.get('location');assert.match(location,/\/results\//);const result=await session.get(location);check('Recorded result receipt: '+d.outcome,result.includes('Submission accepted'));return {id:location.split('/').pop(),url:location};}
+ const plan=await task('planning');await submit(volunteer,plan,packet('plan',plan));let research=await task('research');urls.task=route+'/tasks/'+research.id;
+ const baseline=packet('baseline',research);const progress=await submit(volunteer,research,baseline);urls.progress=progress.url;
+ const bundleUrl=progress.url+'/calculations/climate/bundle.json';const bundleResponse=await second.request(bundleUrl);check('A separate session can download accepted checkpoint files',bundleResponse.status===200&&bundleResponse.headers.get('content-disposition').includes('attachment'));
+ const bundle=await bundleResponse.json(),retained=path.join(out,'retained',identity);
+ for(const file of bundle.calculation.files){assert.equal(hash(file.content),file.sha256);if(file.role==='code')assert.equal(file.content,fs.readFileSync(path.join(root,'tools/climate-model.mjs'),'utf8'));if(file.role==='input')assert.equal(file.content,fs.readFileSync(path.join(root,'tests/fixtures/climate-input.json'),'utf8'));assert.match(file.name,/^(inputs\.json|model\.mjs|outputs\.json|checkpoint\.json)$/);}
+ unpack(bundle,retained);fs.writeFileSync(path.join(out,'downloaded-bundle.json'),JSON.stringify(bundle,null,2));
+ check('HTTP bundle preserves exact owned code and original input bytes',bundle.calculation.files.length===4);
+ const archivedModel=path.join(retained,'model.mjs');const run=(args)=>{const r=spawnSync(process.execPath,[archivedModel,...args],{env,encoding:'utf8',windowsHide:true});assert.equal(r.status,0,r.stderr);return r;};
+ const freshPrompt=await second.get(route+'/tasks/'+research.id+'/prompt.md');check('Fresh handoff explicitly resumes the archived progress result',freshPrompt.includes('RESUME ACCEPTED CHECKPOINT: '+progress.id)&&freshPrompt.includes(bundle.calculation.files[0].sha256));
+ const completeDir=path.join(root,'storage/research/calculation-pilot/complete');run(['--input',path.join(retained,'inputs.json'),'--resume',path.join(retained,'checkpoint.json'),'--out',completeDir]);check('A fresh process resumes from the actual downloaded bundle',JSON.parse(fs.readFileSync(path.join(completeDir,'outputs.json'))).phase==='complete');
+ const complete=packet('complete',research,progress.id);complete.evidence.calculations[0].command='node '+archivedModel+' --input '+path.join(retained,'inputs.json')+' --resume '+path.join(retained,'checkpoint.json')+' --out '+completeDir;const bad=structuredClone(complete);bad.evidence.calculations[0].outputs[0].value/=1000;
+ const taskPath=route+'/tasks/'+research.id;const csrfTask=(await second.get(taskPath)).match(/name="csrf" value="([^"]+)"/)[1];const rejected=await second.request(taskPath,{csrf:csrfTask,payload:JSON.stringify(bad),human_level:'none',operation:'check'});const errorText=await rejected.text();check('Real form packet check catches injected kilogram/gram error',rejected.status===422&&errorText.includes('Unit error'));check('Rejected check leaves research ready and preserves progress',(await task('research')).accepted_id===null);
+ fs.writeFileSync(path.join(out,'unit-error-packet.json'),JSON.stringify(bad,null,2));
+ const resumed=await submit(second,research,complete);urls.completed=resumed.url;
+ let synthesis=await task('synthesis');await submit(volunteer,synthesis,packet('synthesis',synthesis));let review=await task('review');const correction=await submit(reviewer,review,packet('correction',review));urls.correction=correction.url;check('Independent correction reopens computation and invalidates synthesis',(await task('research')).revision===2&&(await data()).workflow.tasks.find(t=>t.kind==='synthesis').state==='Waiting');
+ check('Superseded bundle is revoked',(await second.request(resumed.url+'/calculations/climate/bundle.json')).status===404);
+ research=await task('research');const fixed=await submit(second,research,packet('complete',research));urls.completed=fixed.url;urls.task=route+'/tasks/'+research.id;
+ synthesis=await task('synthesis');await submit(volunteer,synthesis,packet('synthesis',synthesis));
+ run(['--input',path.join(retained,'inputs.json'),'--out',path.join(root,'storage/research/calculation-pilot/independent')]);review=await task('review');const verified=await submit(reviewer,review,packet('review',review));urls.review=verified.url;
+ check('Full corrected and independently reproduced cycle reaches Review Complete',(await data()).research.status==='Review Complete');
+ const original=JSON.parse(fs.readFileSync(path.join(completeDir,'outputs.json'))),rerun=JSON.parse(fs.readFileSync(path.join(root,'storage/research/calculation-pilot/independent/outputs.json')));check('Independent archived-code run agrees with resumed outputs',JSON.stringify(original)===JSON.stringify(rerun));
+ const csrfMissing=await second.request(urls.task,{payload:JSON.stringify(complete),operation:'submit',human_level:'none',terms:'1'});check('End-to-end mutations still require CSRF',csrfMissing.status===403);
+ const checkpointDemo=JSON.parse(runPhp(['tests/calculation-state.php','checkpoint-demo']));urls.checkpoint=checkpointDemo.url;
+ fs.writeFileSync(path.join(out,'http-report.json'),JSON.stringify({research_id:identity,base,urls,checks,notice:'Actual local calculations and HTTP form routes. Workflow-test AI metadata is synthetic. This is arithmetic reproduction, not field replication.'},null,2));console.log(checks.length+' HTTP calculation pilot checks passed. Retained local pilot: '+urls.research);
+}finally{server.kill();runPhp(['-r','require "src/bootstrap.php"; query("DELETE FROM admins WHERE email=?",["calculation-pilot@example.invalid"]);']);}

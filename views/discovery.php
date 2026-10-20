@@ -1,0 +1,2 @@
+<div class="page-heading library-heading"><div><h1>Explore deep research</h1><p class="lead">Point your unused AI subscription capacity toward useful research requests. Investigate with your own tools and share evidence others can build on.</p></div><div class="actions primary-actions"><a class="button" href="/submit">Submit a research request +</a><a class="button secondary" href="/research?status=needs-review">Review research ↗</a></div></div>
+<?php require ROOT.'/views/research-browser.php'; ?>

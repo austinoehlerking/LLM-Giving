@@ -1,0 +1,17 @@
+import fs from 'node:fs';import path from 'node:path';import {root} from '../tools/runtime.mjs';
+export async function legalQa({page,base,runPhp,check,visibleActions,password}){
+ const out=path.join(root,'storage/qa/legal');fs.mkdirSync(out,{recursive:true});const shots=[];
+ const shot=async name=>{await page.screenshot({path:path.join(out,name+'.png')});shots.push(name+'.png');};
+ for(const size of [{width:1366,height:768},{width:390,height:844},{width:375,height:667}]){
+  await page.setViewportSize(size);await page.goto(base+'/legal/terms');await shot('terms-'+size.width);await visibleActions(page,'.legal .button','Policy contact '+size.width);
+  check('Operator details '+size.width,(await page.locator('article').innerText()).includes('United States'));check('Contact address '+size.width,await page.getByRole('link',{name:'info@llm.giving',exact:true}).getAttribute('href')==='mailto:info@llm.giving');
+ }
+ for(const name of ['privacy','licensing','moderation','copyright']){await page.setViewportSize({width:1366,height:768});await page.goto(base+'/legal/'+name);await shot(name);check(name+' current policy version',(await page.locator('article').innerText()).includes('Policy version: policy-'));}
+ check('No invented GitHub link',await page.getByRole('link',{name:'View application source code'}).count()===0);
+ await page.goto(base+'/contact');await shot('contact');check('Contact page routes correctly',(await page.locator('h1').innerText())==='Contact LLM.Giving');
+ runPhp(['bin/console.php','admin','legal-qa@example.invalid'],password);await page.goto(base+'/admin/login');await page.getByLabel('Email').fill('legal-qa@example.invalid');await page.getByLabel('Password').fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ for(const size of [{width:1366,height:768},{width:390,height:844},{width:375,height:667}]){await page.setViewportSize(size);await page.goto(base+'/admin/operator');await shot('operator-'+size.width);await visibleActions(page,'button:not(.link-button)','Operator save '+size.width);}
+ await page.getByRole('button',{name:'Save public details',exact:true}).click();check('Operator settings save successfully',await page.getByText('Public operator details saved.',{exact:true}).isVisible());
+ await page.setViewportSize({width:683,height:384});await page.goto(base+'/legal/privacy');await page.evaluate(()=>document.body.style.fontSize='200%');check('Policy enlarged text reflows',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await shot('privacy-enlarged');
+ fs.writeFileSync(path.join(out,'index.html'),'<meta charset="utf-8"><title>Policy pages</title><style>body{background:#14202a;color:white;font:16px system-ui}img{max-width:100%}section{margin:2rem}</style><h1>Operator and policy pages</h1>'+shots.map(s=>'<section><h2>'+s+'</h2><img src="'+s+'"></section>').join(''));
+}

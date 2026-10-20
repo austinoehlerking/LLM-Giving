@@ -1,0 +1,2 @@
+ALTER TABLE research ADD COLUMN computational_models TINYINT NOT NULL DEFAULT 0;
+ALTER TABLE workflow_tasks ADD COLUMN computational TINYINT NOT NULL DEFAULT 0;

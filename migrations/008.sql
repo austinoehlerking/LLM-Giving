@@ -1,0 +1,2 @@
+ALTER TABLE workflow_submissions MODIFY COLUMN metadata MEDIUMTEXT NOT NULL;
+ALTER TABLE audit_events MODIFY COLUMN metadata MEDIUMTEXT NOT NULL;

@@ -1,0 +1,3 @@
+<?php $toolBrief=rt_brief($r); if(rt_is_tool($r)): ?>
+<details class="research-disclosure tool-requirements" open><summary>Build a research tool · requirements</summary><p class="fine">Original source and tests: <?=e(RT_LICENSE)?>. Research narrative: CC BY 4.0. Experimental until independently reviewed; review completion is not scientific certification.</p><?php foreach(RT_FIELDS as $key=>$label): ?><h3><?=e($label)?></h3><?=prose($toolBrief[$key]??'Not supplied')?><?php endforeach ?></details>
+<?php endif ?>

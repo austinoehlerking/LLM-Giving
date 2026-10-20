@@ -1,0 +1,32 @@
+services:
+  db:
+    image: mariadb:11.4
+    command: ['--max-allowed-packet=32M']
+    environment:
+      MARIADB_DATABASE: llm_giving
+      MARIADB_USER: llm_giving
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Set a local DB_PASSWORD in .env}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set a local DB_ROOT_PASSWORD in .env}
+    volumes:
+      - ./storage/docker-db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      retries: 15
+  app:
+    build: .
+    ports: ["127.0.0.1:8086:80"]
+    environment:
+      APP_ENV: local
+      APP_URL: http://127.0.0.1:8086
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: llm_giving
+      DB_USER: llm_giving
+      DB_PASSWORD: ${DB_PASSWORD}
+      MAIL_DRIVER: file
+    volumes:
+      - ./storage/docker-app:/var/www/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
