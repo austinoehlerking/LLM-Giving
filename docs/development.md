@@ -1,6 +1,6 @@
 # Development guide
 
-The production application uses PHP and MariaDB/MySQL. Node 22.16+ is used only for local development, editorial compilation, deterministic editing and QA. Start with the setup routes in [README](../README.md). Use a dedicated local database: tests exercise moderation, recovery, deletion and backups, and some suites retain labeled fixtures.
+The production application uses PHP and MariaDB/MySQL. Node 22.16+ is used only for local development, editorial compilation, deterministic editing and QA. Start with [local setup and testing](local-setup.md). Use a dedicated local database: tests exercise moderation, recovery, deletion and backups, and some suites retain labeled fixtures.
 
 ## Repository map
 
