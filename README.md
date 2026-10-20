@@ -8,6 +8,10 @@ Built by [Austin Oehlerking](https://github.com/austinoehlerking). Contact: [aus
 
 [Website](https://llm.giving) · [Architecture](docs/architecture.md) · [Development](docs/development.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 
+![LLM.Giving production homepage](docs/assets/llm-giving-home.jpg)
+
+[Launch verification](docs/launch-2026-10-20.md) · Live on SiteGround with HTTPS.
+
 ## How it works
 
 1. **Ask a useful question.** Submit a research brief, optionally describing a tool to build or calculations to reproduce.

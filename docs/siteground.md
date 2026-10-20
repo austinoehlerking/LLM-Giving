@@ -1,10 +1,10 @@
 # SiteGround compatibility and production gates
 
-No SiteGround connection, deployment, domain change or remote push was performed. Current hosting configuration has not been inspected. These are prerequisites to validate separately after authorization.
+Production was deployed with owner authorization on October 20, 2026. See [the launch verification record](launch-2026-10-20.md) for tested hosting behavior, backup restoration, and remaining limitations. The checklist below also applies to future deployments.
 
 ## Hosting layout
 
-Use PHP 8.2+ and MariaDB/MySQL with PDO MySQL, fileinfo, GD, sessions and JSON enabled. The implementation is verified locally with PHP 8.5 and MariaDB 12.3; PHP 8.2 and the actual SiteGround database version need a compatibility run. MariaDB is the tested SQL engine; run migrations on the exact production MySQL/MariaDB version before launch.
+Use PHP 8.2+ and MariaDB/MySQL with PDO MySQL, fileinfo, GD, sessions and JSON enabled. The implementation is verified locally with PHP 8.5 and MariaDB 12.3. The initial deployment also verified PHP 8.2.34 and MySQL 8.4.11-11 on SiteGround. MariaDB is the tested SQL engine; run migrations on the exact production MySQL/MariaDB version before launch.
 
 Keep application source, .env, storage, migrations and backups outside public_html. Publish only the contents of public/ and adjust its bootstrap include path if the hosting layout differs. Never upload the whole repository into a public document root. Confirm Apache/LiteSpeed rewrite behavior and test every isolation route. Disable directory indexes.
 
@@ -12,7 +12,7 @@ Set APP_ENV=production and a canonical HTTPS APP_URL. Configure HTTPS before usi
 
 Use a dedicated least-privilege application DB account. Use a separate migration-capable account when possible; the local convenience setup grants broad rights only on its private database. Do not expose the database port publicly.
 
-## Deployment sequence for a future authorized launch
+## Deployment sequence
 
 1. Back up the database and private uploaded files, config and sources. Verify restoration in an isolated environment.
 2. Validate the PHP version/extensions, schema compatibility, document root, rewrite rules, TLS, permissions and resource limits.
@@ -27,7 +27,7 @@ Use a dedicated least-privilege application DB account. Use a separate migration
 
 ## Outstanding production validation
 
-Docker Compose is supplied but untested here because Docker is unavailable. Outbound mail, ClamAV integration, hosting quotas, concurrent load, real backup restore, production PHP 8.2, and SiteGround rewrite/TLS behavior require validation. The local test suite is evidence for exercised behavior, not a guarantee that all vulnerabilities are absent.
+Docker Compose is supplied but untested here because Docker is unavailable. Recipient-side mail delivery, ClamAV integration, and concurrent load remain unverified. Backup restoration, production PHP 8.2, database migrations, and SiteGround rewrite/TLS behavior were checked during the initial launch. The local test suite is evidence for exercised behavior, not a guarantee that all vulnerabilities are absent.
 
 The web admin can initiate private backups and configure the server-mail/file adapter and sender; it cannot edit secrets or download database backups. Private operator access is required to retrieve the export. SMTP authentication is not implemented in V1; use the host's tested mail transport or add a vetted adapter if required.
 
