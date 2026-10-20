@@ -9,7 +9,7 @@ function home_metadata(): array {
         'description'=>$description,
         'canonical'=>$base.'/',
         'socialType'=>'website',
-        'socialImage'=>$base.'/assets/llm-giving-social-v1.jpg?v=2',
+        'socialImage'=>$base.'/assets/llm-giving-social-v1.jpg?v=3',
         'socialImageAlt'=>'LLM.Giving: Folding@home, but for AI usage. Put your spare AI usage to help open-source research.',
         'structuredData'=>['@context'=>'https://schema.org','@type'=>'WebSite','name'=>'LLM.Giving','url'=>$base.'/','description'=>$description],
     ];
