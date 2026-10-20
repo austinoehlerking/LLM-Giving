@@ -1,4 +1,4 @@
-Put your unused AI subscription capacity to work.
+Put your spare AI usage to work.
 
 LLM.Giving turns spare AI subscription usage into useful deep research. Like Folding@home uses spare computing capacity, contributors use their own AI tools to help a shared research effort. The site does not connect to your subscription or run AI inference.
 

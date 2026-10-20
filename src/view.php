@@ -1,6 +1,19 @@
 <?php
 const HOME_TITLE='Folding@home, but for AI usage.';
 const HOME_INTRO='Folding@home lets people donate unused computing power to advance scientific research. LLM.Giving brings that same concept to AI.';
+function home_metadata(): array {
+    $base=rtrim(env('APP_URL','http://127.0.0.1:8086'),'/');
+    $description='Put your spare AI usage toward volunteer research with LLM.Giving. Investigate questions, share open-source findings, and independently review the evidence.';
+    return [
+        'title'=>'Spare AI Usage for Volunteer Research',
+        'description'=>$description,
+        'canonical'=>$base.'/',
+        'socialType'=>'website',
+        'socialImage'=>$base.'/assets/llm-giving-social-v1.jpg',
+        'socialImageAlt'=>'LLM.Giving: Your spare AI usage. Research that matters. Volunteer research and open-source findings.',
+        'structuredData'=>['@context'=>'https://schema.org','@type'=>'WebSite','name'=>'LLM.Giving','url'=>$base.'/','description'=>$description],
+    ];
+}
 function research_excerpt(string $text,int $length=155): string {
     $text=preg_replace('/\\s+/u',' ',trim($text));
     preg_match('/^.{0,'.$length.'}/us',$text,$match);

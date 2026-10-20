@@ -60,7 +60,7 @@ function blog_metadata(?array $post=null): array {
     $schema=['@context'=>'https://schema.org','@type'=>$post?'BlogPosting':'Blog','name'=>$post['title']??'The LLM.Giving blog','url'=>$canonical,'publisher'=>['@type'=>'Organization','name'=>'LLM.Giving']];
     if($post) {$schema['headline']=$post['title'];$schema['description']=$post['description'];$schema['mainEntityOfPage']=$canonical;}
     else $schema['blogPost']=array_map(fn($p)=>['@type'=>'BlogPosting','headline'=>$p['title'],'url'=>blog_url('/blog/'.$p['slug'])],array_values(blog_posts()));
-    return ['title'=>$post['seoTitle']??'The LLM.Giving blog','description'=>$post['description']??'Practical guides to unused AI usage, volunteer research, citizen science, and AI for good. Find a useful way to contribute with your own AI tools.','canonical'=>$canonical,'socialType'=>$post?'article':'website','structuredData'=>$schema,'blogPage'=>true];
+    return ['title'=>$post['seoTitle']??'The LLM.Giving blog','description'=>$post['description']??'Practical guides to spare AI usage, volunteer research, citizen science, and AI for good. Find a useful way to contribute with your own AI tools.','canonical'=>$canonical,'socialType'=>$post?'article':'website','structuredData'=>$schema,'blogPage'=>true];
 }
 function blog_sitemap(): string {
     $paths=['/','/research','/about','/blog'];

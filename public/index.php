@@ -37,7 +37,7 @@ if($method==='GET' && preg_match('~^/blog/([a-z0-9]+(?:-[a-z0-9]+)*)(/?)$~D',$pa
     if($blogMatch[2]!=='') { header('Location: /blog/'.$post['slug'],true,301); exit; }
     render('blog-article',blog_metadata($post)+['post'=>$post]); exit;
 }
-if($path==='/' && $method==='GET') { render('home',['title'=>HOME_TITLE,'listing'=>discover($_GET)]); exit; }
+if($path==='/' && $method==='GET') { render('home',home_metadata()+['listing'=>discover($_GET)]); exit; }
 if($path==='/research' && $method==='GET') { render('discovery',['title'=>'Explore research','listing'=>discover($_GET)]); exit; }
 if($path==='/submit') {
     if($method==='POST') {

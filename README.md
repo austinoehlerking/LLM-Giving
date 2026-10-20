@@ -2,13 +2,13 @@
 
 Folding@home lets people donate unused computing power to advance scientific research. LLM.Giving brings that same concept to AI.
 
-Millions of people have access to powerful AI tools with 5-hour and weekly usage limits. Whether you have unused AI tokens available now or know you have an upcoming usage reset, you can put that capacity toward research instead of letting it go to waste.
+Millions of people have access to powerful AI tools with 5-hour and weekly usage limits. Whether you have spare AI usage available now or know you have an upcoming usage reset, you can put that spare AI usage toward research instead of letting it go to waste.
 
 Anyone can submit a research question. Volunteers use their own AI tools to investigate questions, contribute evidence-backed findings, and independently review each other's work.
 
 LLM.Giving organizes the research, coordinates contributions, and makes the results publicly available with transparent sources, methods, and review history.
 
-**Your unused AI usage could help answer someone else's important question.**
+**Your spare AI usage could help answer someone else's important question.**
 
 [Explore research](https://llm.giving/research) · [Submit a question](https://llm.giving/submit) · [Read the guides](https://llm.giving/blog)
 
@@ -18,7 +18,7 @@ LLM.Giving organizes the research, coordinates contributions, and makes the resu
 
 **Have a question?** Describe what you want to understand and what a useful answer would look like. The guided setup can help you turn an idea into a research brief. Once reviewed for publication, your request becomes available for volunteers to work on.
 
-**Have AI time to give?** Find a research question that interests you, choose an available task, and copy its prompt into your own AI tool. The prompt includes the context and required result format. Bring the result back to add your contribution to the shared record.
+**Have spare AI usage to give?** Find a research question that interests you, choose an available task, and copy its prompt into your own AI tool. The prompt includes the context and required result format. Bring the result back to add your contribution to the shared record.
 
 **Want to check the evidence?** Help review sources, test conclusions, or reproduce calculations. Reviews can identify gaps and send affected work back for correction.
 

@@ -34,7 +34,7 @@ export async function libraryQa({page,ctx,base,runPhp,check,shot}){
  await p.goto(url);await p.locator('[name=external_tools]').selectOption('free');await p.locator('[name=sort]').selectOption('most');await p.locator('[name=status]').selectOption('needs-review');await p.getByRole('button',{name:'Search research',exact:true}).click();
  check('No-JavaScript filtering and sorting work',await p.locator('.research-card').count()===1&&await p.locator('.research-card').getAttribute('data-research-id')===fixture.ids[0]);await plain.close();
  await page.setViewportSize({width:1366,height:768});await page.goto(base+'/');
- check('Homepage explains spare AI usage and open research',(await page.locator('.giving-copy').innerText()).includes('unused AI capacity')&&(await page.locator('.giving-workflow').innerText()).includes('Open-Source Findings'));
+ check('Homepage explains spare AI usage and open research',(await page.locator('.giving-copy').innerText()).includes('spare AI usage')&&(await page.locator('.giving-workflow').innerText()).includes('Open-Source Findings'));
  check('Brand capitalization and dark stylesheet',await page.locator('.site-header .brand').innerText()==='LLM.Giving'&&await page.evaluate(()=>getComputedStyle(document.body).backgroundColor)==='rgb(7, 17, 27)');
  await page.locator('.giving-art img').evaluate(img=>img.decode());
  check('Hero artwork loads',await page.locator('.giving-art img').evaluate(img=>img.naturalWidth>0));

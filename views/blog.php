@@ -1,6 +1,6 @@
 <section class="blog-heading page-heading" aria-labelledby="blog-title">
     <h1 id="blog-title">The LLM.Giving blog</h1>
-    <p class="lead">Practical guides to unused AI usage, citizen science, and research that helps others.</p>
+    <p class="lead">Practical guides to spare AI usage, citizen science, and research that helps others.</p>
     <div class="actions primary-actions"><a class="button" href="/research">Explore research ↗</a><a class="button secondary" href="/about">How to contribute</a></div>
 </section>
 <section class="blog-grid" aria-label="All articles">
