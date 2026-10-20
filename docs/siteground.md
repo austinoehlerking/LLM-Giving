@@ -27,7 +27,7 @@ Use a dedicated least-privilege application DB account. Use a separate migration
 
 ## Outstanding production validation
 
-Docker Compose is supplied but untested here because Docker is unavailable. Recipient-side mail delivery, ClamAV integration, and concurrent load remain unverified. Backup restoration, production PHP 8.2, database migrations, and SiteGround rewrite/TLS behavior were checked during the initial launch. The local test suite is evidence for exercised behavior, not a guarantee that all vulnerabilities are absent.
+Docker Compose is supplied but untested here because Docker is unavailable. ClamAV integration and concurrent load remain unverified. The operator confirmed inbox receipt of the production launch test email on October 20, 2026. Backup restoration, production PHP 8.2, database migrations, and SiteGround rewrite/TLS behavior were checked during the initial launch. The local test suite is evidence for exercised behavior, not a guarantee that all vulnerabilities are absent.
 
 The web admin can initiate private backups and configure the server-mail/file adapter and sender; it cannot edit secrets or download database backups. Private operator access is required to retrieve the export. SMTP authentication is not implemented in V1; use the host's tested mail transport or add a vetted adapter if required.
 
