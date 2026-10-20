@@ -1,6 +1,6 @@
 <?php
-const HOME_TITLE='Put your unused AI subscription capacity to work.';
-const HOME_INTRO='Use the AI tools you already pay for to tackle useful deep research requests. Choose a brief, investigate with your remaining usage, and share findings with sources and limitations.';
+const HOME_TITLE='Folding@home, but for AI usage.';
+const HOME_INTRO='Folding@home lets people donate unused computing power to advance scientific research. LLM.Giving brings that same concept to AI.';
 function research_excerpt(string $text,int $length=155): string {
     $text=preg_replace('/\\s+/u',' ',trim($text));
     preg_match('/^.{0,'.$length.'}/us',$text,$match);
