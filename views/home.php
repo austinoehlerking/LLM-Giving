@@ -2,7 +2,7 @@
 <div class="giving-copy">
 <?php $homeTitle=setting('home_title',HOME_TITLE); ?>
 <h1 id="giving-title"><?php if($homeTitle===HOME_TITLE): ?>Folding@home, <span class="giving-headline">but for AI usage.</span><?php else: ?><?=e($homeTitle)?><?php endif ?></h1>
-<p class="giving-subtitle">Put your spare AI usage toward questions that matter.</p>
+<p class="giving-subtitle">Put your spare AI usage to help open-source research.</p>
 <p class="giving-description">Use your own AI tools to investigate questions, share findings, and review the evidence.</p>
 <div class="actions primary-actions"><a class="button giving-primary" href="#research">Find research <span aria-hidden="true">→</span></a><a class="button secondary" href="/submit">Submit a question</a></div>
 <p class="giving-trust">Open research. Transparent sources. Independent review.</p></div>
