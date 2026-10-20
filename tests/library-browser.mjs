@@ -34,8 +34,21 @@ export async function libraryQa({page,ctx,base,runPhp,check,shot}){
  await p.goto(url);await p.locator('[name=external_tools]').selectOption('free');await p.locator('[name=sort]').selectOption('most');await p.locator('[name=status]').selectOption('needs-review');await p.getByRole('button',{name:'Search research',exact:true}).click();
  check('No-JavaScript filtering and sorting work',await p.locator('.research-card').count()===1&&await p.locator('.research-card').getAttribute('data-research-id')===fixture.ids[0]);await plain.close();
  await page.setViewportSize({width:1366,height:768});await page.goto(base+'/');
- check('Homepage explains unused subscription capacity and Folding@home',(await page.locator('.library-hero').innerText()).includes('unused AI subscription')&&(await page.locator('.mission').innerText()).includes('Folding@home'));
- check('Brand capitalization and dark stylesheet',await page.locator('.site-header .brand').innerText()==='LLM.Giving'&&await page.evaluate(()=>getComputedStyle(document.body).backgroundColor)==='rgb(20, 30, 40)');
- await page.getByRole('link',{name:'Find research to help with ↘',exact:true}).click();
+ check('Homepage explains spare AI usage and open research',(await page.locator('.giving-copy').innerText()).includes('unused AI capacity')&&(await page.locator('.giving-workflow').innerText()).includes('Open-Source Findings'));
+ check('Brand capitalization and dark stylesheet',await page.locator('.site-header .brand').innerText()==='LLM.Giving'&&await page.evaluate(()=>getComputedStyle(document.body).backgroundColor)==='rgb(7, 17, 27)');
+ await page.locator('.giving-art img').evaluate(img=>img.decode());
+ check('Hero artwork loads',await page.locator('.giving-art img').evaluate(img=>img.naturalWidth>0));
+ check('Usage ring represents 67 percent remaining',await page.locator('.giving-arc').evaluate(el=>getComputedStyle(el).strokeDasharray==='67px, 33px'));
+ await page.getByRole('button',{name:'Pause animation',exact:true}).click();
+ check('Pause stops all hero motion',await page.locator('.giving-headline,.giving-arc,.giving-scan,.giving-check').evaluateAll(els=>els.every(el=>getComputedStyle(el).animationPlayState==='paused')));
+ await page.getByRole('button',{name:'Play animation',exact:true}).click();
+ check('Resume restarts hero motion',await page.locator('.giving-headline').evaluate(el=>getComputedStyle(el).animationPlayState==='running'));
+ const motion=await page.locator('.giving-headline').evaluate(el=>{const a=el.getAnimations()[0];a.pause();a.currentTime=500;const first=getComputedStyle(el).backgroundPosition;a.currentTime=1500;const second=getComputedStyle(el).backgroundPosition;a.currentTime=2100;const rest=getComputedStyle(el).backgroundPosition;a.currentTime=2400;const still=getComputedStyle(el).backgroundPosition;a.play();return {first,second,rest,still};});
+ check('Headline sweeps for two seconds then rests for half a second',motion.first!==motion.second&&motion.rest===motion.still);
+ await page.emulateMedia({reducedMotion:'reduce'});
+ check('Reduced motion disables all hero animations',await page.locator('.giving-headline,.giving-arc,.giving-scan,.giving-check').evaluateAll(els=>els.every(el=>getComputedStyle(el).animationName==='none')));
+ check('Reduced motion preserves the completed checkmark',await page.locator('.giving-check').evaluate(el=>getComputedStyle(el).opacity==='1'&&getComputedStyle(el).strokeDashoffset==='0px'));
+ await page.emulateMedia({reducedMotion:'no-preference'});
+ await page.getByRole('link',{name:'Find research',exact:true}).click();
  check('Explore action moves to research library',new URL(page.url()).hash==='#research');
 }

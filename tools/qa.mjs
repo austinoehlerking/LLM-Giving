@@ -34,7 +34,7 @@ async function visibleActions(page,selector,name){
  report.viewports.push({name,viewport:page.viewportSize(),actions:boxes});
  check(name+' no horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
 }
-async function goto(page,url){const res=await page.goto(url.startsWith('http')?url:base+url);assert.ok(res.status()<400,'GET '+url+' returned '+res.status());}
+async function goto(page,url){const res=await page.goto(url.startsWith('http')?url:base+url);assert.ok(res.status()<400,'GET '+url+' returned '+res.status());if(await page.locator('.giving-art img').count())await page.locator('.giving-art img').evaluate(img=>img.decode());}
 async function moderate(page,type,id,reason='Reviewed local synthetic test fixture',exception=''){
  const form=page.locator('form.moderate').filter({has:page.locator('input[name="type"][value="'+type+'"]')}).filter({has:page.locator('input[name="id"][value="'+id+'"]')});
  await form.locator('[name=state]').selectOption('Approved');await form.locator('[name=reason]').fill(reason);
