@@ -5,7 +5,10 @@ function e(mixed $s): string { return htmlspecialchars((string)($s??''),ENT_QUOT
 function uid(): string { return bin2hex(random_bytes(16)); }
 function now(): string { return gmdate('Y-m-d H:i:s'); }
 function headers_secure(): void {
-    header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'");
+    $google = google_analytics_request();
+    $scripts = $google ? ' https://www.googletagmanager.com' : '';
+    $collection = $google ? ' https://www.google-analytics.com https://region1.google-analytics.com' : '';
+    header("Content-Security-Policy: default-src 'self'; script-src 'self'".$scripts."; style-src 'self'; img-src 'self' data:".$collection."; connect-src 'self'".$collection."; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'");
     header('X-Content-Type-Options: nosniff'); header('Referrer-Policy: no-referrer');
     header('Permissions-Policy: camera=(), microphone=(), geolocation=()'); header('X-Frame-Options: DENY');
     header('Cache-Control: no-store');

@@ -11,6 +11,7 @@ function env(string $key, string $default=''): string { return getenv($key) === 
 function storage(string $path=''): string { return ROOT.'/storage/'.$path; }
 foreach (['','sessions','uploads','mail','logs','qa','private'] as $dir) if (!is_dir(storage($dir))) mkdir(storage($dir),0700,true);
 require __DIR__.'/db.php';
+require __DIR__.'/google.php';
 require __DIR__.'/security.php';
 require __DIR__.'/domain.php';
 require __DIR__.'/citation.php';

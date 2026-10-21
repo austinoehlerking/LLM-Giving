@@ -106,9 +106,9 @@ export async function workflowQa({page,ctx,base,runPhp,check,visibleActions,pass
   check('Cycle completes without another approval',(await data()).research.status==='Review Complete');
   for(const size of sizes){await page.setViewportSize(size);await page.goto(url+'/work');await shot(page,'11-review-complete-'+size.width+'x'+size.height);await visibleActions(page,'.workflow-heading .primary-actions > *','Completed findings '+size.width);await page.getByRole('link',{name:'Read findings',exact:true}).click();check('Findings action reaches synthesis',await page.locator('#research-findings').isVisible());}
   await page.setViewportSize(sizes[0]);await page.goto(url);check('Main research page shows synthesis',await page.locator('#research-findings').textContent().then(t=>t.includes('synthetic')));await shot(page,'11b-completed-research',true);
-  const climate=base+'/research/can-rice-irrigation-changes-cut-climate-emissions-without-sacrificing-yield-b56fa93db2';
-  for(const size of sizes){await page.setViewportSize(size);await page.goto(climate);await shot(page,'11c-real-climate-'+size.width+'x'+size.height);await visibleActions(page,'.research-heading .primary-actions > *','Real climate findings '+size.width);check('Real completed climate findings shown',await page.locator('#research-findings').count()===1);}
-  await page.setViewportSize(sizes[0]);await page.goto(climate);await shot(page,'11d-real-climate-full',true);
+  // Use this run's completed fixture; a fresh clone has no private historical climate project.
+  for(const size of sizes){await page.setViewportSize(size);await page.goto(url);await shot(page,'11c-synthetic-findings-'+size.width+'x'+size.height);await visibleActions(page,'.research-heading .primary-actions > *','Completed synthetic findings '+size.width);check('Completed synthetic findings shown',await page.locator('#research-findings').count()===1);}
+  await page.setViewportSize(sizes[0]);await page.goto(url);await shot(page,'11d-synthetic-findings-full',true);
   for(const size of sizes){await page.setViewportSize(size);await page.goto(url+'/ledger');await shot(page,'12-ledger-'+size.width+'x'+size.height);await visibleActions(page,'.workflow-heading .primary-actions > *','Ledger '+size.width);}
   check('Ledger has explicit UTC timestamps',await page.locator('time').first().textContent().then(t=>t.endsWith(' UTC')));
   await page.setViewportSize(sizes[0]);await page.goto(url+'/ledger');await shot(page,'13-full-ledger',true);
