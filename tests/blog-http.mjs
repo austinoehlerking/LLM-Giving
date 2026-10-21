@@ -5,6 +5,7 @@ import {root,runPhp} from '../tools/runtime.mjs';
 const base=process.argv[2]||'http://127.0.0.1:8086';
 assert.ok(/^http:\/\/127\.0\.0\.1:\d+$/.test(base),'Only the local QA server is allowed');
 const data=JSON.parse(runPhp(['-r',"require 'src/bootstrap.php'; require 'src/view.php'; require 'src/blog.php'; echo json_encode(array_values(array_map(fn($p)=>['slug'=>$p['slug'],'html'=>blog_body($p['blocks'])],blog_posts())));"]));
+fs.mkdirSync(path.join(root,'storage','qa','blog'),{recursive:true});
 const checks=[];
 const verify=(name,ok)=>{assert.ok(ok,name);checks.push(name);};
 for(const post of data){

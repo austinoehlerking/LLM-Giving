@@ -64,7 +64,7 @@ if(typeof document!=='undefined'){
    for(const key of [...textKeys,...toolKeys])control(key).dispatchEvent(new Event('input',{bubbles:true}));
    form.querySelectorAll('details').forEach(section=>{if([...section.querySelectorAll('input,textarea,select')].some(input=>!input.disabled&&input.value&&input.type!=='checkbox'&&Object.hasOwn(draft,input.name)))section.open=true;});
    // Filled content needs fresh human review/consent, never consent supplied by AI.
-   control('terms').checked=false;document.getElementById('request-preview').hidden=true;paste.removeAttribute('aria-invalid');panel.hidden=true;button.setAttribute('aria-expanded','false');feedback.textContent='';status.textContent='Draft filled. Review and edit the fields below, then confirm the terms and submit when ready.';control('title').focus({preventScroll:true});
+   control('terms').checked=false;control('terms').dispatchEvent(new Event('change',{bubbles:true}));document.getElementById('request-preview').hidden=true;paste.removeAttribute('aria-invalid');panel.hidden=true;button.setAttribute('aria-expanded','false');feedback.textContent='';status.textContent='Draft filled. Review and edit the fields below, then confirm the terms and submit when ready.';control('title').focus({preventScroll:true});
   });
   paste.addEventListener('input',()=>{paste.removeAttribute('aria-invalid');feedback.textContent='';});
  }
