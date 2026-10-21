@@ -27,6 +27,7 @@ The production application uses PHP and MariaDB/MySQL. Node 22.16+ is used only 
 - `workflow-policy.php`: configured model policy and contributor instructions.
 - `workflow-engine.php`: planning validation, submission transactions and state transitions.
 - `workflow-routes.php`: HTTP form handling and response formats.
+- `browser-return.php`: private one-assignment volunteer consent, browser exchange, receipt recovery and submission-method labels.
 - `workflow-handoffs.php`: exact issued archives, quotas and retention.
 - `workflow-packets.php`: influence disclosures, quarantine and admin decisions.
 - `workflow-acceptance.php` and `workflow-evidence.php`: acceptance criteria, evidence checks and corrections.
@@ -86,3 +87,4 @@ The `*-live-run.mjs`, `*-research-run.mjs` and `research-submission.mjs` scripts
 Publish source and synthetic test fixtures only. Never add `.env` variants, `storage/`, browser profiles, private research inputs, email, database exports or signing keys. `.gitignore` excludes runtime data; it does not remove files already tracked in an existing repository. Review the actual staged file list and staged diff before first publication. Keep the research-content and source-code licenses distinct.
 
 Production deployment uses only `public/` as the document root. The Dockerfile copies explicit runtime directories instead of the entire checkout. Validate the actual hosting runtime and restore procedure using [the launch checklist](siteground.md). Local QA does not authorize deployment or publication.
+For anonymous AI return work, run `node tools/qa.mjs returns` after `node tools/check.mjs`. This mode covers the consent form, software consent, private archive separation, separate browser handover, validation repair, check-versus-submit, quarantine and receipt recovery. `tests/browser-return.php` covers the server boundaries. Citation and launch suites use a portable synthetic completed workflow rather than private historical project data. See [browser return QA](browser-return-qa.md) for the genuine agent walkthrough and its limits.

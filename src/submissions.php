@@ -7,7 +7,7 @@ function contribution_schema(): array {
         'uncertainty'=>'','limitations'=>'','previous_work'=>'','open_questions'=>'','next_actions'=>'',
         'suggested_status'=>'Still Unsolved','safety'=>'','recommendation'=>'',
         'display_name'=>'','linkedin'=>'','github'=>'','website'=>'',
-        'metadata'=>array_fill_keys(META_FIELDS,null)
+        'human_interaction'=>['level'=>'none','details'=>''],'metadata'=>array_fill_keys(META_FIELDS,null)
     ];
 }
 function parse_contribution(array $post): array {
@@ -18,8 +18,8 @@ function parse_contribution(array $post): array {
     $d['terms']=$post['terms']??null;
     return $d;
 }
-function create_contribution(string $rid,array $d): string {
-    if(!db()->inTransaction())return tx(fn()=>create_contribution($rid,$d));
+function create_contribution(string $rid,array $d,bool $checkOnly=false): string {
+    if(!db()->inTransaction())return tx(fn()=>create_contribution($rid,$d,$checkOnly));
     one('SELECT id FROM research WHERE id=? FOR UPDATE',[$rid]);
     $r=research($rid);
     if(in_array($r['status'],['Paused','Withdrawn'],true)) fail(422,'This request is not accepting research right now.');
@@ -30,7 +30,7 @@ function create_contribution(string $rid,array $d): string {
     if($kind==='Independent review' && !$target) fail(422,'Select the contribution being reviewed.');
     if($kind!=='Independent review' && $target) fail(422,'Only an independent review has a review target.');
     if($target && !one("SELECT id FROM contributions WHERE id=? AND research_id=? AND moderation='Approved' AND kind<>'Independent review'",[$target,$rid])) fail(422,'Review target must be published research in this request.');
-    $row=['id'=>uid(),'research_id'=>$rid,'kind'=>$kind,'target_id'=>$target,'created_at'=>now(),'terms_version'=>terms_version(record: true),'license'=>RESEARCH_LICENSE,'moderation_reason'=>'','metadata_exception'=>''];
+    $row=['id'=>uid(),'research_id'=>$rid,'kind'=>$kind,'target_id'=>$target,'created_at'=>now(),'terms_version'=>terms_version(record: !$checkOnly),'license'=>RESEARCH_LICENSE,'moderation_reason'=>'','metadata_exception'=>''];
     foreach(['summary','body','methodology','sources','uncertainty','limitations','previous_work','open_questions','next_actions','safety'] as $key) $row[$key]=text_field($d,$key,in_array($key,['summary','body'],true)?10:0);
     $row['suggested_status']=text_field($d,'suggested_status',0,80);
     if($row['suggested_status'] && !isset(STATUSES[$row['suggested_status']])) fail(422,'Invalid suggested status.');
@@ -57,9 +57,16 @@ function create_contribution(string $rid,array $d): string {
     foreach(['methodology','sources','uncertainty','limitations','previous_work','open_questions','next_actions','safety'] as $k) if($row[$k]==='') $missing[]=$k;
     $meta['missing_fields']=json_encode($missing);
     $row['flags']=($missing?'Missing provenance/content: '.implode(', ',$missing).'. ':'').(suspicious(json_encode($d))?'Suspicious instruction-like content.':'');
+    $method=$d['submission_method']??null;
+    if(!in_array($method,[null,'manual','ai_browser'],true))fail(422,'Invalid submission method.');
+    $row['submission_method']=$method;
+    $influence=$d['human_influence']??null;
+    $row['human_influence']=$influence?json_encode($influence):null;
+    if($influence&&$influence['review_status']==='needed')$row['flags'].=' Human influence or uncertainty requires moderation.';
     $row['moderation']=$row['flags']?'Needs Additional Review':'Pending Approval';
     if(!$row['flags'] && wf_project($rid)){$row['moderation']='Approved';$row['published_at']=now();}
-    tx(function() use($row,$meta,$rid) { insert('contributions',$row); insert('agent_metadata',$meta);if($row['moderation']==='Approved')touch_context($rid);audit_event($rid,'Research contribution submitted',$row['moderation']==='Approved'?'Complete provenance supplied; evidence published automatically without changing task completion.':'Submission retained privately because provenance or safety checks need attention.','contribution',$row['id'],'',$row['moderation'],'Use task submissions to advance the planned workflow.','contributor',$row['display_name']?:'Anonymous volunteer',[],$row['moderation']==='Approved'?'public':'private'); });
+    if($checkOnly)return '';
+    tx(function() use($row,$meta,$rid) { insert('contributions',$row); insert('agent_metadata',$meta);if($row['moderation']==='Approved')touch_context($rid);audit_event($rid,'Research contribution submitted',$row['moderation']==='Approved'?'Complete provenance supplied; evidence published automatically without changing task completion.':'Submission retained privately because provenance or safety checks need attention.','contribution',$row['id'],'',$row['moderation'],'Use task submissions to advance the planned workflow.','contributor',$row['display_name']?:'Anonymous volunteer',['submission_method'=>$row['submission_method']],$row['moderation']==='Approved'?'public':'private'); });
     return $row['id'];
 }
 function create_feedback(string $rid,array $d): string {

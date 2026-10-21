@@ -4,8 +4,7 @@ import {root} from '../tools/runtime.mjs';
 export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,password}){
  const out=path.join(root,'storage/qa/submission-ux');fs.mkdirSync(out,{recursive:true});
  const shots=[],errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
- const brief=JSON.parse(fs.readFileSync(path.join(root,'storage/research/plastic-carbon-pump.json'),'utf8'));
- const before=JSON.parse(runPhp(['tools/local-research-state.php','inspect'])).research;
+ const brief={title:'Synthetic submission usability fixture',question:'How can a research request retain its complete context and remain usable with keyboard and mobile browser input?',context:Array.from({length:16},(_,i)=>'Synthetic context section '+(i+1)+': retain this complete bounded QA text, uncertainty and source qualifications without implying real research findings.').join('\n\n'),success:'Verify complete preview, publication controls and usable first viewport.',previous:'No prior scientific work is claimed.',constraints_text:'Local synthetic testing only; no external experiments.',questions:'Can keyboard and mobile users inspect and submit the full brief?',references_text:'Provided synthetic QA brief; no external scientific source is asserted.',tags:'synthetic, usability'};
  const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}];
  async function shot(name,fullPage=false,mask=[]){await page.screenshot({path:path.join(out,name+'.png'),fullPage,mask});shots.push(name+'.png');}
  for(const size of sizes){
@@ -39,6 +38,7 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
  check('Clear successful submission heading',await page.getByRole('heading',{name:'Research request submitted',exact:true}).isVisible());
  check('Receipt identifies submitted title',await page.locator('.receipt-title').textContent()==='[QA] '+brief.title);
  const link=await page.locator('#management-link').inputValue(),rid=new URL(link).pathname.split('/').pop();
+ const before=JSON.parse(runPhp(['tools/local-research-state.php','inspect'])).research.find(r=>r.id===rid);
  for(const size of sizes){
   await page.setViewportSize(size);await page.evaluate(()=>scrollTo(0,0));await shot('06-receipt-'+size.width+'x'+size.height,false,[page.locator('#management-link')]);
   await visibleActions(page,'.receipt .primary-actions > *','Updated receipt '+size.width);
@@ -47,21 +47,20 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
  check('Receipt copy action works',await page.evaluate(()=>navigator.clipboard.readText())===link);
  runPhp(['bin/console.php','admin','browser-qa@example.invalid'],password);
  await page.setViewportSize(sizes[0]);await page.goto(base+'/admin/login');await page.locator('[name=email]').fill('browser-qa@example.invalid');await page.locator('[name=password]').fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();
- // Inspect the user's real pending record without modifying it.
- const real=before.find(r=>!r.title.startsWith('[QA]'));
- check('Real research record available',!!real);
+ // Inspect only the disposable pending fixture created by this suite.
+ check('Synthetic pending fixture available',!!before);
  for(const size of sizes){
-  await page.setViewportSize(size);await page.goto(base+'/admin/research/'+real.id);await shot('07-admin-'+size.width+'x'+size.height);
+  await page.setViewportSize(size);await page.goto(base+'/admin/research/'+rid);await shot('07-admin-'+size.width+'x'+size.height);
   await visibleActions(page,'.admin-review-heading .primary-actions > *','Admin review '+size.width);
  }
- await page.setViewportSize(sizes[0]);await page.goto(base+'/admin/research/'+real.id);
+ await page.setViewportSize(sizes[0]);await page.goto(base+'/admin/research/'+rid);
  await page.getByRole('link',{name:'Moderate request',exact:true}).click();
  await page.waitForFunction(()=>document.querySelector('#request-decision').getBoundingClientRect().top>=0&&document.querySelector('#request-decision').getBoundingClientRect().top<100);
  await shot('08-direct-decision');
  check('Moderate request jumps to decision controls',await page.locator('#request-decision').evaluate(el=>el.getBoundingClientRect().top>=0&&el.getBoundingClientRect().top<100));
  await page.getByRole('link',{name:'complete research brief',exact:true}).click();
  check('Decision links back to complete brief',new URL(page.url()).hash==='#request-moderation');
- for(const route of ['/submit','/admin/research/'+real.id]){
+ for(const route of ['/submit','/admin/research/'+rid]){
   await page.setViewportSize({width:683,height:384});await page.goto(base+route);
   await page.evaluate(()=>document.body.style.fontSize='200%');
   check('Enlarged text reflow '+route,await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
@@ -71,9 +70,9 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
  const np=await nojs.newPage();await np.goto(base+'/submit');
  check('No-JS submission remains available',await np.locator('.form-actions').getByRole('button',{name:'Submit for approval',exact:true}).isVisible());
  check('No-JS preview control is hidden',!await np.locator('#review-request').isVisible());await nojs.close();
- const after=JSON.parse(runPhp(['tools/local-research-state.php','inspect'])).research.filter(r=>!r.title.startsWith('[QA]'));
- check('Real request unchanged',JSON.stringify(before.filter(r=>!r.title.startsWith('[QA]')))===JSON.stringify(after));
+ const after=JSON.parse(runPhp(['tools/local-research-state.php','inspect'])).research.find(r=>r.id===rid);
+ check('Synthetic pending request unchanged by inspection',JSON.stringify(before)===JSON.stringify(after));
  check('No browser errors in updated workflow',errors.length===0);
- fs.writeFileSync(path.join(out,'index.html'),'<!doctype html><meta charset="utf-8"><title>LLM.Giving — submission UX updates</title><style>body{font:16px system-ui;background:#141e28;color:#eaf0f5;max-width:1100px;margin:24px auto;padding:20px}a{color:#c1ee9c}img{max-width:100%;border:1px solid #42574c}figure{margin:32px 0}</style><h1>Submission UX updates</h1><p>Real research brief in the form and preview. Receipt uses a disposable [QA] copy to avoid resubmitting your request. Admin screenshots show the real request unchanged. Pink blocks conceal private management links.</p>'+shots.map(s=>'<figure><figcaption>'+s+'</figcaption><a href="'+s+'"><img loading="lazy" src="'+s+'"></a></figure>').join(''));
- console.log('Submission UX: '+shots.length+' fresh screenshots. Real request unchanged.');
+ fs.writeFileSync(path.join(out,'index.html'),'<!doctype html><meta charset="utf-8"><title>LLM.Giving — submission UX updates</title><style>body{font:16px system-ui;background:#141e28;color:#eaf0f5;max-width:1100px;margin:24px auto;padding:20px}a{color:#c1ee9c}img{max-width:100%;border:1px solid #42574c}figure{margin:32px 0}</style><h1>Submission UX updates</h1><p>Synthetic research brief in the form and preview. Receipt and admin screenshots use the disposable [QA] record; inspection leaves it unchanged. Pink blocks conceal private management links.</p>'+shots.map(s=>'<figure><figcaption>'+s+'</figcaption><a href="'+s+'"><img loading="lazy" src="'+s+'"></a></figure>').join(''));
+ console.log('Submission UX: '+shots.length+' fresh screenshots. Synthetic pending request unchanged.');
 }

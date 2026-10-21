@@ -108,9 +108,14 @@ if(preg_match('~^/research/([^/]+)(?:/(.*))?$~',$path,$m)) {
     if($suffix==='contribute') {
         if($method==='POST') {
             throttle('contribution',(int)setting('submission_limit','12'));
-            $d=parse_contribution($_POST); $uploads=validate_uploads($_FILES['attachments']??[]);
+            $d=parse_contribution($_POST);
+            $d['human_disclosure']=ar_disclosure($_POST);
+            $d['human_interaction']??=empty($_POST['ai_level'])?['level'=>'unsure','details'=>'No AI human-input declaration was supplied; conversation integrity is unknown.']:['level'=>$_POST['ai_level'],'details'=>$_POST['ai_details']??''];
+            $d['human_influence']=wf_influence($d);$d['submission_method']='manual';
+            if(rt_is_tool($r)&&empty($_POST['tool_terms']))fail(422,'Accept the separate software terms.');
+            $uploads=validate_uploads($_FILES['attachments']??[]);
             $id=tx(function() use($r,$d,$uploads) { $id=create_contribution($r['id'],$d); store_uploads($r['id'],$uploads,$id); return $id; });
-            render('message',['title'=>'Contribution received','message'=>(one('SELECT moderation FROM contributions WHERE id=?',[$id])['moderation']==='Approved'?'Your contribution was published automatically. It does not complete a planned task.':'Your contribution needs provenance or safety attention and remains private. Correct the missing information before resubmitting.').' Reference: '.$id,'href'=>'/research/'.$r['slug']]); exit;
+            $_SESSION['contribution_receipts'][$id]=true;redirect('/research/'.$r['slug'].'/contributions/'.$id.'/receipt');
         }
         render('contribute',['title'=>'Contribute to this question','r'=>$r,'contributions'=>approved_contributions($r['id'])]); exit;
     }

@@ -16,7 +16,7 @@ foreach (['/','/research','/about','/contact','/legal/privacy','/blog','/blog/te
     $_SERVER['REQUEST_URI'] = $route;
     google_check(google_analytics_request(), 'Public route eligible: '.$route);
 }
-foreach (['/admin','/admin/login','/manage/'.str_repeat('a',32),'/submit','/recover','/research/test/context.json','/research/test/contribute','/research/test/tasks/secret','/file/secret','/sitemap.xml','/blog/%2e%2e','//manage/secret'] as $route) {
+foreach (['/admin','/admin/login','/manage/'.str_repeat('a',32),'/submit','/recover','/research/test/context.json','/research/test/contribute','/research/test/authorize','/research/test/authorize/'.str_repeat('a',32),'/research/test/return/'.str_repeat('a',32),'/research/test/return/'.str_repeat('a',32).'/submit','/research/test/contributions/'.str_repeat('a',32).'/receipt','/research/test/tasks/secret','/file/secret','/sitemap.xml','/blog/%2e%2e','//manage/secret'] as $route) {
     $_SERVER['REQUEST_URI'] = $route;
     google_check(!google_analytics_request(), 'Private or non-HTML route excluded: '.$route);
 }

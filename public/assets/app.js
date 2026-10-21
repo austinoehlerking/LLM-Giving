@@ -12,6 +12,7 @@ document.addEventListener('click',async event=>{
  if(el.hasAttribute('data-back')){history.back();return;}
  if(el.dataset.copyInput){if(el.hasAttribute('data-copy-citation')){try{await navigator.clipboard.writeText(document.getElementById(el.dataset.copyInput).value);status('Citation copied. Include it when reusing this research.');}catch{const input=document.getElementById(el.dataset.copyInput);input.closest('details').open=true;input.focus();input.select();status('Select and copy the citation below.');}return;}await copy(document.getElementById(el.dataset.copyInput).value);return;}
  if(el.hasAttribute('data-copy-handoff')){
+  if(el.dataset.authorizeUrl){event.preventDefault();location.assign(el.dataset.authorizeUrl);return;}
   const label=el.textContent;const message=document.querySelector('[data-handoff-status]');el.disabled=true;el.textContent='Preparing handoff…';document.querySelector('#copy-status').textContent='';
   try{const res=await fetch(el.dataset.copyUrl,{credentials:'same-origin',cache:'no-store'});if(!res.ok){if(res.status===429){message.textContent='Copy limit reached. Use your existing handoff or try again in one hour. Archived copies remain readable.';return;}if(res.status===503){message.textContent='The daily archive storage budget is reached. Use an existing handoff or try again after 00:00 UTC.';return;}if(res.status===413){message.textContent='This context exceeds the 4 MiB copy limit. Ask the administrator to help scope the work; nothing was copied.';return;}throw new Error('load');}const text=await res.text();
    try{await navigator.clipboard.writeText(text);message.textContent='Copied! Paste the entire handoff into your AI.';status('AI handoff copied. Paste it into your AI.');}
@@ -30,14 +31,18 @@ if(exchange && location.hash){
  exchange.requestSubmit();
 }
 const form=document.getElementById('submission');
+// The AI packet owns research/provenance fields, never the volunteer declaration or consent.
+const contributionPacketFields=new Set(['kind','target_id','summary','body','methodology','sources','uncertainty','limitations','previous_work','open_questions','next_actions','suggested_status','safety','recommendation','display_name','linkedin','github','website']);
+const contributionMetadataFields=new Set(['provider','model','harness','harness_version','reasoning','input_tokens','output_tokens','total_tokens','measurement','duration','tools','prompt_version']);
 function loadJSON(){
  const area=form.elements.namedItem('json');
  let data;try{data=JSON.parse(area.value);}catch{throw new Error('Invalid JSON. Check commas, quotes, and the complete object.');}
  if(!data || Array.isArray(data) || typeof data!=='object')throw new Error('Expected a JSON object.');
  for(const [key,value] of Object.entries(data)){
-  if(key==='metadata' && value && typeof value==='object'){
-   for(const [k,v] of Object.entries(value)){const f=form.elements.namedItem('metadata['+k+']');if(f)f.value=v==null?'':Array.isArray(v)?v.join(', '):String(v);}
-  }else{const f=form.elements.namedItem(key);if(f && !['terms','csrf','attachments[]'].includes(key))f.value=value==null?'':String(value);}
+  if(key==='human_interaction' && value && typeof value==='object'){form.elements.ai_level.value=value.level||'';form.elements.ai_details.value=value.details||'';}
+  else if(key==='metadata' && value && typeof value==='object'){
+   for(const [k,v] of Object.entries(value)){if(!contributionMetadataFields.has(k))continue;const f=form.elements.namedItem('metadata['+k+']');if(f)f.value=v==null?'':Array.isArray(v)?v.join(', '):String(v);}
+  }else if(contributionPacketFields.has(key)){const f=form.elements.namedItem(key);if(f)f.value=value==null?'':String(value);}
  }
  area.value='';document.getElementById('parse-status').textContent='Loaded into the editable fields below. Missing metadata remains blank.';
 }
@@ -89,3 +94,6 @@ document.addEventListener('click',event=>{
 },true);
 window.addEventListener('hashchange',()=>revealResearchTarget(location.hash));
 if(location.hash){const target=revealResearchTarget(location.hash);if(target)requestAnimationFrame(()=>target.scrollIntoView({block:'start'}));}
+
+const returnExchange=document.getElementById('return-exchange');
+if(returnExchange && location.hash){const secret=location.hash.slice(1);history.replaceState(null,'',location.pathname);returnExchange.elements.return_secret.value=secret;returnExchange.requestSubmit();}

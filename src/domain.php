@@ -265,6 +265,7 @@ function purge_request(string $rid,string $confirmation): void {
         query('UPDATE findings SET supersedes_id=NULL WHERE research_id=?',[$rid]);
         query('DELETE FROM feedback WHERE research_id=?',[$rid]);
         audit_event(null,'Research purged','An administrator explicitly purged the request and its local records.','research',$rid,'Retained','Purged','','administrator','Administrator',[],'private');
+        query('DELETE FROM browser_returns WHERE research_id=?',[$rid]);
         query('DELETE FROM workflow_handoffs WHERE research_id=?',[$rid]);
         query('DELETE FROM workflow_submissions WHERE research_id=?',[$rid]);
         query('DELETE FROM research WHERE id=?',[$rid]);

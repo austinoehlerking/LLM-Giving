@@ -1,8 +1,9 @@
+import {authorizedHandoff} from './browser-authorization.mjs';
 import fs from 'node:fs';import path from 'node:path';import {root} from '../tools/runtime.mjs';
 export async function citationQa({page,ctx,base,runPhp,check,visibleActions,password}){
  const out=path.join(root,'storage/qa/citations');fs.mkdirSync(out,{recursive:true});const shots=[];
  const shot=async n=>{await page.screenshot({path:path.join(out,n+'.png')});shots.push(n+'.png');};
- const real=base+'/research/can-rice-irrigation-changes-cut-climate-emissions-without-sacrificing-yield-b56fa93db2';
+ const completed=JSON.parse(runPhp(['tests/completed-workflow-state.php']));const real=base+'/research/'+completed.slug;
  for(const size of [{width:1366,height:768},{width:390,height:844},{width:375,height:667}]){
   await page.setViewportSize(size);await page.goto(real);await shot('research-'+size.width);await visibleActions(page,'.research-heading .primary-actions > *','Cite research '+size.width);
   await page.getByRole('button',{name:'Cite this research',exact:true}).first().click();await page.getByText('Citation copied. Include it when reusing this research.',{exact:true}).waitFor();const text=await page.evaluate(()=>navigator.clipboard.readText());
@@ -14,7 +15,7 @@ export async function citationQa({page,ctx,base,runPhp,check,visibleActions,pass
  const f=JSON.parse(runPhp(['tests/workflow-browser-state.php','create']));
  runPhp(['bin/console.php','admin','citation-qa@example.invalid'],password);await page.goto(base+'/admin/login');await page.getByLabel('Email').fill('citation-qa@example.invalid');await page.getByLabel('Password').fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();
  await page.goto(base+'/admin/research/'+f.id);const mod=page.locator('form.moderate').filter({has:page.locator('[name=type][value=request]')});await mod.locator('[name=state]').selectOption('Approved');await mod.locator('[name=reason]').fill('Synthetic CC BY license acceptance QA.');await mod.getByRole('button',{name:'Save moderation decision'}).click();
- const url=base+'/research/'+f.slug;await page.goto(url);const resp=page.waitForResponse(r=>r.url().endsWith('/handoff.md'));await page.getByRole('button',{name:'Copy AI handoff',exact:true}).click();const response=await resp;const handoff=await response.text();check('Current handoff spells out attribution',handoff.includes('credit the named contributors and LLM.Giving'));
+ const url=base+'/research/'+f.slug;await page.goto(url);const handoff=await authorizedHandoff(page);check('Current handoff spells out attribution',handoff.includes('credit the named contributors and LLM.Giving'));
  const schema=JSON.parse(handoff.split('REQUIRED OUTPUT JSON\n')[1].split('\n\nUNTRUSTED TASK DATA')[0]);let data=await(await page.request.get(url+'/context.json')).json();const task=data.workflow.tasks.find(t=>t.kind==='planning');const packet=JSON.parse(runPhp(['tests/workflow-browser-state.php','payload',f.id,task.id,'progress']));for(const k of ['submission_key','handoff_code','task_revision','context_id'])packet[k]=schema[k];packet.human_interaction={level:'none',details:''};
  await page.goto(url+'/tasks/'+task.id);await page.locator('[name=payload]').fill(JSON.stringify(packet));await page.locator('[name=human_level]').selectOption('none');check('Submission checkbox names new license',(await page.locator('label').filter({has:page.locator('[name=terms]')}).innerText()).includes('CC BY 4.0'));
  await page.getByRole('button',{name:'Check packet',exact:true}).click();await page.locator('[data-workflow-error]').filter({hasText:'Packet checks passed'}).waitFor();await page.locator('[name=terms]').scrollIntoViewIfNeeded();await shot('new-license-consent');await page.locator('[name=terms]').check();await page.getByRole('button',{name:'Submit task result',exact:true}).click();await page.getByRole('heading',{name:'Submission accepted',exact:true}).waitFor();await shot('accepted-result');

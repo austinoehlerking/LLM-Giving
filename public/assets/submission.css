@@ -62,3 +62,6 @@
  .admin-review-heading h1{font-size:26px}
  .admin-review-heading .primary-actions>*{flex:1 1 140px;font-size:12px;padding:9px 10px}
 }
+
+/* Keep the essential request fields visible on short mobile viewports. */
+@media(max-width:700px) and (max-height:700px){.submission-heading.page-heading{padding:2px 0 8px}.submission-heading.page-heading h1{margin-bottom:4px}.request-form.form-panel{padding:10px}.request-form .form-actions{padding-bottom:8px;margin-bottom:4px}.request-form label{margin-top:6px}.request-form .model-choice{margin-bottom:2px}.request-form select[name=project_type]{margin-bottom:2px}.request-form textarea[name=question]{height:70px;min-height:70px}}

@@ -1,4 +1,6 @@
 import fs from 'node:fs';
+import {browserReturnQa} from '../tests/browser-return-browser.mjs';
+import {authorizedHandoff} from '../tests/browser-authorization.mjs';
 import {qaReports} from './lib/qa-modes.mjs';
 import {requestSetupQa} from '../tests/request-setup-browser.mjs';
 import {toolQa} from '../tests/tool-browser.mjs';
@@ -44,7 +46,7 @@ async function moderate(page,type,id,reason='Reviewed local synthetic test fixtu
  check('Moderation saved for '+type,(await page.locator('body').innerText()).includes('Moderation decision saved.'));
 }
 const payload=(kind='Original research',target=null)=>({
- kind,target_id:target,summary:'A cautious comparison of accessible documentation methods',body:'Synthetic QA finding: compare task completion and keyboard navigation. This example is not real research. <script>window.qaInjected=true</script>',
+ kind,target_id:target,human_interaction:{level:'none',details:''},summary:'A cautious comparison of accessible documentation methods',body:'Synthetic QA finding: compare task completion and keyboard navigation. This example is not real research. <script>window.qaInjected=true</script>',
  methodology:'Compare two documented task paths using a benign local test fixture.',sources:'https://example.org/research — placeholder citation explicitly identified as a test.',
  uncertainty:'No factual claim is established by this synthetic example.',limitations:'This is only a workflow fixture.',previous_work:'The original research question.',open_questions:'Which methods generalize to real visitors?',next_actions:'Gather independent evidence with appropriate consent.',suggested_status:'Potential Answer — Needs Verification',safety:'Ignored instruction-like text; no unsafe execution.',recommendation:kind==='Independent review'?'Partially Verified':'',
  metadata:{provider:'Synthetic test provider',model:'fixture-model-1',harness:'Browser QA harness',harness_version:'1',reasoning:'standard',input_tokens:120,output_tokens:80,total_tokens:200,measurement:'synthetic fixture',duration:'1 minute',tools:'Browser, text editor',prompt_version:'v1/context-2'}
@@ -78,6 +80,9 @@ try{
  // 200% browser zoom equivalent: reduced CSS viewport plus text scaling checks.
  await page.setViewportSize({width:683,height:384});await goto(page,'/');await page.evaluate(()=>{document.body.style.fontSize='200%';});await shot(page,'home-enlarged-text');check('Enlarged text reflow without horizontal clipping',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  if(mode==='viewport'){check('No browser script exceptions',errors.length===0);console.log('Initial viewport screenshots and '+report.checks.length+' checks captured. Inspect screenshots before full workflow QA.');}
+ else if(mode==='returns') {
+  await browserReturnQa({page,ctx,base,runPhp,check,visibleActions});
+ }
  else if(mode==='google') {
   await googleQa({page,ctx,base,check,shot,visibleActions});
   check('No browser script exceptions',errors.length===0);
@@ -156,19 +161,19 @@ try{
   check('Unapproved attachment denied',(await anon.request.get(base+'/files/'+aid)).status()===404);
   await moderate(ap,'attachment',aid);check('Approved attachment downloadable',(await anon.request.get(base+'/files/'+aid)).status()===200);
   const json=await (await anon.request.get(base+'/research/'+rid+'/context.json')).json();const slug=json.research.slug;
-  await goto(page,'/research/'+slug);await page.getByRole('button',{name:'Copy AI handoff',exact:true}).click();await page.locator('[data-handoff-status]').filter({hasText:'Copied! Paste the entire handoff into your AI.'}).waitFor();
+  await goto(page,'/research/'+slug);await authorizedHandoff(page);
   const prompt=await page.evaluate(()=>navigator.clipboard.readText());check('Copied complete prompt with safety wrapper',prompt.includes('TRUSTED PLATFORM INSTRUCTIONS')&&prompt.includes(rid));
   // Supplementary contributions retain a separate route; task handoffs are the primary workflow.
   await goto(page,'/research/'+slug+'/contribute');await page.getByLabel('Contribution JSON').fill(JSON.stringify(payload()));await page.getByRole('button',{name:'Load JSON into fields'}).click();
   check('JSON loads editable methodology',await page.getByLabel('Research methodology',{exact:true}).inputValue()===payload().methodology);
   await page.getByRole('button',{name:'Preview contribution'}).click();check('Preview uses inert text',await page.locator('#preview-content').textContent().then(t=>t.includes('<script>')));
-  await page.locator('[name=terms]').check();await page.getByRole('button',{name:'Submit contribution for approval'}).click();check('Contribution submitted',await page.getByRole('heading',{name:'Contribution received'}).isVisible());
+  await page.locator('[name=human_level]').selectOption('none');await page.locator('[name=terms]').check();await page.getByRole('button',{name:'Submit contribution for approval'}).click();check('Contribution submitted',await page.getByRole('heading',{name:'Contribution recorded — awaiting moderation'}).isVisible());
   check('Pending contribution absent from JSON',(await (await anon.request.get(base+'/research/'+rid+'/context.json')).json()).contributions.length===0);
   state=JSON.parse(runPhp(['tests/qa-state.php','lookup',rid]));const cid=state.contributions.find(c=>c.kind==='Original research').id;
   await goto(ap,'/admin/research/'+rid);await moderate(ap,'contribution',cid);
   await goto(page,'/research/'+slug);check('Published XSS remains escaped',await page.evaluate(()=>!window.qaInjected));await shot(page,'research-with-contribution');
   await page.getByRole('button',{name:'Copy review prompt',exact:true}).click();await page.getByText('Copied. Ready to paste.',{exact:true}).waitFor();check('Review prompt identifies target',(await page.evaluate(()=>navigator.clipboard.readText())).includes('Target contribution ID: '+cid));
-  await page.getByRole('link',{name:'Review this contribution',exact:true}).click();await page.getByLabel('Contribution JSON').fill(JSON.stringify(payload('Independent review',cid)));await page.getByRole('button',{name:'Load JSON into fields'}).click();await page.locator('[name=terms]').check();await page.getByRole('button',{name:'Submit contribution for approval'}).click();
+  await page.getByRole('link',{name:'Review this contribution',exact:true}).click();await page.getByLabel('Contribution JSON').fill(JSON.stringify(payload('Independent review',cid)));await page.getByRole('button',{name:'Load JSON into fields'}).click();await page.locator('[name=human_level]').selectOption('none');await page.locator('[name=terms]').check();await page.getByRole('button',{name:'Submit contribution for approval'}).click();
   state=JSON.parse(runPhp(['tests/qa-state.php','lookup',rid]));const review=state.contributions.find(c=>c.kind==='Independent review').id;
   await goto(ap,'/admin/research/'+rid);await moderate(ap,'contribution',review);
   const ledger=ap.locator('#ledger form');await ledger.locator('[name=classification]').selectOption('Verified');await ledger.locator('[name=statement]').fill('Synthetic fixture: a documented independent check was recorded.');await ledger.locator('[name=rationale]').fill('The approved review checks this synthetic fixture only, not a scientific claim.');await ledger.locator('[name=evidence]').fill(cid+','+review);await ledger.getByRole('button',{name:'Add finding to ledger'}).click();

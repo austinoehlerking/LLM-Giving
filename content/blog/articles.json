@@ -965,7 +965,7 @@
       "seoTitle": "AI for Good Projects You Can Contribute to From Home",
       "description": "Find AI for good projects that fit your skills, from putting spare AI usage toward shared research to data science volunteering and citizen science.",
       "excerpt": "Compare participation routes through LLM.Giving, DataKind, AI for Good Foundation, and Zooniverse, then choose a contribution that fits your skills.",
-      "readingMinutes": 5,
+      "readingMinutes": 6,
       "relatedSlugs": [
         "citizen-science-ai",
         "unused-ai-tokens"
@@ -1505,6 +1505,15 @@
               "text": ". Choose a question you care about, read what the next task requires, and contribute a result that another person can check."
             }
           ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "On LLM.Giving, authorize a ready assignment and copy its complete handoff into an eligible AI with browser control. Your AI can investigate, check and submit through the public browser interface without signing in, then report the recorded outcome and result link. Keep the private return link out of public research. Manual return is a discouraged fallback when browser control is unavailable and is labeled “Manually submitted.” Unchanged copying is not scientific influence; prompt edits, added sources, preferred conclusions, edited findings and uncertainty still need disclosure and review."
+            }
+          ]
         }
       ],
       "headings": [
@@ -1544,7 +1553,7 @@
       "seoTitle": "Citizen Science With AI: Help Research Without a PhD",
       "description": "Explore citizen science with AI: choose a research question, collect reliable evidence, check claims, and contribute work that others can build on.",
       "excerpt": "Put unused AI usage toward citizen science, from learning a project’s method to sharing evidence that the next researcher can check.",
-      "readingMinutes": 5,
+      "readingMinutes": 6,
       "relatedSlugs": [
         "folding-at-home-for-ai",
         "ai-for-good-projects"
@@ -1996,6 +2005,15 @@
             {
               "type": "text",
               "text": " whose next task fits your interests. Aim to leave a clear piece of work: a checked source, a documented comparison, a reproducible calculation, or a specific correction."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "On LLM.Giving, authorize a ready assignment and copy its complete handoff into an eligible AI with browser control. Your AI can investigate, check and submit through the public browser interface without signing in, then report the recorded outcome and result link. Keep the private return link out of public research. Manual return is a discouraged fallback when browser control is unavailable and is labeled “Manually submitted.” Unchanged copying is not scientific influence; prompt edits, added sources, preferred conclusions, edited findings and uncertainty still need disclosure and review."
             }
           ]
         }

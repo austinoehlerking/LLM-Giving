@@ -1,3 +1,4 @@
+import {authorizedHandoff} from './browser-authorization.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -26,13 +27,12 @@ export async function handoffQa({page,ctx,base,runPhp,check,visibleActions,passw
   await viewports(url,'ready','.research-heading .primary-actions > *');
   for(const [name,ai,human,details] of scenarios){
    await page.goto(url);
-   const responsePromise=page.waitForResponse(r=>r.url().endsWith('/handoff.md'));
-   await page.getByRole('button',{name:'Copy AI handoff',exact:true}).click();const response=await responsePromise;
-   await page.locator('[data-handoff-status]').filter({hasText:'Copied!'}).waitFor();
-   const copied=(await page.evaluate(()=>navigator.clipboard.readText())).replaceAll('\r\n','\n'),raw=await response.body(),headers=response.headers(),archiveId=headers['x-handoff-id'];
-   check(name+' clipboard text matches served content after Windows newline normalization',copied===raw.toString('utf8'));
+   const full=await authorizedHandoff(page);const copied=full.split('\n\nPRIVATE VOLUNTEER AUTHORIZATION SUPPLEMENT')[0];
+   const archiveHref=await page.locator('[data-issued-archive]').getAttribute('href'),archiveId=archiveHref.split('/').pop();
+   const archived=await page.request.get(base+archiveHref),raw=await archived.body(),headers=archived.headers();
+   check(name+' public instruction bytes match private copy prefix',copied===raw.toString('utf8'));
    check(name+' archive hash matches exact bytes',headers['x-handoff-sha256']===createHash('sha256').update(raw).digest('hex'));
-   const archived=await page.request.get(url+'/issued/'+archiveId);check(name+' archived GET is byte-for-byte identical',(await archived.body()).equals(raw));
+   const repeated=await page.request.get(base+archiveHref);check(name+' archived GET is byte-for-byte identical',(await repeated.body()).equals(raw));
    check(name+' prompt covers initial edits and deleted instructions',copied.includes('editing the INITIAL prompt')&&copied.includes('deleting instructions or context'));
    const schema=JSON.parse(copied.split('REQUIRED OUTPUT JSON\n')[1].split('\n\nUNTRUSTED TASK DATA')[0]);
    const t=(await data()).workflow.tasks.find(t=>t.kind==='planning');
