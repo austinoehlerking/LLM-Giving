@@ -1,3 +1,4 @@
+import {saveManagementLink} from './receipt-actions.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {root} from '../tools/runtime.mjs';
@@ -99,7 +100,7 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
   await page.setViewportSize(size);await page.evaluate(()=>scrollTo(0,0));await shot('06-receipt-'+size.width+'x'+size.height,false,[page.locator('#management-link')]);
   await visibleActions(page,'.receipt .primary-actions > *','Updated receipt '+size.width);
  }
- await page.getByRole('button',{name:'Copy management link'}).click();
+ await saveManagementLink(page);
  check('Receipt copy action works',await page.evaluate(()=>navigator.clipboard.readText())===link);
  runPhp(['bin/console.php','admin','browser-qa@example.invalid'],password);
  await page.setViewportSize(sizes[0]);await page.goto(base+'/admin/login');await page.locator('[name=email]').fill('browser-qa@example.invalid');await page.locator('[name=password]').fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();
