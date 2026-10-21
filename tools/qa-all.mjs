@@ -56,7 +56,7 @@ async function run(name, args, report) {
 try {
   save();
   await run('server', ['tools/check.mjs']);
-  await run('blog-http', ['tests/blog-http.mjs']);
+  await run('blog-http', ['tests/blog-http.mjs', process.env.QA_APP_URL || 'http://127.0.0.1:8086']);
   for (const [mode, report] of Object.entries(qaReports)) await run(mode, ['tools/qa.mjs', mode], report);
   summary.status = summary.suites.every(suite => suite.exitCode === 0) ? 'PASS' : 'FAIL';
   summary.browserAssertions = summary.suites.reduce((sum, suite) => sum + (suite.assertions || 0), 0);

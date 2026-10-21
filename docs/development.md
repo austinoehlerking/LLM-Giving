@@ -53,6 +53,8 @@ node tools/qa-all.mjs
 
 Single modes are listed in `tools/lib/qa-modes.mjs`: viewport, full, library, blog, submission, workflow, artifacts, quarantine, handoffs, launch, legal, citations, requirements, setup, tools and calculations. An unknown mode fails before starting a server. `full` is the original general lifecycle suite; `qa-all` is the complete set.
 
+For concurrent local worktrees, use separate development databases. `QA_PORT` selects an unused loopback port (1024–65535) for the browser suites. `QA_APP_URL` selects the local app URL used by the complete runner’s blog HTTP checks; that test accepts only `http://127.0.0.1:<port>`. Other HTTP fixtures can use fixed ports, so avoid overlapping complete server-check runs.
+
 Browser discovery uses `QA_BROWSER` when set, otherwise installed Edge on Windows or Playwright's Chromium on other platforms. `PLAYWRIGHT_MODULE` may name an existing package/path. The optional Codex-bundled fallback is resolved from the current user's home directory. Nothing is downloaded automatically. `PHP_BINARY` overrides the PHP executable; `MARIADB_BIN` overrides the Windows database binary directory. Other platforms use the portable PHP or Docker instructions.
 
 ## Windows QA execution boundary

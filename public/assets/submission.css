@@ -69,3 +69,17 @@
 
 /* Keep the essential request fields visible on short mobile viewports. */
 @media(max-width:700px) and (max-height:700px){.submission-heading.page-heading{padding:2px 0 8px}.submission-heading.page-heading h1{margin-bottom:4px}.request-form.form-panel{padding:10px}.request-form .form-actions{padding-bottom:8px;margin-bottom:4px}.request-form label{margin-top:6px}.request-form .model-choice{margin-bottom:2px}.request-form select[name=project_type]{margin-bottom:2px}.request-form textarea[name=question]{height:70px;min-height:70px}}
+
+/* Make the copied-prompt instructions easy to notice and read. */
+.request-form .setup-status:not(:empty){padding:12px 14px;border:1px solid #59b782;border-left:4px solid #83e4aa;border-radius:6px;background:#163d2c;color:#e0ffeb;font-size:14px;line-height:1.4}
+.setup-status strong,.setup-status span{display:block}
+.setup-status strong{font-size:15px;margin-bottom:4px}
+
+@media(max-width:700px) and (max-height:700px){
+ .request-form .setup-status:not(:empty){padding:8px 10px;font-size:13px;line-height:1.35}
+ .setup-status strong{font-size:14px;margin-bottom:2px}
+ .request-form .setup-panel{padding:10px}
+ .request-form .setup-panel textarea:not([readonly]){height:80px}
+ .request-form .setup-panel label{margin:4px 0}
+ .request-form .setup-panel>p{margin:0 0 4px}
+}
