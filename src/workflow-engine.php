@@ -125,7 +125,7 @@ function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnl
         $snapshotRequirements=json_decode($s['package_json'],true)['requester_ai_requirements']??rq_requirements([]);
         if($snapshotRequirements!==rq_requirements(research($rid)))fail(409,'Requester AI requirements changed. Copy a fresh handoff and use a qualifying AI run.');
         $meta=wf_metadata($d,$s,$t['kind']==='planning');
-        $meta['contribution_license']=RESEARCH_LICENSE;$meta['terms_version']=terms_version();
+        $meta['contribution_license']=RESEARCH_LICENSE;$meta['terms_version']=terms_version(record: !$checkOnly);
         if(rt_is_tool($r)){
             if(!$checkOnly&&empty($d['tool_terms']))fail(422,'Accept the separate software terms for original tool source and tests.');
             $meta['tool_software_license']=RT_LICENSE;$meta['tool_terms_version']=RT_TERMS;

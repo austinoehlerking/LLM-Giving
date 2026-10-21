@@ -16,7 +16,7 @@ Do Not Track and Global Privacy Control suppress collection and clear this site'
 
 Private/admin/management pages, submission/recovery forms, receipts, API/context/file routes, POST responses and errors omit Analytics. Public pages viewed from an admin or requester management session also omit it. URLs exclude query strings and fragments; referrers are blank. CSP permits only the specific Google script and collection origins on eligible requests. Local development defaults to no collection.
 
-The privacy page appends content/analytics-privacy.txt after its existing policy body, including saved page_privacy overrides. Historical accepted policy records remain preserved.
+The privacy page and policy snapshots use the same Analytics notice, including saved page_privacy overrides. Effective policy versions fingerprint the complete legal bundle, so a notice or default-text change starts a new version even on existing installations. Actual request, contribution, feedback and packet acceptance stores that exact bundle; rendering and Check packet stay read-only. Admin edits preserve the prior complete bundle and record the replacement. Historical snapshots and acceptance references are not rewritten.
 
 ## Verification
 

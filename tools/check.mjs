@@ -16,6 +16,7 @@ for(const dir of ['src','views','public','bin','tests','tools']){
 }
 console.log(count+' PHP files passed syntax validation.');
 process.stdout.write(runPhp(['tests/google.php']));
+process.stdout.write(runPhp(['tests/legal-policy.php']));
 process.stdout.write(runPhp(['tests/integration.php']));
 process.stdout.write(runPhp(['tests/discovery.php']));
 process.stdout.write(runPhp(['tests/blog.php']));

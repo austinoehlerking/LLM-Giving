@@ -30,7 +30,7 @@ function create_contribution(string $rid,array $d): string {
     if($kind==='Independent review' && !$target) fail(422,'Select the contribution being reviewed.');
     if($kind!=='Independent review' && $target) fail(422,'Only an independent review has a review target.');
     if($target && !one("SELECT id FROM contributions WHERE id=? AND research_id=? AND moderation='Approved' AND kind<>'Independent review'",[$target,$rid])) fail(422,'Review target must be published research in this request.');
-    $row=['id'=>uid(),'research_id'=>$rid,'kind'=>$kind,'target_id'=>$target,'created_at'=>now(),'terms_version'=>terms_version(),'license'=>RESEARCH_LICENSE,'moderation_reason'=>'','metadata_exception'=>''];
+    $row=['id'=>uid(),'research_id'=>$rid,'kind'=>$kind,'target_id'=>$target,'created_at'=>now(),'terms_version'=>terms_version(record: true),'license'=>RESEARCH_LICENSE,'moderation_reason'=>'','metadata_exception'=>''];
     foreach(['summary','body','methodology','sources','uncertainty','limitations','previous_work','open_questions','next_actions','safety'] as $key) $row[$key]=text_field($d,$key,in_array($key,['summary','body'],true)?10:0);
     $row['suggested_status']=text_field($d,'suggested_status',0,80);
     if($row['suggested_status'] && !isset(STATUSES[$row['suggested_status']])) fail(422,'Invalid suggested status.');
@@ -71,7 +71,7 @@ function create_feedback(string $rid,array $d): string {
     $kind=text_field($d,'kind');
     if(!in_array($kind,['Comment','Correction','Contradictory evidence','More research','Reopen request','Safety report'],true)) fail(422,'Choose a feedback type.');
     $body=text_field($d,'body',10); $id=uid();
-    insert('feedback',['id'=>$id,'research_id'=>$rid,'target_id'=>$target,'finding_id'=>$finding,'kind'=>$kind,'body'=>$body,'display_name'=>text_field($d,'display_name',0,120),'moderation'=>suspicious($body)?'Needs Additional Review':'Pending Approval','moderation_reason'=>'','flags'=>suspicious($body)?'Suspicious content':'','terms_version'=>terms_version(),'created_at'=>now()]);
+    insert('feedback',['id'=>$id,'research_id'=>$rid,'target_id'=>$target,'finding_id'=>$finding,'kind'=>$kind,'body'=>$body,'display_name'=>text_field($d,'display_name',0,120),'moderation'=>suspicious($body)?'Needs Additional Review':'Pending Approval','moderation_reason'=>'','flags'=>suspicious($body)?'Suspicious content':'','terms_version'=>terms_version(record: true),'created_at'=>now()]);
     audit_event($rid,'Feedback submitted','Feedback recorded for follow-up.','feedback',$id,'','Recorded','See the complete feedback record.','contributor',text_field($d,'display_name',0,120)?:'Anonymous volunteer',[],'private');
     return $id;
 }

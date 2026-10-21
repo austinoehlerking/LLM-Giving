@@ -21,16 +21,37 @@ function save_operator_details(array $data): void {
  if($source!==''&&(!str_starts_with($source,'https://')||safe_url($source)!==$source))fail(422,'Use a complete HTTPS source repository URL.');
  tx(function()use($name,$country,$email,$source){foreach(['operator_name'=>$name,'operator_country'=>$country,'operator_email'=>$email,'source_url'=>$source] as $key=>$value)set_setting($key,$value);});
 }
-function terms_version(): string { return setting('terms_version',TERMS_VERSION); }
-function save_public_page(string $key,string $body): void {
-    tx(function() use($key,$body) {
-        $previous=terms_version();
-        $pages=[]; foreach(['terms','privacy','licensing','moderation','copyright'] as $page) $pages[$page]=setting('page_'.$page,file_get_contents(ROOT.'/content/'.$page.'.txt'));
-        query('INSERT IGNORE INTO legal_versions(version,pages,created_at) VALUES (?,?,?)',[$previous,json_encode($pages),now()]);
-        set_setting('page_'.$key,$body);
-        if($key!=='about') {
-            $pages[$key]=$body; $version='policy-'.gmdate('Ymd-His').'-'.substr(uid(),0,8);
-            insert('legal_versions',['version'=>$version,'pages'=>json_encode($pages),'created_at'=>now()]);set_setting('terms_version',$version);
+function legal_pages(): array {
+    $pages = [];
+    foreach (['terms', 'privacy', 'licensing', 'moderation', 'copyright'] as $page) {
+        $pages[$page] = setting('page_'.$page, file_get_contents(ROOT.'/content/'.$page.'.txt'));
+    }
+    $notice = google_privacy_notice();
+    $pages['privacy'] .= "\n\n".$notice['title']."\n".$notice['body'];
+    return $pages;
+}
+function legal_policy_version(array $pages, string $base): string {
+    $json = json_encode($pages, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+    return 'policy-'.substr(hash('sha256', $base."\n".$json), 0, 32);
+}
+function terms_version(bool $record = false): string {
+    $pages = legal_pages();
+    $version = legal_policy_version($pages, setting('terms_version', TERMS_VERSION));
+    // Rendering and packet checks stay read-only; actual acceptance records the exact bundle.
+    if ($record) {
+        query('INSERT IGNORE INTO legal_versions(version,pages,created_at) VALUES (?,?,?)', [
+            $version, json_encode($pages, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), now(),
+        ]);
+    }
+    return $version;
+}
+function save_public_page(string $key, string $body): void {
+    tx(function() use ($key, $body) {
+        terms_version(record: true);
+        set_setting('page_'.$key, $body);
+        if ($key !== 'about') {
+            set_setting('terms_version', 'policy-'.gmdate('Ymd-His').'-'.substr(uid(), 0, 8));
+            terms_version(record: true);
         }
     });
 }
@@ -103,7 +124,7 @@ function create_research(array $d): array {
     $row+=attribution($d);
     $row['flags']=suspicious(json_encode($row))?'Suspected instruction manipulation; inspect as untrusted data.':'';
     if($row['flags']) $row['moderation']='Needs Additional Review';
-    $link=tx(function() use($row,$d) { insert('research',$row); set_tags($row['id'],text_field($d,'tags',0,800)); return rotate_token($row['id']); });
+    $link=tx(function() use($row,$d) { $row['terms_version']=terms_version(record: true); insert('research',$row); set_tags($row['id'],text_field($d,'tags',0,800)); return rotate_token($row['id']); });
     audit_event($row['id'],'Topic submitted','Awaiting initial publication approval.','research',$row['id'],'','Pending Approval','An administrator reviews the topic.','requester',$row['display_name']?:'Original submitter',[],'private');
     return ['id'=>$row['id'],'link'=>$link];
 }

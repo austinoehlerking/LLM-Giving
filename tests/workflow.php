@@ -20,7 +20,14 @@ try {
  wcheck(substr_count($handoff,wf_snapshot($rid)['package_json'])===1&&str_contains($handoff,'THIS IS A PLANNING TASK.'),'Handoff includes exact complete context once and mandatory model instructions');
  $d=wf_test_payload($rid,$p);
  $beforeCounts=[count(all('SELECT id FROM workflow_submissions WHERE research_id=?',[$rid])),count(wf_ledger($rid,true)),count(all('SELECT id FROM workflow_attempts WHERE research_id=?',[$rid]))];
- wf_submit($rid,$p['id'],$d,str_repeat('a',64),true);
+ $originalPolicyBase=setting('terms_version',TERMS_VERSION);
+ set_setting('terms_version','dry-run-'.uid());
+ try {
+  $unrecordedPolicy=terms_version();
+  wcheck(one('SELECT version FROM legal_versions WHERE version=?',[$unrecordedPolicy])===null,'Changed disclosure version starts without an acceptance snapshot');
+  wf_submit($rid,$p['id'],$d,str_repeat('a',64),true);
+  wcheck(one('SELECT version FROM legal_versions WHERE version=?',[$unrecordedPolicy])===null,'Check packet does not persist a policy acceptance snapshot');
+ } finally { set_setting('terms_version',$originalPolicyBase); }
  wcheck($beforeCounts===[count(all('SELECT id FROM workflow_submissions WHERE research_id=?',[$rid])),count(wf_ledger($rid,true)),count(all('SELECT id FROM workflow_attempts WHERE research_id=?',[$rid]))]&&wf_task($rid,$p['id'])['state']==='Ready','Check packet validates without publishing, audit mutation or task advancement');
  $invalid=$d;$invalid['handoff_code']='bad';wdeny(fn()=>wf_submit($rid,$p['id'],$invalid,str_repeat('a',64),true),422,'Check packet uses signed-code validation');
  wcheck(count(all('SELECT id FROM workflow_attempts WHERE research_id=?',[$rid]))===$beforeCounts[2],'Failed check does not create a submitted attempt');

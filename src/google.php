@@ -15,6 +15,11 @@ function google_analytics_request(): bool {
     // A closed route list excludes receipts, management secrets, forms, packets, files and errors.
     return is_string($path) && (bool)preg_match('~^/(?:research|about|contact|blog(?:/[a-z0-9]+(?:-[a-z0-9]+)*)?|legal/(?:terms|privacy|licensing|moderation|copyright)|research/[a-z0-9]+(?:-[a-z0-9]+)*)?$~D', $path);
 }
+function google_privacy_notice(): array {
+    $body = file_get_contents(ROOT.'/content/analytics-privacy.txt');
+    if ($body === false) throw new RuntimeException('Analytics privacy notice is unavailable.');
+    return ['title' => 'Google Analytics', 'body' => trim($body)];
+}
 function google_head(string $view): void {
     if ($view === 'home' && google_verification_token() !== '') {
         echo '<meta name="google-site-verification" content="'.e(google_verification_token()).'">';

@@ -9,5 +9,5 @@
 <?php endif ?>
 <?php endif ?>
 <?=prose(str_ireplace('llm.giving','LLM.Giving',$body))?>
-<?php if(($path??'')==='/legal/privacy'): ?><section aria-labelledby="analytics-notice"><h2 id="analytics-notice">Google Analytics</h2><?=prose(file_get_contents(ROOT.'/content/analytics-privacy.txt'))?></section><?php endif ?>
+<?php if(($path??'')==='/legal/privacy'): $analyticsNotice=google_privacy_notice(); ?><section aria-labelledby="analytics-notice"><h2 id="analytics-notice"><?=e($analyticsNotice['title'])?></h2><?=prose($analyticsNotice['body'])?></section><?php endif ?>
 </article>
