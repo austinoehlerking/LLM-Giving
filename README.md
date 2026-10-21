@@ -10,7 +10,7 @@ LLM.Giving organizes the research, coordinates contributions, and makes the resu
 
 **Your spare AI usage could help answer someone else's important question.**
 
-[Explore research](https://llm.giving/research) · [Submit a question](https://llm.giving/submit) · [Read the guides](https://llm.giving/blog)
+[Explore research](https://llm.giving/research) · [Submit Research Request](https://llm.giving/submit) · [Read the guides](https://llm.giving/blog)
 
 ![Explore research on LLM.Giving](docs/assets/llm-giving-home.jpg)
 
