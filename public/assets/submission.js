@@ -1,14 +1,17 @@
 'use strict';
 const requestForm=document.querySelector('[data-request-form]');
 if(requestForm){
- const validationMessages=new Map();
+ const validationMessages=new Map(),touchedFields=new Set();
+ let validationAttempted=false;
+ const validationFields='input:not([type=hidden]):not([type=file]),textarea:not([data-setup-text]),select';
+ requestForm.dataset.validationReady='';
  const textLimits={title:[8,180],question:[20,Number(requestForm.dataset.maxText)],required_software:[1,3000]};
  for(const field of requestForm.querySelectorAll('[data-tool-requirements] textarea'))textLimits[field.name]=[20,3000];
  const requiredMessages={category_id:'Choose a category.',required_reasoning:'Choose a reasoning level.',terms:'Confirm the terms before submitting.',required_software:'Name the required software.'};
  const encoder=new TextEncoder();
  function validateRequest(){
   requestForm.elements.namedItem('required_software').required=['free','licensed','mixed'].includes(requestForm.elements.namedItem('external_tools').value);
-  for(const field of requestForm.querySelectorAll('input:not([type=hidden]):not([type=file]),textarea:not([data-setup-text]),select')){
+  for(const field of requestForm.querySelectorAll(validationFields)){
    // Match PHP trim and UTF-8 byte limits; browser string length differs for Unicode.
    field.setCustomValidity('');
    let message='';
@@ -21,7 +24,7 @@ if(requestForm){
     else if(value.includes('\0'))message='Remove unsupported characters.';
     field.setCustomValidity(message);
    }
-   const invalid=field.willValidate&&!field.validity.valid;
+   const invalid=field.willValidate&&!field.validity.valid&&(validationAttempted||touchedFields.has(field));
    const label=field.labels?.[0];
    label?.classList.toggle('field-invalid',invalid);
    if(label&&field.type!=='checkbox'){
@@ -40,10 +43,18 @@ if(requestForm){
   }
  }
  requestForm.addEventListener('input',validateRequest);
- requestForm.addEventListener('change',validateRequest);
- requestForm.addEventListener('reset',()=>setTimeout(validateRequest,0));
+ requestForm.addEventListener('change',event=>{
+  if(event.isTrusted)touchedFields.add(event.target);
+  // An imported draft needs fresh consent; a scripted reset is not a user attempt.
+  else if(event.target.name==='terms')touchedFields.delete(event.target);
+  validateRequest();
+ });
+ requestForm.addEventListener('focusout',event=>{
+  if(event.target.matches(validationFields)){touchedFields.add(event.target);validateRequest();}
+ });
+ requestForm.addEventListener('reset',()=>{touchedFields.clear();validationAttempted=false;setTimeout(()=>{updateProjectType();validateRequest();},0);});
  window.addEventListener('pageshow',validateRequest);
- requestForm.addEventListener('submit',event=>{validateRequest();if(!requestForm.reportValidity())event.preventDefault();});
+ requestForm.addEventListener('submit',event=>{validationAttempted=true;validateRequest();if(!requestForm.reportValidity())event.preventDefault();});
 
  const help=requestForm.elements.namedItem('calculation_help'),execution=requestForm.elements.namedItem('computational_models');
  help.addEventListener('change',()=>{if(help.value==='run')execution.checked=true;else if(help.value==='prepare_review')execution.checked=false;});
@@ -86,7 +97,7 @@ if(requestForm){
  });
  editButton.addEventListener('click',()=>{preview.hidden=true;reviewButton.focus();});
  // A native validation error can be inside a collapsed optional section.
- requestForm.addEventListener('invalid',event=>{const details=event.target.closest('details');if(details)details.open=true;},true);
+ requestForm.addEventListener('invalid',event=>{validationAttempted=true;validateRequest();const details=event.target.closest('details');if(details)details.open=true;},true);
  requestForm.addEventListener('input',()=>{preview.hidden=true;});
  requestForm.addEventListener('change',()=>{preview.hidden=true;});
 }

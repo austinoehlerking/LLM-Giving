@@ -18,8 +18,8 @@
 [hidden]{display:none!important}
 .submission-heading.page-heading{padding:18px 0 12px}
 .request-form .form-actions:not(:has(button:not([hidden]))){display:none}
-.request-form :is(input,textarea,select):required:invalid,.request-form [aria-invalid="true"]{border-color:#ff9d9d;box-shadow:0 0 0 1px #ff9d9d}
-.request-form .field-invalid,.request-form label:has(+ :required:invalid),.request-form .check:has(:required:invalid){color:#ffb3b3}
+.request-form:not([data-validation-ready]) :is(input,textarea,select):user-invalid,.request-form [aria-invalid="true"]{border-color:#ff9d9d;box-shadow:0 0 0 1px #ff9d9d}
+.request-form .field-invalid,.request-form:not([data-validation-ready]) label:has(+ :user-invalid),.request-form:not([data-validation-ready]) .check:has(:user-invalid){color:#ffb3b3}
 .request-form .validation-message{color:#ffb3b3;font-size:12px;line-height:1.3;margin:4px 0 0}
 .request-form .check.field-invalid{border-left:3px solid #ff9d9d;padding-left:10px}
 .submission-heading.page-heading h1{font-size:32px;margin:0 0 8px}

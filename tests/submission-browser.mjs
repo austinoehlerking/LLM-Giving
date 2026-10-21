@@ -10,6 +10,8 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
  for(const size of sizes){
   await page.setViewportSize(size);await page.goto(base+'/submit');await shot('01-form-'+size.width+'x'+size.height);
   await visibleActions(page,'.form-actions button','Updated submission '+size.width);
+  check('Untouched required fields are neutral '+size.width,await page.locator('[name=title],[name=question],[name=category_id],[name=terms]').evaluateAll(els=>els.every(el=>!el.hasAttribute('aria-invalid')&&getComputedStyle(el).borderColor!=='rgb(255, 157, 157)')));
+  check('No initial inline errors '+size.width,await page.locator('.validation-message:not([hidden])').count()===0);
   check('Title and objective fully visible '+size.width,await page.locator('[name=title],[name=question]').evaluateAll(els=>els.every(el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;})));
  }
  await page.setViewportSize(sizes[0]);await page.goto(base+'/submit');
@@ -17,15 +19,35 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
  check('Top submit button removed',await page.locator('.form-actions button:not([type=button])').count()===0);
  check('Global research navigation preserved',await page.getByRole('navigation',{name:'Main navigation',exact:true}).getByRole('link',{name:'Explore research',exact:true}).isVisible());
  const invalid=async name=>await page.locator('[name='+name+']').getAttribute('aria-invalid')==='true';
- for(const name of ['title','question','category_id','terms']){
-  check('Required field initially marked invalid '+name,await invalid(name));
-  check('Required field has visible linked guidance '+name,await page.locator('[name='+name+']').evaluate(el=>el.getAttribute('aria-describedby').split(' ').some(id=>{const text=document.getElementById(id);return text&&!text.hidden&&text.textContent.trim();})));
- }
- check('Invalid title has red border',await page.locator('[name=title]').evaluate(el=>getComputedStyle(el).borderColor==='rgb(255, 157, 157)'));
+ await page.locator('[name=title]').fill('short');
+ check('Typing a first partial title does not show an error',!await invalid('title')&&await page.locator('.validation-message:not([hidden])').count()===0);
+ await page.locator('[name=title]').press('Tab');
+ check('Leaving an incomplete title shows its error',await invalid('title')&&await page.locator('#request-error-title').isVisible());
+ check('Other untouched required fields stay neutral',!await invalid('question')&&!await invalid('category_id')&&!await invalid('terms'));
+ await shot('12-touched-title-error');
+ await page.locator('[name=title]').fill(brief.title);check('Correcting a touched title clears its error immediately',!await invalid('title')&&!await page.locator('#request-error-title').isVisible());
+ await page.goto(base+'/submit');
+ await page.locator('[name=project_type]').selectOption('research_tool');
+ check('New tool requirements stay neutral before use',await page.locator('[data-tool-requirements] textarea').evaluateAll(els=>els.every(el=>el.required&&!el.hasAttribute('aria-invalid')&&getComputedStyle(el).borderColor!=='rgb(255, 157, 157)')));
+ await page.locator('[name=tool_maintenance]').fill('Short');check('First partial tool entry stays neutral while typing',!await invalid('tool_maintenance'));await page.locator('[name=tool_maintenance]').press('Tab');check('Leaving a short tool entry shows its error',await invalid('tool_maintenance'));
+ await page.locator('[name=project_type]').selectOption('research');check('Disabling a touched invalid tool field clears its error',!await invalid('tool_maintenance'));
+ await page.locator('[name=external_tools]').locator('xpath=ancestor::details').locator('summary').click();await page.locator('[name=external_tools]').selectOption('free');
+ check('New required software stays neutral before use',!await invalid('required_software'));await page.locator('[name=required_software]').focus();await page.locator('[name=required_software]').press('Tab');check('Leaving empty required software shows its error',await invalid('required_software'));
+ await page.locator('[name=required_software]').fill('Synthetic local software');check('Correcting software clears its error immediately',!await invalid('required_software'));
+ await page.locator('[name=required_reasoning]').locator('xpath=ancestor::details').locator('summary').click();await page.locator('[name=reasoning_rule]').selectOption('minimum');
+ check('New required reasoning stays neutral before use',!await invalid('required_reasoning'));await page.locator('[name=required_reasoning]').focus();await page.locator('[name=required_reasoning]').press('Tab');check('Leaving an empty reasoning choice shows its error',await invalid('required_reasoning'));
+ await page.goto(base+'/submit');
  check('Optional empty fields are not errors',!await invalid('email')&&!await invalid('context')&&!await invalid('required_model'));
  let posts=0;const countPost=request=>{if(request.method()==='POST'&&new URL(request.url()).pathname==='/submit')posts++;};page.on('request',countPost);
  await page.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).click();
  check('Empty request focuses first error without posting',posts===0&&await page.locator('[name=title]').evaluate(el=>el===document.activeElement));
+ await page.waitForFunction(()=>{const r=document.querySelector('[name=title]').getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;});
+ check('First required error is in view after a failed submit',await page.locator('[name=title]').evaluate(el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}));
+ for(const name of ['title','question','category_id','terms']){
+  check('Submission attempt reveals required error '+name,await invalid(name));
+  check('Required error has linked visible guidance '+name,await page.locator('[name='+name+']').evaluate(el=>el.getAttribute('aria-describedby').split(' ').some(id=>{const text=document.getElementById(id);return text&&!text.hidden&&text.textContent.trim();})));
+ }
+ check('Validated title has red border',await page.locator('[name=title]').evaluate(el=>getComputedStyle(el).borderColor==='rgb(255, 157, 157)'));await shot('13-submit-required-errors');
  for(const value of ['   ','short','x'.repeat(181),'😀'.repeat(46)]){await page.locator('[name=title]').fill(value);check('Incomplete or oversized title stays red '+value.length,await invalid('title'));}
  await page.locator('[name=title]').fill('éééé');check('Unicode title uses the server byte minimum',!await invalid('title'));
  await page.locator('[name=title]').fill('😀'.repeat(45));check('Unicode title uses the server byte maximum',!await invalid('title'));
@@ -105,8 +127,10 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
  check('No-JS submission remains available',await np.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).isVisible());
  check('No-JS preview control is hidden',!await np.locator('#review-request').isVisible());
  check('No-JS category is natively required',await np.locator('[name=category_id]').getAttribute('required')!==null);
- check('No-JS required field has red styling',await np.locator('[name=title]').evaluate(el=>getComputedStyle(el).borderColor==='rgb(255, 157, 157)'));
- await np.locator('[name=title]').fill('[QA] Native request validation fixture');await np.locator('[name=question]').fill('A synthetic local question verifying the normal HTML submission path without JavaScript.');await np.locator('[name=category_id]').selectOption({label:'Environment & Climate'});await np.locator('[name=terms]').check();
+ check('No-JS untouched required field stays neutral',await np.locator('[name=title]').evaluate(el=>getComputedStyle(el).borderColor!=='rgb(255, 157, 157)'));
+ await np.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).press('Enter');
+ check('No-JS failed submission highlights missing title',await np.locator('[name=title]').evaluate(el=>el.matches(':user-invalid')&&getComputedStyle(el).borderColor==='rgb(255, 157, 157)'));
+ await np.locator('[name=title]').fill('[QA] Native request validation fixture');await np.locator('[name=question]').fill('A synthetic local question verifying the normal HTML submission path without JavaScript.');await np.locator('[name=category_id]').selectOption({label:'Environment & Climate'});await np.locator('[name=terms]').focus();await np.locator('[name=terms]').press('Space');check('No-JS consent can be confirmed with keyboard',await np.locator('[name=terms]').isChecked());
  await np.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).press('Enter');await np.locator('#management-link').waitFor();check('No-JS bottom submit records a pending request',await np.getByRole('heading',{name:'Research request submitted',exact:true}).isVisible());await nojs.close();
  const after=JSON.parse(runPhp(['tools/local-research-state.php','inspect'])).research.find(r=>r.id===rid);
  check('Synthetic pending request unchanged by inspection',JSON.stringify(before)===JSON.stringify(after));
