@@ -15,6 +15,7 @@ check('Prompt contains step-by-step interview and complete output schema',prompt
 check('Prompt adapts to current type, brief, categories and configured model policy',prompt.includes('"project_type": "research_tool"')&&prompt.includes(tool.question)&&prompt.includes('Science & Research')&&prompt.includes('fixture-model'));
 check('Private identity/contact/token values omitted from copied prompt',!prompt.includes('PRIVATE_EMAIL_SENTINEL')&&!prompt.includes('PRIVATE_CSRF_SENTINEL')&&!prompt.includes('PRIVATE_PROFILE_SENTINEL'));
 check('Ordinary research prompt omits stale hidden tool requirements',!setupPrompt(config,{project_type:'research',tool_requirements:'STALE_TOOL_SCOPE_SENTINEL'}).includes('STALE_TOOL_SCOPE_SENTINEL'));
+assert.throws(()=>parseSetupDraft(JSON.stringify({...draft,format:'llm-giving-request-setup-v1',computational_models:false,software_licensing:'old restriction',computing_resources:'old restriction'}),config),/fresh setup prompt/);checks.push('Old setup drafts receive explicit refresh guidance');
 check('Maybe is the default without a redundant execution flag',setupSchema().calculation_help==='maybe'&&!Object.hasOwn(setupSchema(),'computational_models'));
 for(const mode of ['unspecified','maybe','prepare_review','run'])check('Calculation preference round trips: '+mode,parseSetupDraft(JSON.stringify({...draft,calculation_help:mode}),config).calculation_help===mode);
 const noTools=parseSetupDraft(JSON.stringify({...draft,external_tools:'none',required_software:{stale:'ignored'},setup_needs:''}),config);

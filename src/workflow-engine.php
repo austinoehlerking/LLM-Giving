@@ -1,7 +1,7 @@
 <?php
 /** Plan validation, task transitions, evidence acceptance and atomic submission. */
-function wf_validate_plan(mixed $tasks,bool $modelsRequested=false,bool $toolRequested=false,?bool $modelsRequired=null): array {
-    $modelsRequired??=$modelsRequested;
+function wf_validate_plan(mixed $tasks,bool $modelsAllowed=false,bool $toolRequested=false,?bool $modelsRequired=null): array {
+    $modelsRequired??=$modelsAllowed;
     if(!is_array($tasks)||!array_is_list($tasks)||count($tasks)<1||count($tasks)>12)fail(422,'A completed plan needs 1–12 research tasks.');
     $out=[];
     foreach($tasks as $t){
@@ -9,7 +9,7 @@ function wf_validate_plan(mixed $tasks,bool $modelsRequested=false,bool $toolReq
         $key=text_field($t,'key',1,40);
         if(!preg_match('/^[a-z][a-z0-9_-]*$/',$key)||isset($out[$key])||in_array($key,['plan','synthesis','review'],true))fail(422,'Use unique research task keys; plan, synthesis and review are reserved.');
         $computational=$t['computational']??false;if(!is_bool($computational))fail(422,'Task computational must be a JSON boolean.');
-        if($computational&&!$modelsRequested)fail(422,'Running computational models requires the requester opt-in flag.');
+        if($computational&&!$modelsAllowed)fail(422,'The selected calculation-help option does not permit execution.');
         $buildsTool=$t['builds_tool']??false;if(!is_bool($buildsTool))fail(422,'Task builds_tool must be a JSON boolean.');
         if($buildsTool&&!$toolRequested)fail(422,'Tool build tasks require the Build a research tool project type.');
         $row=['key'=>$key,'computational'=>$computational,'builds_tool'=>$buildsTool];
@@ -27,7 +27,7 @@ function wf_validate_plan(mixed $tasks,bool $modelsRequested=false,bool $toolReq
         if(!isset($out[$key]))fail(422,'Every dependency must belong to this plan.');
         $visiting[$key]=true;foreach($out[$key]['dependencies'] as $d)$visit($d);unset($visiting[$key]);$seen[$key]=true;
     };
-    if($modelsRequired&&!array_filter($out,fn($task)=>$task['computational']))fail(422,'This request includes running computational models. Mark at least one planned task computational=true.');
+    if($modelsRequired&&!array_filter($out,fn($task)=>$task['computational']))fail(422,'This request requires execution. Mark at least one planned task computational=true.');
     if($toolRequested&&!array_filter($out,fn($task)=>$task['builds_tool']))fail(422,'A research-tool plan must include at least one builds_tool=true implementation task.');
     foreach(array_keys($out) as $key)$visit($key);
     return array_values($out);

@@ -21,10 +21,10 @@ export function parseSetupDraft(source,config) {
  let text=source.trim();const fence=text.match(/^```(?:json)?\s*\n([\s\S]*?)\n```$/i);if(fence)text=fence[1];
  let draft;try{draft=JSON.parse(text);}catch{throw Error('Paste the AI’s final JSON draft, not the interview prompt or surrounding conversation.');}
  if(!object(draft))throw Error('The AI must return one JSON object.');
+ if(draft.format!==format)throw Error('Copy a fresh setup prompt and use its current final output template.');
  const schema=setupSchema(),unknown=Object.keys(draft).filter(key=>!Object.hasOwn(schema,key));
  if(unknown.length)throw Error('Unsupported setup fields: '+unknown.slice(0,4).join(', ')+'. Contact details, consent, attachments and site controls must stay in the form.');
  const missing=Object.keys(schema).filter(key=>!Object.hasOwn(draft,key));if(missing.length)throw Error('The setup draft is incomplete. Ask the AI to include: '+missing.slice(0,5).join(', ')+(missing.length>5?' and the remaining template fields.':'.'));
- if(draft.format!==format)throw Error('Use the final output template from this setup prompt.');
  if(!['research','research_tool'].includes(draft.project_type))throw Error('Choose research or research_tool as the project type.');
  const result={project_type:draft.project_type};
  function read(key,min,max){const value=draft[key];if(typeof value!=='string')throw Error(key+' must be text.');const clean=value.trim(),bytes=new TextEncoder().encode(clean).length;if(bytes<min||bytes>max||clean.includes('\0'))throw Error('Check '+key+': expected '+min+'–'+max+' UTF-8 bytes.');return clean;}
