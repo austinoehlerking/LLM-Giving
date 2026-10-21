@@ -13,6 +13,40 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
   check('Title and objective fully visible '+size.width,await page.locator('[name=title],[name=question]').evaluateAll(els=>els.every(el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;})));
  }
  await page.setViewportSize(sizes[0]);await page.goto(base+'/submit');
+ check('Page-level back link removed',await page.locator('.submission-heading a').count()===0);
+ check('Top submit button removed',await page.locator('.form-actions button:not([type=button])').count()===0);
+ check('Global research navigation preserved',await page.getByRole('navigation',{name:'Main navigation',exact:true}).getByRole('link',{name:'Explore research',exact:true}).isVisible());
+ const invalid=async name=>await page.locator('[name='+name+']').getAttribute('aria-invalid')==='true';
+ for(const name of ['title','question','category_id','terms']){
+  check('Required field initially marked invalid '+name,await invalid(name));
+  check('Required field has visible linked guidance '+name,await page.locator('[name='+name+']').evaluate(el=>el.getAttribute('aria-describedby').split(' ').some(id=>{const text=document.getElementById(id);return text&&!text.hidden&&text.textContent.trim();})));
+ }
+ check('Invalid title has red border',await page.locator('[name=title]').evaluate(el=>getComputedStyle(el).borderColor==='rgb(255, 157, 157)'));
+ check('Optional empty fields are not errors',!await invalid('email')&&!await invalid('context')&&!await invalid('required_model'));
+ let posts=0;const countPost=request=>{if(request.method()==='POST'&&new URL(request.url()).pathname==='/submit')posts++;};page.on('request',countPost);
+ await page.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).click();
+ check('Empty request focuses first error without posting',posts===0&&await page.locator('[name=title]').evaluate(el=>el===document.activeElement));
+ for(const value of ['   ','short','x'.repeat(181),'😀'.repeat(46)]){await page.locator('[name=title]').fill(value);check('Incomplete or oversized title stays red '+value.length,await invalid('title'));}
+ await page.locator('[name=title]').fill('éééé');check('Unicode title uses the server byte minimum',!await invalid('title'));
+ await page.locator('[name=title]').fill('😀'.repeat(45));check('Unicode title uses the server byte maximum',!await invalid('title'));
+ await page.locator('[name=title]').fill(brief.title);check('Valid title clears border and guidance',!await invalid('title')&&!await page.locator('#request-error-title').isVisible()&&await page.locator('[name=title]').evaluate(el=>getComputedStyle(el).borderColor!=='rgb(255, 157, 157)'));
+ await page.locator('[name=question]').fill('Not enough detail');check('Short question stays invalid',await invalid('question'));
+ await page.locator('[name=question]').fill(brief.question);check('Complete question clears error',!await invalid('question'));
+ await page.locator('[name=category_id]').selectOption({label:'Environment & Climate'});check('Choosing category clears error',!await invalid('category_id'));
+ await page.locator('[name=terms]').check();check('Confirming terms clears error',!await invalid('terms'));
+ await page.locator('[name=project_type]').selectOption('research_tool');
+ const toolNames=await page.locator('[data-tool-requirements] textarea').evaluateAll(els=>els.map(el=>el.name));
+ for(const name of toolNames){check('Tool requirement turns red '+name,await invalid(name));await page.locator('[name='+name+']').fill('Short');check('Short tool requirement remains invalid '+name,await invalid(name));await page.locator('[name='+name+']').fill('A sufficiently detailed synthetic tool requirement.');check('Completed tool requirement clears '+name,!await invalid(name));}
+ await page.locator('[name=tool_maintenance]').fill('');await page.locator('[name=project_type]').selectOption('research');check('Switching back disables and clears tool errors',await page.locator('[data-tool-requirements] textarea').evaluateAll(els=>els.every(el=>el.disabled&&!el.hasAttribute('aria-invalid')&&!el.required)));
+ const software=page.locator('[name=required_software]'),external=software.locator('xpath=ancestor::details');await external.locator('summary').click();
+ await page.locator('[name=external_tools]').selectOption('free');check('Selected software access requires software name',await invalid('required_software'));
+ await external.locator('summary').click();await page.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).click();
+ check('Submit reveals collapsed required field without posting',posts===0&&await external.getAttribute('open')!==null&&await software.evaluate(el=>el===document.activeElement));await shot('11-conditional-validation');
+ await software.fill('Synthetic local software');check('Naming required software clears error',!await invalid('required_software'));
+ await software.fill('');await page.locator('[name=external_tools]').selectOption('none');check('Unneeded software field clears required state',!await invalid('required_software')&&await software.getAttribute('required')===null);
+ const reasoning=page.locator('[name=required_reasoning]'),requirements=reasoning.locator('xpath=ancestor::details');await requirements.locator('summary').click();await page.locator('[name=reasoning_rule]').selectOption('minimum');check('Reasoning level becomes a required error',await invalid('required_reasoning'));await reasoning.selectOption('high');check('Choosing reasoning clears error',!await invalid('required_reasoning'));await page.locator('[name=reasoning_rule]').selectOption('none');check('No reasoning requirement disables and clears field',await reasoning.isDisabled()&&!await invalid('required_reasoning'));
+ page.off('request',countPost);
+ await page.goto(base+'/submit');
  await page.locator('[name=title]').fill(brief.title);await page.locator('[name=question]').fill(brief.question);await page.locator('[name=category_id]').selectOption({label:'Environment & Climate'});
  await page.getByText('Background, objectives & references',{exact:true}).click();
  for(const key of ['context','success','previous','constraints_text','questions','references_text','tags'])await page.locator('[name='+key+']').fill(brief[key]);
@@ -68,8 +102,12 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
  }
  const nojs=await ctx.browser().newContext({javaScriptEnabled:false});
  const np=await nojs.newPage();await np.goto(base+'/submit');
- check('No-JS submission remains available',await np.locator('.form-actions').getByRole('button',{name:'Submit for approval',exact:true}).isVisible());
- check('No-JS preview control is hidden',!await np.locator('#review-request').isVisible());await nojs.close();
+ check('No-JS submission remains available',await np.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).isVisible());
+ check('No-JS preview control is hidden',!await np.locator('#review-request').isVisible());
+ check('No-JS category is natively required',await np.locator('[name=category_id]').getAttribute('required')!==null);
+ check('No-JS required field has red styling',await np.locator('[name=title]').evaluate(el=>getComputedStyle(el).borderColor==='rgb(255, 157, 157)'));
+ await np.locator('[name=title]').fill('[QA] Native request validation fixture');await np.locator('[name=question]').fill('A synthetic local question verifying the normal HTML submission path without JavaScript.');await np.locator('[name=category_id]').selectOption({label:'Environment & Climate'});await np.locator('[name=terms]').check();
+ await np.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).press('Enter');await np.locator('#management-link').waitFor();check('No-JS bottom submit records a pending request',await np.getByRole('heading',{name:'Research request submitted',exact:true}).isVisible());await nojs.close();
  const after=JSON.parse(runPhp(['tools/local-research-state.php','inspect'])).research.find(r=>r.id===rid);
  check('Synthetic pending request unchanged by inspection',JSON.stringify(before)===JSON.stringify(after));
  check('No browser errors in updated workflow',errors.length===0);
