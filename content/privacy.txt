@@ -10,7 +10,7 @@ Your chosen AI service
 When you copy a handoff into an external AI tool, you send the included research to that provider under its own terms and privacy practices. LLM.Giving does not send it on your behalf, control the provider's retention, or verify the full conversation. Avoid sharing private management links or other secrets with an AI.
 
 Optional email and private access
-A requester can provide an email for management-link delivery, recovery and request-related notices. It is not included in public research or AI context. Authorized administrators and the configured mail service can process it. Management secrets are stored as hashes. Essential session cookies support forms, administration and request management; they are not advertising cookies. The application does not embed advertising trackers, remote fonts or mandatory analytics.
+A requester can provide an email for management-link delivery, recovery and request-related notices. It is not included in public research or AI context. Authorized administrators and the configured mail service can process it. Management secrets are stored as hashes. Essential session cookies support forms, administration and request management; they are not advertising cookies. The application does not embed advertising trackers or remote fonts.
 
 Security and hosting records
 The application uses hashed rate-limit buckets derived from connection IP addresses and time windows. Private operational logs and hosting logs may contain technical request information. Hosting, email and backup retention depend on the operator's deployment configuration. We do not claim that all technical records are automatically erased on a fixed schedule.

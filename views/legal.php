@@ -8,4 +8,6 @@
 <p><a href="https://www.gnu.org/licenses/agpl-3.0.html">AGPL-3.0 license</a> · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0 license</a></p>
 <?php endif ?>
 <?php endif ?>
-<?=prose(str_ireplace('llm.giving','LLM.Giving',$body))?></article>
+<?=prose(str_ireplace('llm.giving','LLM.Giving',$body))?>
+<?php if(($path??'')==='/legal/privacy'): ?><section aria-labelledby="analytics-notice"><h2 id="analytics-notice">Google Analytics</h2><?=prose(file_get_contents(ROOT.'/content/analytics-privacy.txt'))?></section><?php endif ?>
+</article>

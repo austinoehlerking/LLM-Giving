@@ -1,4 +1,4 @@
-<div class="page-heading narrow"><h1>Operator &amp; source code</h1><p>These details appear publicly on contact and policy pages.</p></div>
+<div class="page-heading narrow"><h1>Operator &amp; source code</h1><p>Public contact and policy details.</p></div>
 <form method="post" class="form-panel narrow"><?=csrf()?><?php field('Public operator name','operator_name',setting('operator_name','LLM.Giving'),'text',true);field('Public contact email','operator_email',setting('operator_email','info@llm.giving'),'email',true); ?>
 <button>Save public details</button>
 <details><summary>Country and source repository</summary><?php field('Country','operator_country',setting('operator_country','United States'),'text',true);field('Source repository URL (optional until published)','source_url',setting('source_url'),'url'); ?><p class="fine">Leave the repository empty until it is published. Use an HTTPS URL for the source corresponding to the deployed application. Saving details does not create a repository or upload code.</p></details></form>

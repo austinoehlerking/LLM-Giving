@@ -4,6 +4,7 @@ export const qaReports = Object.freeze({
   full: 'browser-report.json',
   library: 'library-report.json',
   blog: 'blog-report.json',
+  google: 'google-report.json',
   submission: 'submission-ux-report.json',
   workflow: 'workflow-browser-report.json',
   artifacts: 'artifacts/browser-report.json',

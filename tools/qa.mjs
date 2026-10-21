@@ -14,6 +14,7 @@ import {handoffQa} from '../tests/handoff-browser.mjs';
 import {legalQa} from '../tests/legal-browser.mjs';
 import {launchQa} from '../tests/launch-browser.mjs';
 import {blogQa} from '../tests/blog-browser.mjs';
+import {googleQa} from '../tests/google-browser.mjs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import {randomBytes} from 'node:crypto';
@@ -24,7 +25,7 @@ const mode=process.argv[2]||'full';
 if(!Object.hasOwn(qaReports,mode))throw new Error('Unknown QA mode. Choose: '+Object.keys(qaReports).join(', '));
 const report={browser:'Microsoft Edge (installed Chromium engine)',screenshots:[],checks:[],viewports:[]};
 const password=randomBytes(24).toString('hex');
-const server=spawnPhp(['-S','127.0.0.1:'+qaPort,'-t','public','public/router.php'],{APP_URL:base,RATE_LIMIT_NAMESPACE:'browser-qa-'+randomBytes(12).toString('hex')});
+const server=spawnPhp(['-S','127.0.0.1:'+qaPort,'-t','public','public/router.php'],{APP_URL:base,...(mode==='google'?{GOOGLE_ANALYTICS_ENABLED:'1',GOOGLE_ANALYTICS_ID:'G-TEST123456',GOOGLE_SITE_VERIFICATION:'synthetic_verification_token_123456'}:{}),RATE_LIMIT_NAMESPACE:'browser-qa-'+randomBytes(12).toString('hex')});
 let browser;
 const check=(name,value=true)=>{assert.ok(value,name);report.checks.push(name);};
 async function shot(page,name){const file=path.join(output,name+'.png');await page.screenshot({path:file,fullPage:false});report.screenshots.push(file);}
@@ -50,10 +51,14 @@ const payload=(kind='Original research',target=null)=>({
 });
 try{
  await ready(base+'/',server);
- if(mode!=='viewport'&&mode!=='quarantine'&&mode!=='handoffs'&&mode!=='launch'&&mode!=='legal'&&mode!=='artifacts'&&mode!=='citations'&&mode!=='requirements'&&mode!=='tools'&&mode!=='setup')runPhp(['tests/qa-state.php','cleanup']);
+ if(mode!=='google'&&mode!=='viewport'&&mode!=='quarantine'&&mode!=='handoffs'&&mode!=='launch'&&mode!=='legal'&&mode!=='artifacts'&&mode!=='citations'&&mode!=='requirements'&&mode!=='tools'&&mode!=='setup')runPhp(['tests/qa-state.php','cleanup']);
  const pw=await playwright();
  browser=await pw.chromium.launch({headless:true,executablePath:browserExecutable(),env,args:['--no-sandbox'],downloadsPath:path.join(output,'downloads')});
  const ctx=await browser.newContext({permissions:['clipboard-read','clipboard-write'],viewport:{width:1366,height:768}});
+ if(mode==='google'){
+  await ctx.route('https://www.googletagmanager.com/**',route=>route.fulfill({contentType:'text/javascript',body:'/* synthetic Google library; no real measurement */'}));
+  await ctx.route('https://**google-analytics.com/**',route=>route.abort());
+ }
  const page=await ctx.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const sample=JSON.parse(runPhp(['tests/qa-state.php','preview']));
  for(const size of [{width:1366,height:768},{width:390,height:844},{width:375,height:667},{width:768,height:1024}]){
@@ -73,6 +78,10 @@ try{
  // 200% browser zoom equivalent: reduced CSS viewport plus text scaling checks.
  await page.setViewportSize({width:683,height:384});await goto(page,'/');await page.evaluate(()=>{document.body.style.fontSize='200%';});await shot(page,'home-enlarged-text');check('Enlarged text reflow without horizontal clipping',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  if(mode==='viewport'){check('No browser script exceptions',errors.length===0);console.log('Initial viewport screenshots and '+report.checks.length+' checks captured. Inspect screenshots before full workflow QA.');}
+ else if(mode==='google') {
+  await googleQa({page,ctx,base,check,shot,visibleActions});
+  check('No browser script exceptions',errors.length===0);
+ }
  else if(mode==='setup') {
   await requestSetupQa({page,ctx,base,runPhp,check,visibleActions});
  }
