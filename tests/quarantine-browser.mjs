@@ -1,3 +1,4 @@
+import {authorizedHandoff} from './browser-authorization.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {root} from '../tools/runtime.mjs';
@@ -22,7 +23,7 @@ export async function quarantineQa({page,ctx,base,runPhp,check,visibleActions,pa
   await ap.goto(base+'/admin/research/'+fixture.id);const f=ap.locator('form.moderate').filter({has:ap.locator('[name=type][value=request]')});await f.locator('[name=state]').selectOption('Approved');await f.locator('[name=reason]').fill('Approve clearly labeled synthetic quarantine UI test.');await f.getByRole('button',{name:'Save moderation decision'}).click();
   let t=await plan();
   await viewports(page,url,'ready','.research-heading .primary-actions > *');
-  await page.getByRole('button',{name:'Copy AI handoff',exact:true}).click();await page.locator('[data-handoff-status]').filter({hasText:'Copied!'}).waitFor();check('Ready handoff copied', (await page.evaluate(()=>navigator.clipboard.readText())).includes('handoff_code'));
+  check('Ready handoff copied',(await authorizedHandoff(page)).includes('handoff_code'));
   const rejectedUrl=await submit(t,packet(t));const rejectedId=new URL(rejectedUrl).pathname.split('/').pop();
   check('Quarantined plan creates no child tasks',(await data()).workflow.tasks.length===1&&(await plan()).state==='Awaiting Admin'&&!(await plan()).accepted_id);
   check('Quarantined result excluded from evidence',(await data()).workflow.submissions.length===0);

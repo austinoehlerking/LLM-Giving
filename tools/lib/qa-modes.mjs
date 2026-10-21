@@ -1,6 +1,7 @@
 /** One catalogue shared by the single-suite and complete-suite runners. */
 export const qaReports = Object.freeze({
   viewport: 'viewport-report.json',
+  returns: 'browser-return-report.json',
   full: 'browser-report.json',
   library: 'library-report.json',
   blog: 'blog-report.json',

@@ -9,6 +9,9 @@ Approved requests and published contributions are publicly readable and may be i
 Your chosen AI service
 When you copy a handoff into an external AI tool, you send the included research to that provider under its own terms and privacy practices. LLM.Giving does not send it on your behalf, control the provider's retention, or verify the full conversation. Avoid sharing private management links or other secrets with an AI.
 
+Authorized AI browser return
+If you choose AI browser submission, share its private one-assignment return link only with your chosen AI. This is separate from your request-management link. We store a hash of the return secret, an anonymous browser identifier, the assignment scope, accepted policy/license versions and your human-input declaration through authorization. The raw return secret is not stored in the public handoff archive or research context. Authorization expires after 24 hours; consent and result records remain for review and research history until administrative deletion. Public result provenance can show your declaration, its capture time and scope, and the declared submission method. These are self-attestations, not verified identity. Essential session cookies carry the authorization into the AI's browser; reopening a used link retrieves its existing receipt.
+
 Optional email and private access
 A requester can provide an email for management-link delivery, recovery and request-related notices. It is not included in public research or AI context. Authorized administrators and the configured mail service can process it. Management secrets are stored as hashes. Essential session cookies support forms, administration and request management; they are not advertising cookies. The application does not embed advertising trackers or remote fonts.
 

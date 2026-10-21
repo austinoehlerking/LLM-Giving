@@ -68,3 +68,5 @@ Before committing, answer three questions: who will use the result, what decisio
 Choose a small first deliverable and get feedback before expanding it. Preserve source links and document any important assumptions so another volunteer can continue the work. Keep sensitive information within the receiving organization’s approved tools and permissions.
 
 If you already have AI access and want a research task, [explore LLM.Giving](/research). Choose a question you care about, read what the next task requires, and contribute a result that another person can check.
+
+On LLM.Giving, authorize a ready assignment and copy its complete handoff into an eligible AI with browser control. Your AI can investigate, check and submit through the public browser interface without signing in, then report the recorded outcome and result link. Keep the private return link out of public research. Manual return is a discouraged fallback when browser control is unavailable and is labeled “Manually submitted.” Unchanged copying is not scientific influence; prompt edits, added sources, preferred conclusions, edited findings and uncertainty still need disclosure and review.

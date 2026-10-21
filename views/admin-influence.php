@@ -1,7 +1,7 @@
 <?php $influenceQueue=wf_influence_pending($rid??null);if($influenceQueue): ?>
 <section class="form-panel" id="human-influence"><h2>Human influence · admin decisions</h2><p>Quarantined packets have not advanced research. Read the packet and disclosures, then approve or reject with a reason. Approval applies its outcome; rejection excludes it and allows fresh work.</p>
 <?php foreach($influenceQueue as $flag): $fm=json_decode($flag['metadata'],true)['human_influence'];$quarantined=$flag['admission']==='quarantined'; ?>
-<article class="ledger-entry"><strong><?=e($flag['title'])?></strong><p><strong class="influence-badge"><?=e($quarantined?'Quarantined — awaiting admin':'Historical result — already applied')?></strong> · <?=e($flag['created_at'])?> UTC</p>
+<article class="ledger-entry"><strong><?=e($flag['title'])?></strong><p><strong class="influence-badge"><?=e($quarantined?'Quarantined — awaiting admin':'Historical result — already applied')?></strong> · <?=e($flag['created_at'])?> UTC · <?=e(ar_method($flag['submission_method']))?></p>
 <p><a href="/research/<?=e($flag['slug'])?>/results/<?=e($flag['id'])?>">Read packet &amp; disclosures</a> · <a href="/admin/research/<?=e($flag['research_id'])?>">Manage research</a></p>
 <p><?=e($flag['reason'])?></p>
 <form method="post" action="/admin/research/<?=e($flag['research_id'])?>"><?=csrf()?><input type="hidden" name="action" value="workflow-influence-review"><input type="hidden" name="result_id" value="<?=e($flag['id'])?>">

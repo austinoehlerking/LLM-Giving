@@ -1,6 +1,7 @@
 <?php
-function wf_route(array $r,string $suffix,string $method): bool {
+function wf_route(array $r,string $suffix,string $method,?array $grant=null): bool {
     $rid=$r['id'];$base='/research/'.$r['slug'];
+    if(!$grant&&ar_route($r,$suffix,$method))return true;
     if(ra_route($r,$suffix,$method)||rc_route($r,$suffix,$method)||rt_route($r,$suffix,$method))return true;
     if($suffix==='work'){
         if($method==='POST'){throttle('workflow-review-request',5);if(empty($_POST['terms']))fail(422,'Accept the public-content terms.');wf_request_review($rid,text_field($_POST,'reason',10,500),text_field($_POST,'display_name',0,120));flash('Another independent review is now available.');redirect($base.'/work');}
@@ -34,17 +35,20 @@ function wf_route(array $r,string $suffix,string $method): bool {
                 $input=text_field($_POST,'payload',2,200000);
                 try{$d=json_decode($input,true,32,JSON_THROW_ON_ERROR);}catch(JsonException){fail(422,'The AI output is not valid JSON. Paste only its complete JSON object, without code fences or extra text. Do not edit it yourself; return the repair prompt to your AI.');}
                 if(!is_array($d)||array_is_list($d))fail(422,'The AI must return one complete JSON object.');
-                // Contributor declarations come only from separate form controls, never the AI packet.
-                $d['human_disclosure']=['level'=>$_POST['human_level']??'','details'=>$_POST['human_details']??''];
-                $d['terms']=$checkOnly?1:($_POST['terms']??null);
-                $d['tool_terms']=$checkOnly?1:($_POST['tool_terms']??null);
-                $id=wf_submit($rid,$t['id'],$d,wf_actor(),$checkOnly);
+                // Authorization and the human declaration never come from AI packet fields.
+                if($grant){$id=ar_record($r,$grant,$d,$checkOnly);$d['human_disclosure']=$grant['consent']['human_disclosure'];}
+                else{
+                    $d['human_disclosure']=ar_disclosure($_POST);
+                    $d['terms']=$checkOnly?1:($_POST['terms']??null);
+                    $d['tool_terms']=$checkOnly?1:($_POST['tool_terms']??null);
+                    $id=wf_submit($rid,$t['id'],$d,wf_actor(),$checkOnly,'manual');
+                }
                 if($checkOnly){
                     $checked=true;
-                    if($jsonCheck){header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode(['ok'=>true,'message'=>'Packet checks passed. Nothing has been submitted. Confirm the terms, then submit the unchanged packet.','influence_review'=>wf_influence($d)['review_status']==='needed']);return true;}
+                    if($jsonCheck){header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode(['ok'=>true,'message'=>'Packet checks passed. Nothing has been submitted. Submit the unchanged packet and inspect its recorded receipt; check success alone is not submission.','influence_review'=>wf_influence($d)['review_status']==='needed']);return true;}
                 }else{flash('Packet recorded. See its acceptance or quarantine status below.');redirect($base.'/results/'.$id);}
             }catch(HttpError $e){
-                http_response_code($e->status);$error=$e->getMessage();$repair=wf_repair_prompt($r,$t,$error);
+                http_response_code($e->status);$error=$e->getMessage();$repair=wf_repair_prompt($r,$t,$error,(bool)$grant,$grant?$base.'/return/'.$grant['id'].'/submit':null);
                 if($jsonCheck){header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode(['ok'=>false,'message'=>$error,'repair_prompt'=>$repair]);return true;}
                 if(!$checkOnly&&(!isset($d)||!is_array($d)||array_is_list($d))){
                     insert('workflow_attempts',['id'=>uid(),'research_id'=>$rid,'task_id'=>$t['id'],'payload'=>$input,'reason'=>$error,'created_at'=>now()]);
@@ -53,7 +57,7 @@ function wf_route(array $r,string $suffix,string $method): bool {
             }
         }
         $s=wf_snapshot($rid);
-        render('workflow-task',['title'=>$t['title'],'r'=>$r,'task'=>$t,'snapshot'=>$s,'error'=>$error,'input'=>$input,'checked'=>$checked,'repair'=>$repair]);return true;
+        render('workflow-task',['title'=>$t['title'],'r'=>$r,'task'=>$t,'snapshot'=>$s,'error'=>$error,'input'=>$input,'checked'=>$checked,'repair'=>$repair,'grant'=>$grant]);return true;
     }
     return false;
 }

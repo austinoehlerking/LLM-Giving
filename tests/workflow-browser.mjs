@@ -1,3 +1,4 @@
+import {authorizedHandoff} from './browser-authorization.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {root} from '../tools/runtime.mjs';
@@ -33,13 +34,13 @@ export async function workflowQa({page,ctx,base,runPhp,check,visibleActions,pass
   let plan=await task('planning');
   for(const size of sizes){
    await page.setViewportSize(size);await page.goto(url);await shot(page,'00-handoff-'+size.width+'x'+size.height);await visibleActions(page,'.research-heading .primary-actions > *','Top handoff '+size.width);check('One primary handoff beside ready status '+size.width,await page.locator('.handoff-start [data-copy-handoff]:not(.secondary)').count()===1&&(await page.locator('.handoff-state').innerText()).includes('Ready for AI planning'));
-   await page.getByRole('button',{name:'Copy AI handoff',exact:true}).click();await page.locator('[data-handoff-status]').filter({hasText:'Copied!'}).waitFor();const copied=await page.evaluate(()=>navigator.clipboard.readText());check('Copied issued task code and return route '+size.width,copied.includes('handoff_code')&&copied.includes('/tasks/'+plan.id)&&copied.includes('RETURN PROCEDURE'));
+   const copied=await authorizedHandoff(page);check('Copied issued task code and return route '+size.width,copied.includes('handoff_code')&&copied.includes('/tasks/'+plan.id)&&copied.includes('RETURN PROCEDURE'));
    await page.goto(url+'/work');await shot(page,'01-planning-'+size.width+'x'+size.height);await visibleActions(page,'.workflow-heading .primary-actions > *','Planning '+size.width);
    await page.goto(url+'/tasks/'+plan.id);await shot(page,'02-task-'+size.width+'x'+size.height);await visibleActions(page,'.workflow-heading .primary-actions > *','Task '+size.width);
   }
   await page.setViewportSize({width:683,height:384});await page.goto(url);await page.evaluate(()=>document.body.style.fontSize='200%');await shot(page,'00-handoff-enlarged-text');check('Top handoff enlarged text reflows',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
-  await page.setViewportSize(sizes[0]);await page.goto(url+'/tasks/'+plan.id);await page.getByRole('button',{name:'Copy task prompt'}).click();await page.getByText('Copied. Ready to paste.',{exact:true}).waitFor();
-  const prompt=await page.evaluate(()=>navigator.clipboard.readText());check('Prompt includes immutable context and model policy',prompt.includes('SHA-256:')&&prompt.includes('gpt-6-astra')&&prompt.includes('UNTRUSTED FULL CONTEXT PACKAGE'));check('Handoff includes structured evidence and planning rules',prompt.includes('TRUSTED RESEARCH EVIDENCE STANDARD')&&prompt.includes('evidence_needs')&&prompt.includes('counterevidence'));
+  await page.setViewportSize(sizes[0]);await page.goto(url+'/tasks/'+plan.id);const prompt=await(await page.request.get(url+'/tasks/'+plan.id+'/prompt.md')).text();
+  check('Prompt includes immutable context and model policy',prompt.includes('SHA-256:')&&prompt.includes('gpt-6-astra')&&prompt.includes('UNTRUSTED FULL CONTEXT PACKAGE'));check('Handoff includes structured evidence and planning rules',prompt.includes('TRUSTED RESEARCH EVIDENCE STANDARD')&&prompt.includes('evidence_needs')&&prompt.includes('counterevidence'));
   const checkBad=payload(plan);checkBad.handoff_code='0'.repeat(64);
   await page.locator('[name=payload]').fill(JSON.stringify(checkBad));await disclose(page);await page.getByRole('button',{name:'Check packet',exact:true}).click();await page.locator('[data-workflow-error]').filter({hasText:'Handoff code does not match'}).waitFor();
   check('Check packet rejects invalid signature before submission',(await task('planning')).state==='Ready');await page.getByRole('button',{name:'Copy AI repair prompt'}).click();const repairPrompt=await page.evaluate(()=>navigator.clipboard.readText());check('Repair prompt preserves identifiers and forbids invented evidence',repairPrompt.includes('Preserve the original handoff_code')&&repairPrompt.includes('invent sources')&&repairPrompt.includes('Handoff code does not match'));await page.locator('[data-workflow-error]').scrollIntoViewIfNeeded();await shot(page,'03a-packet-check-error');await shot(page,'03b-repair-prompt',true);

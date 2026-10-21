@@ -97,9 +97,9 @@ function wf_apply_result(array $row,array $t): void {
         }
 
 }
-function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnly=false): string {
+function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnly=false,string $method='unknown',?array $consent=null): string {
     research($rid);$hash=hash('sha256',json_encode($d,JSON_THROW_ON_ERROR));
-    try{return tx(function()use($rid,$tid,$d,$actor,$hash,$checkOnly){
+    try{return tx(function()use($rid,$tid,$d,$actor,$hash,$checkOnly,$method,$consent){
         $r=one('SELECT * FROM research WHERE id=? FOR UPDATE',[$rid])??fail(404,'Research not found.');
         if($r['moderation']!=='Approved'||$r['status']==='Withdrawn')fail(404,'Research not found.');
         $nonce=text_field($d,'submission_key',32,32);if(!ctype_xdigit($nonce))fail(422,'Submission key must be 32 hexadecimal characters.');
@@ -125,12 +125,14 @@ function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnl
         $snapshotRequirements=json_decode($s['package_json'],true)['requester_ai_requirements']??rq_requirements([]);
         if($snapshotRequirements!==rq_requirements(research($rid)))fail(409,'Requester AI requirements changed. Copy a fresh handoff and use a qualifying AI run.');
         $meta=wf_metadata($d,$s,$t['kind']==='planning');
+        if(!in_array($method,['unknown','manual','ai_browser'],true))throw new LogicException('Invalid submission method.');
+        if($consent){if($consent['terms_version']!==terms_version())fail(409,'Fresh volunteer authorization is required for changed terms.');$meta['authorization']=$consent;}
         $meta['contribution_license']=RESEARCH_LICENSE;$meta['terms_version']=terms_version(record: !$checkOnly);
         if(rt_is_tool($r)){
             if(!$checkOnly&&empty($d['tool_terms']))fail(422,'Accept the separate software terms for original tool source and tests.');
             $meta['tool_software_license']=RT_LICENSE;$meta['tool_terms_version']=RT_TERMS;
         }
-        $row=['id'=>uid(),'research_id'=>$rid,'task_id'=>$tid,'snapshot_id'=>$s['id'],'nonce'=>$nonce,'payload_hash'=>$hash,'actor_hash'=>$actor,'outcome'=>$outcome,'display_name'=>text_field($d,'display_name',0,120),'created_at'=>now(),'metadata'=>json_encode($meta),'license'=>RESEARCH_LICENSE,'plan_json'=>'[]'];
+        $row=['id'=>uid(),'research_id'=>$rid,'task_id'=>$tid,'snapshot_id'=>$s['id'],'nonce'=>$nonce,'payload_hash'=>$hash,'actor_hash'=>$actor,'outcome'=>$outcome,'display_name'=>text_field($d,'display_name',0,120),'created_at'=>now(),'metadata'=>json_encode($meta),'license'=>RESEARCH_LICENSE,'plan_json'=>'[]','submission_method'=>$method==='unknown'?null:$method];
         foreach(['reason'=>[10,500],'body'=>[30,100000],'methodology'=>[10,30000],'sources'=>[5,30000],'limitations'=>[5,10000],'next_action'=>[10,5000]] as $field=>$bounds)$row[$field]=text_field($d,$field,...$bounds);
         $plan=[];
         if($t['kind']==='planning'&&$outcome==='completed'){$plan=wf_validate_plan($d['tasks']??null,(bool)$r['computational_models'],rt_is_tool($r));$row['plan_json']=json_encode($plan);}
@@ -147,6 +149,7 @@ function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnl
         $assessment['evidence']=$evidence['evidence'];
         $influence=wf_influence($d);
         $meta['human_influence']=$influence;
+        if($consent)$meta['human_influence']['volunteer_declaration_scope']=$consent['disclosure_scope'];
         $meta['task_revision']=(int)$t['revision'];
         $issued=one('SELECT id,sha256,created_at FROM workflow_handoffs WHERE research_id=? AND nonce=? AND task_id=? AND snapshot_id=?',[$rid,$nonce,$tid,$s['id']]);
         $meta['verification']=['task_signature'=>'valid','conversation_integrity'=>'self-reported','issued_handoff'=>$issued];
@@ -158,12 +161,12 @@ function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnl
         if($row['admission']==='quarantined'){
             query("UPDATE workflow_tasks SET state='Awaiting Admin' WHERE id=?",[$tid]);
             touch_context($rid);
-            audit_event($rid,'Packet quarantined','Additional human input or uncertainty requires an admin decision. No task outcome has been applied.','submission',$row['id'],'Received','Quarantined','Wait for an administrator to approve or reject this packet.','contributor',$row['display_name']?:'Anonymous volunteer');
+            audit_event($rid,'Packet quarantined','Additional human input or uncertainty requires an admin decision. No task outcome has been applied.','submission',$row['id'],'Received','Quarantined','Wait for an administrator to approve or reject this packet.','contributor',$row['display_name']?:'Anonymous volunteer',['submission_method'=>$method]);
             return $row['id'];
         }
         wf_apply_result($row,$t);
         touch_context($rid);
-        audit_event($rid,'Task result submitted',$row['reason'],'submission',$row['id'],$t['state'],$outcome,$row['next_action'],'contributor',$row['display_name']?:'Anonymous volunteer',$meta+['task_id'=>$tid,'context_id'=>$s['id'],'task_revision'=>$t['revision']]);
+        audit_event($rid,'Task result submitted',$row['reason'],'submission',$row['id'],$t['state'],$outcome,$row['next_action'],'contributor',$row['display_name']?:'Anonymous volunteer',$meta+['submission_method'=>$method,'task_id'=>$tid,'context_id'=>$s['id'],'task_revision'=>$t['revision']]);
         return $row['id'];
     });}catch(HttpError $e){
         if($checkOnly)throw $e;
