@@ -1,8 +1,8 @@
 <?php
 // Calculation records are inert text/data. The web application never executes submitted code.
 function rc_instructions(array $task): string {
-    $r=research($task['research_id']);$progress=!empty($task['computational'])?rc_progress($task):null;
-    return file_get_contents(ROOT.'/templates/calculations.txt')."\nRequester computational-model opt-in: ".($r['computational_models']?'yes':'no').". This task computational flag: ".(!empty($task['computational'])?'true':'false').($progress?"\nRESUME ACCEPTED CHECKPOINT: ".$progress['id'].". Read its complete retained record in the context before continuing; set resume_from_result_id to this result.":'');
+    $r=research($task['research_id']);$policy=calculation_policy($r);$progress=$policy['allowed']?rc_progress($task):null;
+    return file_get_contents(ROOT.'/templates/calculations.txt')."\nCalculation preference: ".EXTERNAL_HELP[$policy['mode']].". Calculations permitted: ".($policy['allowed']?'yes':'no')."; execution required by the request: ".($policy['required']?'yes':'no').". This task computational flag: ".(!empty($task['computational'])?'true':'false').($progress?"\nRESUME ACCEPTED CHECKPOINT: ".$progress['id'].". Read its complete retained record in the context before continuing; set resume_from_result_id to this result.":'');
 }
 function rc_close(float $a,float $b): bool {return abs($a-$b)<=1e-9+1e-6*max(abs($a),abs($b));}
 function rc_factor(string $from,string $to): ?float {
@@ -12,7 +12,7 @@ function rc_factor(string $from,string $to): ?float {
 }
 function rc_progress(array $task): ?array {
     research($task['research_id']);
-    return one("SELECT * FROM workflow_submissions WHERE research_id=? AND task_id=? AND visibility='public' AND admission='accepted' AND outcome='progress' AND JSON_EXTRACT(metadata,'$.task_revision')=? ORDER BY (SELECT MAX(a.id) FROM audit_events a WHERE a.entity_type='submission' AND a.entity_id=workflow_submissions.id) DESC,created_at DESC,id DESC LIMIT 1",[$task['research_id'],$task['id'],(int)$task['revision']]);
+    return one("SELECT * FROM workflow_submissions WHERE research_id=? AND task_id=? AND visibility='public' AND admission='accepted' AND outcome='progress' AND JSON_EXTRACT(metadata,'$.evidence.calculation_checkpoint') IS NOT NULL AND JSON_TYPE(JSON_EXTRACT(metadata,'$.evidence.calculation_checkpoint'))='OBJECT' AND JSON_EXTRACT(metadata,'$.task_revision')=? ORDER BY (SELECT MAX(a.id) FROM audit_events a WHERE a.entity_type='submission' AND a.entity_id=workflow_submissions.id) DESC,created_at DESC,id DESC LIMIT 1",[$task['research_id'],$task['id'],(int)$task['revision']]);
 }
 function rc_targets(array $task): array {
     $out=[];if($task['kind']!=='review')return $out;
@@ -37,7 +37,7 @@ function rc_quantities(array $data,string $key,array $files): array {
 function rc_validate(array $task,array $data,array $evidence,array $row): array {
     $calculations=[];$bytes=0;$terminal=in_array($row['outcome'],['completed','inconclusive','verified'],true);$required=!empty($task['computational']);
     foreach(ra_list($data,'calculations',4) as $c){
-        if(!$required||$task['kind']!=='research'||!research($task['research_id'])['computational_models'])fail(422,'Calculation execution belongs to an opted-in computational research task.');
+        if($task['kind']!=='research'||!calculation_policy(research($task['research_id']))['allowed'])fail(422,'This request does not permit computational research contributions.');
         ra_keys($c,['id','title','status','claim_ids','source_ids','method','environment','command','execution_note','limitations','files','inputs','outputs','unit_checks'],'calculation');
         $id=wf_evidence_id($c);if(isset($calculations[$id]))fail(422,'Duplicate calculation ID.');
         $clean=['id'=>$id,'title'=>text_field($c,'title',5,150),'status'=>wf_evidence_choice($c,'status',['proposed','executed','failed']),
@@ -68,17 +68,18 @@ function rc_validate(array $task,array $data,array $evidence,array $row): array 
         if($terminal&&$clean['status']!=='executed')fail(422,'Unexecuted work cannot complete a computational task. Use progress, blocked or clarification.');
         $clean+=['files'=>array_values($files),'inputs'=>array_values($inputs),'outputs'=>array_values($outputs),'unit_checks'=>array_values($checks)];$calculations[$id]=$clean;
     }
+    $usesCalculations=$required||!empty($calculations);
     if($required&&in_array($row['outcome'],['progress','completed','inconclusive'],true)&&!$calculations)fail(422,'Computational tasks need a calculation record and a resumable checkpoint.');
     $checkpoint=null;$raw=$data['calculation_checkpoint']??null;
     if($raw!==null){
-        if(!$required||!is_array($raw)||array_is_list($raw))fail(422,'Calculation checkpoint belongs to a computational task.');
+        if(!$usesCalculations||!is_array($raw)||array_is_list($raw))fail(422,'Calculation checkpoints require a calculation record or a computational task.');
         ra_keys($raw,['resume_from_result_id','completed','remaining','next_action','required_tools'],'calculation checkpoint');
         $checkpoint=['resume_from_result_id'=>text_field($raw,'resume_from_result_id',0,32)];foreach(['completed','remaining','next_action','required_tools'] as $key)$checkpoint[$key]=text_field($raw,$key,20,3000);
         $snapshot=json_decode(wf_read_snapshot($task['research_id'],$row['snapshot_id'])['package_json'],true);$progress=[];
-        foreach($snapshot['workflow']['submissions'] as $previous)if($previous['task_id']===$task['id']&&$previous['outcome']==='progress'&&(int)(json_decode($previous['metadata'],true)['task_revision']??0)===(int)$task['revision'])$progress[$previous['id']]=$previous;
+        foreach($snapshot['workflow']['submissions'] as $previous)if($previous['task_id']===$task['id']&&$previous['outcome']==='progress'&&!empty(json_decode($previous['metadata'],true)['evidence']['calculation_checkpoint'])&&(int)(json_decode($previous['metadata'],true)['task_revision']??0)===(int)$task['revision'])$progress[$previous['id']]=$previous;
         $ref=$checkpoint['resume_from_result_id'];if(($ref!==''&&!isset($progress[$ref]))||($progress&&$ref===''))fail(422,'Resume from an accepted progress result for this exact task revision in the supplied context package.');
     }
-    if($required&&in_array($row['outcome'],['progress','completed','inconclusive'],true)&&!$checkpoint)fail(422,'Preserve a calculation checkpoint before completing or interrupting work.');
+    if($usesCalculations&&in_array($row['outcome'],['progress','completed','inconclusive'],true)&&!$checkpoint)fail(422,'Preserve a calculation checkpoint before completing or interrupting work.');
     $targets=rc_targets($task);$reviews=[];$seen=[];$corrections=[];
     foreach(ra_list($data,'calculation_reviews',100) as $review){
         ra_keys($review,['task_id','result_id','calculation_id','verdict','method','environment','run_log','observed_outputs'],'calculation review');

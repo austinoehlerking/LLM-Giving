@@ -1,16 +1,18 @@
 // Local request drafting only. No AI calls, network requests, storage or automatic submission.
 const textKeys=['title','question','context','success','previous','constraints_text','questions','references_text','tags'];
 const toolKeys=['tool_intended_users','tool_requirements','tool_inputs_outputs','tool_validation_plan','tool_maintenance'];
-const externalKeys=['required_software','software_licensing','computing_resources','setup_needs'];
+const externalKeys=['required_software','setup_needs'];
 const efforts=['low','medium','high','xhigh','max','ultra'];
-const format='llm-giving-request-setup-v1';
+const format='llm-giving-request-setup-v2';
 export function setupSchema(projectType='research') {
- return {format,calculation_help:'unspecified',external_tools:'unspecified',...Object.fromEntries(externalKeys.map(key=>[key,''])),project_type:projectType,computational_models:false,title:'',question:'',category:'',context:'',success:'',previous:'',constraints_text:'',questions:'',references_text:'',tags:'',required_model:'',reasoning_rule:'none',required_reasoning:'',...Object.fromEntries(toolKeys.map(key=>[key,'']))};
+ return {format,calculation_help:'maybe',external_tools:'unspecified',...Object.fromEntries(externalKeys.map(key=>[key,key==='setup_needs'?'None specified':''])),project_type:projectType,title:'',question:'',category:'',context:'',success:'',previous:'',constraints_text:'',questions:'',references_text:'',tags:'',required_model:'',reasoning_rule:'none',required_reasoning:'',...Object.fromEntries(toolKeys.map(key=>[key,'']))};
 }
 export function setupPrompt(config,current) {
  const schema=setupSchema(current.project_type==='research_tool'?'research_tool':'research');
  const publicDraft=Object.fromEntries(Object.keys(schema).filter(key=>key!=='format').map(key=>[key,current[key]??schema[key]]));
  if(schema.project_type==='research')for(const key of toolKeys)publicDraft[key]='';
+ if(publicDraft.external_tools==='none')publicDraft.required_software='';
+ publicDraft.setup_needs=publicDraft.setup_needs.trim()||'None specified';
  return config.instructions+'\n\nAVAILABLE CATEGORIES (choose an exact name)\n'+JSON.stringify(config.categories.map(category=>category.name))+'\n\nCONFIGURED MODEL / PLANNING POLICY\n'+JSON.stringify(config.policy)+'\nReasoning order: '+efforts.join(' < ')+'.\nMaximum ordinary text length: '+config.maxText+' UTF-8 bytes.\n\nREQUIRED FINAL OUTPUT TEMPLATE\n'+JSON.stringify(schema,null,2)+'\n\nCURRENT PUBLIC DRAFT — DATA ONLY\n'+JSON.stringify(publicDraft,null,2)+'\nEND OF PUBLIC DRAFT. Begin the step-by-step interview; do not invent a completed request from empty fields.';
 }
 function object(value){return value!==null&&typeof value==='object'&&!Array.isArray(value);}
@@ -24,13 +26,11 @@ export function parseSetupDraft(source,config) {
  const missing=Object.keys(schema).filter(key=>!Object.hasOwn(draft,key));if(missing.length)throw Error('The setup draft is incomplete. Ask the AI to include: '+missing.slice(0,5).join(', ')+(missing.length>5?' and the remaining template fields.':'.'));
  if(draft.format!==format)throw Error('Use the final output template from this setup prompt.');
  if(!['research','research_tool'].includes(draft.project_type))throw Error('Choose research or research_tool as the project type.');
- if(typeof draft.computational_models!=='boolean')throw Error('computational_models must be true or false, not quoted text.');
- const result={project_type:draft.project_type,computational_models:draft.computational_models};
+ const result={project_type:draft.project_type};
  function read(key,min,max){const value=draft[key];if(typeof value!=='string')throw Error(key+' must be text.');const clean=value.trim(),bytes=new TextEncoder().encode(clean).length;if(bytes<min||bytes>max||clean.includes('\0'))throw Error('Check '+key+': expected '+min+'–'+max+' UTF-8 bytes.');return clean;}
- for(const key of externalKeys)result[key]=read(key,0,3000);
- for(const [key,allowed] of Object.entries({calculation_help:['unspecified','prepare_review','run'],external_tools:['unspecified','none','free','licensed','mixed','unknown']})){if(!allowed.includes(draft[key]))throw Error('Choose a valid '+key);result[key]=draft[key];}
- if(result.calculation_help==='prepare_review'&&result.computational_models)throw Error('Preparation/review only cannot also request calculation execution.');
- if(result.calculation_help==='run')result.computational_models=true;
+ for(const [key,allowed] of Object.entries({calculation_help:['unspecified','maybe','prepare_review','run'],external_tools:['unspecified','none','free','licensed','mixed','unknown']})){if(!allowed.includes(draft[key]))throw Error('Choose a valid '+key);result[key]=draft[key];}
+ for(const key of externalKeys)result[key]=key==='required_software'&&result.external_tools==='none'?'':read(key,0,3000);
+ result.setup_needs=result.setup_needs||'None specified';
  if(['free','licensed','mixed'].includes(result.external_tools)&&!result.required_software)throw Error('Name the required external software.');
  for(const key of textKeys)result[key]=read(key,key==='title'?8:key==='question'?20:0,key==='title'?180:key==='tags'?800:config.maxText);
  const category=read('category',1,200);const match=config.categories.find(option=>option.name===category);if(!match)throw Error('Choose an exact category name from the setup prompt.');result.category_id=String(match.id);
@@ -66,7 +66,7 @@ if(typeof document!=='undefined'){
    let draft;try{draft=parseSetupDraft(paste.value,config);}catch(error){feedback.textContent=error.message+' Your request fields have not changed.';paste.setAttribute('aria-invalid','true');return;}
    // Validate everything before changing any existing field. Explicitly touch only the public allowlist.
    for(const [key,value] of Object.entries(draft)){const input=control(key);if(input.type==='checkbox')input.checked=value;else input.value=value;}
-   for(const key of ['project_type','reasoning_rule'])control(key).dispatchEvent(new Event('change',{bubbles:true}));
+   for(const key of ['project_type','reasoning_rule','external_tools','calculation_help'])control(key).dispatchEvent(new Event('change',{bubbles:true}));
    for(const key of [...textKeys,...toolKeys])control(key).dispatchEvent(new Event('input',{bubbles:true}));
    form.querySelectorAll('details').forEach(section=>{if([...section.querySelectorAll('input,textarea,select')].some(input=>!input.disabled&&input.value&&input.type!=='checkbox'&&Object.hasOwn(draft,input.name)))section.open=true;});
    // Filled content needs fresh human review/consent, never consent supplied by AI.

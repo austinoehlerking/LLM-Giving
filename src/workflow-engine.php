@@ -1,6 +1,7 @@
 <?php
 /** Plan validation, task transitions, evidence acceptance and atomic submission. */
-function wf_validate_plan(mixed $tasks,bool $modelsRequested=false,bool $toolRequested=false): array {
+function wf_validate_plan(mixed $tasks,bool $modelsRequested=false,bool $toolRequested=false,?bool $modelsRequired=null): array {
+    $modelsRequired??=$modelsRequested;
     if(!is_array($tasks)||!array_is_list($tasks)||count($tasks)<1||count($tasks)>12)fail(422,'A completed plan needs 1–12 research tasks.');
     $out=[];
     foreach($tasks as $t){
@@ -26,7 +27,7 @@ function wf_validate_plan(mixed $tasks,bool $modelsRequested=false,bool $toolReq
         if(!isset($out[$key]))fail(422,'Every dependency must belong to this plan.');
         $visiting[$key]=true;foreach($out[$key]['dependencies'] as $d)$visit($d);unset($visiting[$key]);$seen[$key]=true;
     };
-    if($modelsRequested&&!array_filter($out,fn($task)=>$task['computational']))fail(422,'This request includes running computational models. Mark at least one planned task computational=true.');
+    if($modelsRequired&&!array_filter($out,fn($task)=>$task['computational']))fail(422,'This request includes running computational models. Mark at least one planned task computational=true.');
     if($toolRequested&&!array_filter($out,fn($task)=>$task['builds_tool']))fail(422,'A research-tool plan must include at least one builds_tool=true implementation task.');
     foreach(array_keys($out) as $key)$visit($key);
     return array_values($out);
@@ -135,7 +136,7 @@ function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnl
         $row=['id'=>uid(),'research_id'=>$rid,'task_id'=>$tid,'snapshot_id'=>$s['id'],'nonce'=>$nonce,'payload_hash'=>$hash,'actor_hash'=>$actor,'outcome'=>$outcome,'display_name'=>text_field($d,'display_name',0,120),'created_at'=>now(),'metadata'=>json_encode($meta),'license'=>RESEARCH_LICENSE,'plan_json'=>'[]','submission_method'=>$method==='unknown'?null:$method];
         foreach(['reason'=>[10,500],'body'=>[30,100000],'methodology'=>[10,30000],'sources'=>[5,30000],'limitations'=>[5,10000],'next_action'=>[10,5000]] as $field=>$bounds)$row[$field]=text_field($d,$field,...$bounds);
         $plan=[];
-        if($t['kind']==='planning'&&$outcome==='completed'){$plan=wf_validate_plan($d['tasks']??null,(bool)$r['computational_models'],rt_is_tool($r));$row['plan_json']=json_encode($plan);}
+        if($t['kind']==='planning'&&$outcome==='completed'){$calculationPolicy=calculation_policy($r);$plan=wf_validate_plan($d['tasks']??null,$calculationPolicy['allowed'],rt_is_tool($r),$calculationPolicy['required']);$row['plan_json']=json_encode($plan);}
         if($t['kind']==='review'){
             $deps=json_decode($t['dependencies'],true);$synthesis=wf_task($rid,$deps[0]);
             $original=one('SELECT actor_hash,metadata FROM workflow_submissions WHERE id=? AND visibility=\'public\'',[$synthesis['accepted_id']])??fail(409,'Synthesis is not available for review.');
