@@ -58,6 +58,12 @@ try{
  const sample=JSON.parse(runPhp(['tests/qa-state.php','preview']));
  for(const size of [{width:1366,height:768},{width:390,height:844},{width:375,height:667},{width:768,height:1024}]){
   await page.setViewportSize(size);await goto(page,'/');await shot(page,'home-'+size.width+'x'+size.height);await visibleActions(page,'.hero .primary-actions > *','Home '+size.width);
+  await visibleActions(page,'.floating-header a','Navigation '+size.width);
+  check('Navigation touch targets '+size.width,await page.locator('.floating-header a').evaluateAll(links=>links.every(a=>a.getBoundingClientRect().height>=44)));
+  await page.getByRole('navigation',{name:'Main navigation',exact:true}).getByRole('link',{name:'How it works',exact:true}).click();
+  check('Navigation opens about page '+size.width,new URL(page.url()).pathname==='/about');
+  check('About navigation marks current page '+size.width,await page.locator('.floating-header a[href="/about"]').getAttribute('aria-current')==='page');
+
   if(sample){await goto(page,'/research/'+sample.slug);await shot(page,'research-'+size.width+'x'+size.height);await visibleActions(page,'.research-heading .primary-actions > *','Research '+size.width);}
   await goto(page,'/submit');await shot(page,'submit-'+size.width+'x'+size.height);await visibleActions(page,'.form-actions button','Submission '+size.width);
   await goto(page,'/research');await shot(page,'discovery-'+size.width+'x'+size.height);await visibleActions(page,'.filters .search-submit','Search '+size.width);
