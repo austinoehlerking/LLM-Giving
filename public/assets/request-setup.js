@@ -50,11 +50,17 @@ if(typeof document!=='undefined'){
   const config=JSON.parse(configNode.content.textContent),button=document.getElementById('copy-setup-prompt'),panel=document.getElementById('request-setup-panel'),prompt=document.getElementById('request-setup-prompt'),paste=document.getElementById('paste-setup-prompt'),status=document.getElementById('request-setup-status'),feedback=document.getElementById('request-setup-feedback');
   const control=name=>form.elements.namedItem(name);
   function currentDraft(){const values={};for(const key of Object.keys(setupSchema())){const input=control(key);if(input&&!input.disabled)values[key]=input.type==='checkbox'?input.checked:input.value;}const selected=control('category_id');values.category=selected.value?selected.selectedOptions[0].textContent:'';return values;}
+  function showStatus(title,detail){
+   const heading=document.createElement('strong'),body=document.createElement('span');
+   heading.textContent=title;body.textContent=detail;
+   status.replaceChildren(heading,body);
+  }
+  const unchangedPrompt='Paste into your AI as is. Do not alter the prompt; your research may not be accepted.';
   button.hidden=false;
   button.addEventListener('click',async()=>{
    prompt.value=setupPrompt(config,currentDraft());panel.hidden=false;button.setAttribute('aria-expanded','true');feedback.textContent='';
-   try{await navigator.clipboard.writeText(prompt.value);status.textContent='Prompt copied. Paste it into your AI.';}
-   catch{prompt.closest('details').open=true;prompt.focus();prompt.select();status.textContent='Clipboard unavailable. Copy the selected setup prompt manually, then paste the AI’s final JSON draft below.';}
+   try{await navigator.clipboard.writeText(prompt.value);showStatus('Prompt copied — paste as is',unchangedPrompt);}
+   catch{prompt.closest('details').open=true;prompt.focus();prompt.select();showStatus('Clipboard unavailable — copy the selected prompt manually',unchangedPrompt+' Then paste the AI’s final JSON draft below.');}
   });
   document.getElementById('fill-request-fields').addEventListener('click',()=>{
    let draft;try{draft=parseSetupDraft(paste.value,config);}catch(error){feedback.textContent=error.message+' Your request fields have not changed.';paste.setAttribute('aria-invalid','true');return;}
@@ -64,7 +70,7 @@ if(typeof document!=='undefined'){
    for(const key of [...textKeys,...toolKeys])control(key).dispatchEvent(new Event('input',{bubbles:true}));
    form.querySelectorAll('details').forEach(section=>{if([...section.querySelectorAll('input,textarea,select')].some(input=>!input.disabled&&input.value&&input.type!=='checkbox'&&Object.hasOwn(draft,input.name)))section.open=true;});
    // Filled content needs fresh human review/consent, never consent supplied by AI.
-   control('terms').checked=false;document.getElementById('request-preview').hidden=true;paste.removeAttribute('aria-invalid');panel.hidden=true;button.setAttribute('aria-expanded','false');feedback.textContent='';status.textContent='Draft filled. Review and edit the fields below, then confirm the terms and submit when ready.';control('title').focus({preventScroll:true});
+   control('terms').checked=false;document.getElementById('request-preview').hidden=true;paste.removeAttribute('aria-invalid');panel.hidden=true;button.setAttribute('aria-expanded','false');feedback.textContent='';showStatus('Draft filled — review your request','Review and edit the fields below, then confirm the terms and submit when ready.');control('title').focus({preventScroll:true});
   });
   paste.addEventListener('input',()=>{paste.removeAttribute('aria-invalid');feedback.textContent='';});
  }
