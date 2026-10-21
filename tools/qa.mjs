@@ -123,7 +123,7 @@ try{
  else {
   runPhp(['tests/qa-state.php','cleanup']);runPhp(['bin/console.php','admin','browser-qa@example.invalid'],password);
   await page.setViewportSize({width:1366,height:768});
-  await goto(page,'/');await page.getByRole('link',{name:'Submit a research request',exact:true}).first().click();
+  await goto(page,'/');await page.getByRole('link',{name:'Submit Research Request',exact:true}).first().click();
   const title='[QA] How can volunteers evaluate accessible documentation?';
   await page.getByLabel('Research title').fill(title);await page.getByLabel('What would you like to investigate?').fill('Which repeatable methods can volunteers use to compare documentation accessibility while preserving privacy and checking evidence?');
   await page.getByLabel('Main category').selectOption({label:'Technology & Open Source'});

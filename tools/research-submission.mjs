@@ -40,7 +40,7 @@ try {
   const removed=JSON.parse(runPhp(['tools/local-research-state.php','remove-demos']));
   report.removed=removed.removed;
   await page.goto(base+'/');await shot('02-home-demos-removed');
-  await page.getByRole('link',{name:/Submit a research request/}).first().click();
+  await page.getByRole('link',{name:/Submit Research Request/}).first().click();
   await page.locator('[name=title]').fill(brief.title);await page.locator('[name=question]').fill(brief.question);
   await page.locator('[name=category_id]').selectOption({label:'Environment & Climate'});
   await shot('03-essentials',true);
