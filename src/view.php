@@ -51,9 +51,9 @@ function field(string $label,string $name,string $value='',string $type='text',b
     if($type==='textarea') echo '<textarea id="'.e($id).'" name="'.e($name).'" '.($required?'required':'').'>'.e($value).'</textarea>';
     else echo '<input id="'.e($id).'" name="'.e($name).'" type="'.e($type).'" value="'.e($value).'" '.($required?'required':'').'>';
 }
-function select_field(string $label,string $name,array $options,string $selected=''): void {
+function select_field(string $label,string $name,array $options,string $selected='',bool $required=false): void {
     static $index=0; $id='select-'.$name.'-'.(++$index);
-    echo '<label for="'.e($id).'">'.e($label).'</label><select id="'.e($id).'" name="'.e($name).'">';
+    echo '<label for="'.e($id).'">'.e($label).($required?' <span aria-hidden="true">*</span>':'').'</label><select id="'.e($id).'" name="'.e($name).'" '.($required?'required':'').'>';
     foreach($options as $k=>$v) echo '<option value="'.e($k).'" '.((string)$k===$selected?'selected':'').'>'.e($v).'</option>';
     echo '</select>';
 }
