@@ -31,6 +31,9 @@ if(exchange && location.hash){
  exchange.requestSubmit();
 }
 const form=document.getElementById('submission');
+// The AI packet owns research/provenance fields, never the volunteer declaration or consent.
+const contributionPacketFields=new Set(['kind','target_id','summary','body','methodology','sources','uncertainty','limitations','previous_work','open_questions','next_actions','suggested_status','safety','recommendation','display_name','linkedin','github','website']);
+const contributionMetadataFields=new Set(['provider','model','harness','harness_version','reasoning','input_tokens','output_tokens','total_tokens','measurement','duration','tools','prompt_version']);
 function loadJSON(){
  const area=form.elements.namedItem('json');
  let data;try{data=JSON.parse(area.value);}catch{throw new Error('Invalid JSON. Check commas, quotes, and the complete object.');}
@@ -38,8 +41,8 @@ function loadJSON(){
  for(const [key,value] of Object.entries(data)){
   if(key==='human_interaction' && value && typeof value==='object'){form.elements.ai_level.value=value.level||'';form.elements.ai_details.value=value.details||'';}
   else if(key==='metadata' && value && typeof value==='object'){
-   for(const [k,v] of Object.entries(value)){const f=form.elements.namedItem('metadata['+k+']');if(f)f.value=v==null?'':Array.isArray(v)?v.join(', '):String(v);}
-  }else{const f=form.elements.namedItem(key);if(f && !['terms','csrf','attachments[]'].includes(key))f.value=value==null?'':String(value);}
+   for(const [k,v] of Object.entries(value)){if(!contributionMetadataFields.has(k))continue;const f=form.elements.namedItem('metadata['+k+']');if(f)f.value=v==null?'':Array.isArray(v)?v.join(', '):String(v);}
+  }else if(contributionPacketFields.has(key)){const f=form.elements.namedItem(key);if(f)f.value=value==null?'':String(value);}
  }
  area.value='';document.getElementById('parse-status').textContent='Loaded into the editable fields below. Missing metadata remains blank.';
 }
