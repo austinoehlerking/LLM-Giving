@@ -1,5 +1,6 @@
 /** One catalogue shared by the single-suite and complete-suite runners. */
 export const qaReports = Object.freeze({
+  forks: 'forks/browser-report.json',
   viewport: 'viewport-report.json',
   returns: 'browser-return-report.json',
   full: 'browser-report.json',

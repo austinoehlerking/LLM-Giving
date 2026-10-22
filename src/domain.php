@@ -98,7 +98,9 @@ const STATUSES=[
 function research(string $id,bool $public=true): array {
     $sql='SELECT r.*, c.name category FROM research r JOIN categories c ON c.id=r.category_id WHERE (r.id=? OR r.slug=?)';
     if($public) $sql.=" AND r.moderation='Approved' AND r.status<>'Withdrawn'";
-    return one($sql,[$id,$id]) ?? fail(404,'Research not found.');
+    $r=one($sql,[$id,$id]) ?? fail(404,'Research not found.');
+    if($public)rf_assert_background($r['id']);
+    return $r;
 }
 function touch_context(string $rid,bool $activity=true): void {
     query('UPDATE research SET context_version=context_version+1,updated_at=?'.($activity?',activity_at=?':'').' WHERE id=?',$activity?[now(),now(),$rid]:[now(),$rid]);
@@ -122,6 +124,7 @@ function set_tags(string $rid,string $names): void {
     }
 }
 function create_research(array $d): array {
+    if(isset($d['fork_nonce']))fail(422,'Submit a fork through its original question’s fork form.');
     if(empty($d['terms'])) fail(422,'Accept the public-content terms to submit.');
     $category=one('SELECT id FROM categories WHERE id=? AND enabled=1',[(int)($d['category_id']??0)]);
     if(!$category) fail(422,'Choose an available category.');
@@ -185,7 +188,8 @@ function discovery_filters(array $input): array {
     return $out;
 }
 function discovery_categories(): array {
-    return all("SELECT c.id,c.name,COUNT(r.id) request_count FROM categories c LEFT JOIN research r ON r.category_id=c.id AND r.moderation='Approved' AND r.status<>'Withdrawn' GROUP BY c.id,c.name ORDER BY c.name");
+    $gate=rf_listing_filter();
+    return all("SELECT c.id,c.name,COUNT(r.id) request_count FROM categories c LEFT JOIN research r ON r.category_id=c.id AND r.moderation='Approved' AND r.status<>'Withdrawn' AND ".$gate['sql']." GROUP BY c.id,c.name ORDER BY c.name",$gate['params']);
 }
 function discover(array $input): array {
     $filters=discovery_filters($input);
@@ -204,6 +208,7 @@ function discover(array $input): array {
     $visible="x.research_id=r.id AND x.moderation='Approved' AND (x.target_id IS NULL OR EXISTS(SELECT 1 FROM contributions t WHERE t.id=x.target_id AND t.research_id=x.research_id AND t.moderation='Approved'))";
     $count="((SELECT COUNT(*) FROM contributions x WHERE ".$visible." AND x.kind<>'Independent review')+(SELECT COUNT(*) FROM workflow_submissions ws JOIN workflow_tasks wt ON wt.id=ws.task_id WHERE ws.research_id=r.id AND ws.visibility='public' AND wt.visibility='public' AND ws.admission='accepted' AND wt.kind<>'review'))";
     if($filters['no_contributions']==='1') $where[]=$count.'=0';
+    $gate=rf_listing_filter();$where[]=$gate['sql'];array_push($params,...$gate['params']);
     $w=implode(' AND ',$where);
     $total=(int)one('SELECT COUNT(*) n FROM research r WHERE '.$w,$params)['n'];
     $page=min((int)$filters['page'],max(1,(int)ceil($total/12))); $filters['page']=(string)$page; $offset=($page-1)*12;
@@ -211,6 +216,10 @@ function discover(array $input): array {
     $rows=all("SELECT r.*,c.name category,".$count." contribution_count,((SELECT COUNT(*) FROM contributions x WHERE ".$visible." AND x.kind='Independent review')+(SELECT COUNT(*) FROM workflow_submissions ws JOIN workflow_tasks wt ON wt.id=ws.task_id WHERE ws.research_id=r.id AND ws.visibility='public' AND wt.visibility='public' AND ws.admission='accepted' AND wt.kind='review')) review_count FROM research r JOIN categories c ON c.id=r.category_id WHERE ".$w." ORDER BY ".$orders[$filters['sort']]." LIMIT 12 OFFSET ".$offset,$params);
     foreach($rows as &$r) $r['tags']=all('SELECT t.name FROM tags t JOIN research_tags rt ON rt.tag_id=t.id WHERE rt.research_id=? ORDER BY t.name',[$r['id']]);
     return compact('rows','total','page','filters');
+}
+function public_related_research(string $rid): array {
+    research($rid);$gate=rf_listing_filter();
+    return all("SELECT l.related_id,l.reason,r.title,r.slug FROM research_links l JOIN research r ON r.id=l.related_id WHERE l.research_id=? AND r.moderation='Approved' AND r.status<>'Withdrawn' AND ".$gate['sql']." ORDER BY r.id",[$rid,...$gate['params']]);
 }
 function moderate(string $type,string $id,string $state,string $reason,string $exception=''): void {
     require_admin();
@@ -221,6 +230,7 @@ function moderate(string $type,string $id,string $state,string $reason,string $e
     tx(function() use($table,$type,$id,$state,$reason,$exception) {
         $row=one("SELECT * FROM $table WHERE id=? FOR UPDATE",[$id]) ?? fail(404,'Item not found.');
         $rid=$type==='request'?$id:$row['research_id'];
+        if($state==='Approved')rf_assert_background($rid);
         if($state==='Approved' && $type==='contribution') {
             $meta=one('SELECT missing_fields FROM agent_metadata WHERE contribution_id=?',[$id]);
             if($meta && $meta['missing_fields']!=='[]' && trim($exception)==='') fail(422,'Explain the metadata exception before approval.');
@@ -286,6 +296,7 @@ function purge_request(string $rid,string $confirmation): void {
         query('DELETE FROM browser_returns WHERE research_id=?',[$rid]);
         query('DELETE FROM workflow_handoffs WHERE research_id=?',[$rid]);
         query('DELETE FROM workflow_submissions WHERE research_id=?',[$rid]);
+        query('DELETE FROM research_fork_intents WHERE child_id=?',[$rid]);
         query('DELETE FROM research WHERE id=?',[$rid]);
         return $job;
     });

@@ -1,0 +1,7 @@
+.fork-background{border:1px solid #51bdb3;border-left:4px solid #51bdb3;border-radius:8px;padding:14px 16px;margin:16px 0;background:#102c31;min-width:0}
+.fork-background p{margin:0 0 8px}.fork-background .fork-origin{font-size:15px}.fork-background summary{min-height:44px;align-content:center;cursor:pointer;overflow-wrap:anywhere}
+.fork-background .metadata{font-size:13px}.fork-background dd,.fork-background pre{overflow-wrap:anywhere;white-space:pre-wrap;word-break:break-word}
+.fork-records article{padding:16px 0;border-top:1px solid var(--line)}.fork-records h3{font-size:20px;margin-top:14px}.fork-records h4{margin-top:12px}
+.fork-records .text-action{min-height:44px}.fork-form .fork-source{margin:0;font-size:13px}.fork-form .fork-source a{display:inline-flex;align-items:center;min-height:44px}
+.fork-related a{display:inline-flex;align-items:center;min-height:44px}.fork-error{color:#ffb3b3;border:1px solid #ff9292;padding:12px}
+@media(max-width:700px){.fork-background{padding:10px 12px}.fork-form.form-panel{padding:14px}.fork-form>label:first-of-type{margin-top:0}.fork-form textarea[name=question]{min-height:80px}.fork-form .form-actions{padding-bottom:6px;margin-bottom:6px}}

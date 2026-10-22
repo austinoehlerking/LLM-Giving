@@ -35,6 +35,10 @@ Research has an immutable random 128-bit ID and a stable readable slug. Slugs do
 - purge_jobs stores only paths awaiting cleanup after transactional database deletion.
 - rate_limits and admins support application security.
 
+## Forked research
+
+Immutable attributed background lives separately from the editable child brief. New identities retain independent moderation, capabilities and workflows. Public helpers recheck transitive source visibility, source snapshot integrity and record moderation before serving a descendant, including archived contexts and file routes. Later corrections warn without rewriting pinned history. See [the fork contract](research-forks.md).
+
 ## Three separate dimensions
 
 Moderation controls initial topic visibility and exceptional removals. Research status describes autonomous workflow progress. Topic approval creates a planning task; accepted structured results unlock research, synthesis and independent verification. Review Complete records a contributor recommendation, never a guarantee of scientific truth. Blockers and clarification pause advancement until an authorized response starts a new planning round. Finding classification remains a separate optional administrator judgment.
