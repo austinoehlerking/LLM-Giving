@@ -1,4 +1,6 @@
 import fs from 'node:fs';
+import {receiptQa} from '../tests/receipt-browser.mjs';
+import {saveManagementLink} from '../tests/receipt-actions.mjs';
 import {browserReturnQa} from '../tests/browser-return-browser.mjs';
 import {authorizedHandoff} from '../tests/browser-authorization.mjs';
 import {qaReports} from './lib/qa-modes.mjs';
@@ -126,6 +128,9 @@ try{
  else if(mode==='workflow') {
   try { await workflowQa({page,ctx,base,runPhp,check,visibleActions,password}); } finally { runPhp(['tests/qa-state.php','cleanup']); }
  }
+ else if(mode==='receipt') {
+  try { await receiptQa({page,ctx,base,runPhp,check,visibleActions}); } finally { runPhp(['tests/qa-state.php','cleanup']); }
+ }
  else if(mode==='submission') {
   try { await submissionQa({page,ctx,base,runPhp,check,visibleActions,password}); } finally { runPhp(['tests/qa-state.php','cleanup']); }
  }
@@ -151,7 +156,7 @@ try{
   await page.getByText('Optional attribution & private email',{exact:true}).click();await page.getByLabel('Private email for your link and request-related notices').fill('requester-qa@example.invalid');
   await page.locator('[name=terms]').check();await page.getByRole('button',{name:'Submit for approval',exact:true}).first().click();
   const management=await page.locator('#management-link').inputValue();const rid=new URL(management).pathname.split('/').pop();
-  await page.getByRole('button',{name:'Copy management link'}).click();check('Private management link copied',await page.evaluate(()=>navigator.clipboard.readText())===management);
+  await saveManagementLink(page);check('Private management link copied',await page.evaluate(()=>navigator.clipboard.readText())===management);
   const anonymous=await browser.newContext();const anon=await anonymous.newPage();
   for(const suffix of ['','/context.json','/prompt.md'])check('Pending route isolated '+suffix,(await anon.request.get(base+'/research/'+rid+suffix)).status()===404);
   const adminctx=await browser.newContext({viewport:{width:1366,height:768}});const ap=await adminctx.newPage();
@@ -184,7 +189,7 @@ try{
   await statusForm.locator('[name=status]').selectOption('Potential Answer — Needs Verification');await statusForm.locator('[name=reason]').fill('A proposed answer is available for broader verification.');await statusForm.getByRole('button').click();
   await goto(page,'/research/'+slug+'/feedback?target='+cid);await page.getByLabel('Feedback type').selectOption('Correction');await page.getByLabel('Your feedback and supporting evidence').fill('This is a synthetic correction that needs explicit publication approval.');await page.locator('[name=terms]').check();await page.getByRole('button',{name:'Submit feedback for approval'}).click();
   state=JSON.parse(runPhp(['tests/qa-state.php','lookup',rid]));await goto(ap,'/admin/research/'+rid);await moderate(ap,'feedback',state.feedback[0].id);
-  const manager=await browser.newContext();const mp=await manager.newPage();await goto(mp,management);
+  const manager=await browser.newContext({permissions:['clipboard-read','clipboard-write']});const mp=await manager.newPage();await goto(mp,management);
   await mp.waitForURL('**/manage/'+rid);await mp.getByRole('heading',{name:title}).waitFor();check('Fragment exchanged and removed',!mp.url().includes('#'));
   await mp.getByLabel('Status',{exact:true}).selectOption('Solved');await mp.getByLabel('Why are you changing the status?').fill('The requester accepts the synthetic test resolution.');await mp.getByRole('button',{name:'Save request status'}).click();
   await goto(anon,'/research?status=Solved&q='+encodeURIComponent(title));check('Requester solved action appears in solved board',await anon.getByRole('link',{name:title,exact:true}).isVisible());
@@ -210,14 +215,14 @@ try{
   // Capability rotation and email recovery require possession, not just an address.
   await goto(mp,'/manage/'+rid);await mp.getByText('Rotate the private link',{exact:true}).click();
   const rotate=mp.locator('form[action$="/rotate"]');await rotate.locator('input[type=checkbox]').check();await rotate.getByRole('button').click();
-  const rotated=await mp.locator('#management-link').inputValue();check('Rotation produces a new capability',rotated!==management);
+  const rotated=await mp.locator('#management-link').inputValue();await saveManagementLink(mp);check('Rotation produces a new capability',rotated!==management);
   await anon.goto(management);await anon.getByRole('heading',{name:'Unable to continue'}).waitFor();check('Old capability rejected after rotation',await anon.getByText('This management link is invalid or has been revoked.').isVisible());
   await goto(mp,rotated);await mp.getByRole('heading',{name:title}).waitFor();
   await goto(page,'/recover');await page.getByLabel('Immutable research ID').fill(rid);await page.getByLabel('Original private email').fill('requester-qa@example.invalid');await page.getByRole('button',{name:'Send recovery email'}).click();check('Recovery response does not expose identity',await page.getByText('If the request and address match, a short-lived recovery link has been sent.').isVisible());
   const mails=fs.readdirSync(path.join(root,'storage','mail')).filter(n=>n.endsWith('.json')).map(n=>JSON.parse(fs.readFileSync(path.join(root,'storage','mail',n),'utf8')));
   const recovery=mails.find(m=>m.subject==='Recover your LLM.Giving request'&&m.body.includes('/manage/'+rid));
   check('Recovery delivered only through private email sink',!!recovery);
-  await goto(page,recovery.body.split('\n')[0]);await page.locator('#management-link').waitFor();const recovered=await page.locator('#management-link').inputValue();
+  await goto(page,recovery.body.split('\n')[0]);await page.locator('#management-link').waitFor();const recovered=await page.locator('#management-link').inputValue();await saveManagementLink(page);
   await goto(page,recovered);await page.getByRole('heading',{name:title}).waitFor();check('Recovery exchanges into new request capability',true);
   await anon.goto(recovery.body.split('\n')[0]);await anon.getByRole('heading',{name:'Unable to continue'}).waitFor();check('Recovery credential single use',await anon.getByText('Recovery link invalid or expired.').isVisible());
   await goto(ap,'/admin/research/'+rid);await ap.getByText('Edit request content',{exact:true}).click();const editForm=ap.locator('form').filter({has:ap.locator('input[name=action][value=edit]')});

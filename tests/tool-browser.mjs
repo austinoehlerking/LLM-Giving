@@ -1,3 +1,4 @@
+import {saveManagementLink} from './receipt-actions.mjs';
 import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {root,env} from '../tools/runtime.mjs';import {spawnSync} from 'node:child_process';
 export async function toolQa({page,ctx,base,runPhp,check,visibleActions}){
  const execution=spawnSync(process.execPath,['tools/tool-build-pilot.mjs'],{env,encoding:'utf8',windowsHide:true});assert.equal(execution.status,0,execution.stdout+execution.stderr);
@@ -11,7 +12,7 @@ export async function toolQa({page,ctx,base,runPhp,check,visibleActions}){
  await page.setViewportSize(sizes[0]);await page.goto(base+'/submit');const brief=JSON.parse(runPhp(['tests/tool-state.php','brief']));await page.locator('[name=project_type]').selectOption('research_tool');await page.locator('[name=title]').fill(brief.title);await page.locator('[name=question]').fill(brief.question);await page.locator('[name=category_id]').selectOption(String(brief.category_id));
  for(const [key,value] of Object.entries(brief))if(key.startsWith('tool_'))await page.locator('[name='+key+']').fill(value);
  await page.getByRole('button',{name:'Review your request',exact:true}).click();check('Preview includes tool requirements and type',(await page.locator('#request-preview-content').innerText()).includes('Build a research tool')&&(await page.locator('#request-preview-content').innerText()).includes(brief.tool_validation_plan));
- await page.locator('[name=terms]').check();await page.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).click();await page.locator('#management-link').waitFor();const rid=new URL(await page.locator('#management-link').inputValue()).pathname.split('/').pop();
+ await page.locator('[name=terms]').check();await page.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).click();await page.locator('#management-link').waitFor();await saveManagementLink(page);const rid=new URL(await page.locator('#management-link').inputValue()).pathname.split('/').pop();
  let reviewerContext;
  try{
   check('Tool request submitted and remains private',(await page.request.get(base+'/research/'+rid+'/context.json')).status()===404);

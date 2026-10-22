@@ -51,6 +51,8 @@ Public context uses explicit field allowlists. Context contains complete approve
 
 The requester secret is rendered directly in the submission/rotation/recovery POST response and optionally delivered by private email. It is never placed in a redirect URL or persisted as a receipt in server sessions; sessions store only request-scoped credential hashes. The browser exchanges the URL fragment via a CSRF-protected POST, removes the fragment from browser history, regenerates the session ID, and grants access to only that request for 30 minutes. Every management operation compares the current credential hash with the session grant, so rotation revokes old sessions as well as old links.
 
+The private-link receipt uses an in-memory browser guard: successful clipboard writes are distinguished from attempted copies, and a separate checkbox confirms the link was saved. In-page navigation opens an accessible confirmation dialog until that acknowledgment. The associated acknowledgment label has a minimum 44 CSS px clickable height; dialog controls remain usable with enlarged text and keyboard navigation. Tab close, reload and browser navigation use the browser-controlled beforeunload warning where supported. No link, secret or acknowledgment is added to Web Storage or server sessions. Each replacement receipt starts a fresh guard. This is a usability safeguard, not an authorization boundary.
+
 Recovery requires a matching stored email and research ID but always returns the same public response. A short-lived single-use recovery credential is emailed; consuming it under a row lock rotates the management credential. Email possession is required; entering an address does not authorize access.
 
 ## Transactions and filesystem effects
