@@ -16,7 +16,7 @@ function wf_test_payload(string $rid,array $t,string $outcome='completed'): arra
     $d['evidence']=['version'=>1,'scope'=>'Exercise synthetic workflow behavior only; no scientific conclusion is established.',
         'stopping_rule'=>'Stop after the supplied deterministic fixture and current workflow references have been checked.',
         'search_log'=>[['query'=>'Inspect the supplied synthetic workflow fixture','where'=>'tests/workflow-fixture.php and the local task context','result'=>'Inspected the provided fixture text only; no external literature search or scientific verification was performed.']],
-        'sources'=>[['id'=>'s1','title'=>'Explicitly synthetic local workflow fixture','url'=>'','type'=>'provided','access'=>'full_text','access_note'=>'Read the local synthetic fixture body in tests/workflow-fixture.php; no scientific source is claimed.']],
+        'sources'=>[['id'=>'s1','title'=>'Explicitly synthetic local workflow fixture','url'=>'','type'=>'provided','access'=>'full_text','access_note'=>'Read the local synthetic fixture body in tests/workflow-fixture.php; no scientific source is claimed.','authors'=>'','publication_date'=>'','publisher'=>'','doi'=>'','edition'=>'','metadata_note'=>'Synthetic fixture: scholarly publication metadata is not applicable and was not collected.','use'=>'used']],
         'claims'=>[['id'=>'c1','statement'=>$d['body'],'kind'=>'finding','support'=>'supported','confidence'=>'moderate',
             'confidence_reason'=>'The provided fixture states its synthetic scope explicitly; this tests record structure only.','derivation'=>'',
             'limitations'=>'Synthetic QA cannot establish scientific facts, real model provenance or real source accuracy.',
@@ -31,5 +31,16 @@ function wf_test_payload(string $rid,array $t,string $outcome='completed'): arra
     foreach($d['evidence']['artifact_reviews'] as &$audit){$audit['verdict']='supported';$audit['reason']='Synthetic fixture audit checks local data fidelity, labels, assumptions and limits only; no real scientific verification is claimed.';}unset($audit);
     foreach($d['acceptance_checks'] as &$check){$check['status']='met';$e=$check['result_id']==='self'?$d:one('SELECT * FROM workflow_submissions WHERE id=?',[$check['result_id']]);$check['evidence_quote']=$e['body'];$check['reason']='Synthetic evidence pointer for deterministic workflow testing only.';$check['correction_response']='Synthetic correction response: reviewed the requested uncertainty and updated the evidence assessment.';}unset($check);
     if($outcome==='needs_correction'){$syn=wf_task($rid,json_decode($t['dependencies'],true)[0]);$d['corrections']=[['task_id'=>$syn['id'],'result_id'=>$syn['accepted_id'],'criterion_id'=>'criterion-1','reason'=>'Synthetic review requires a clearer synthesis.','required_change'=>'Clarify the synthetic result and retain its evidence.']];}
+    return rs_test_materials($d,$t);
+}
+function rs_test_materials(array $d,?array $task=null): array {
+    $e=$d['evidence']??[];$required=rs_required_materials($e);$items=[];
+    foreach(RS_CATEGORIES as $category){$refs=$required[$category]??[];$items[]=['category'=>$category,'status'=>$refs?'supplied':'not_applicable','details'=>$refs?'Synthetic QA materials are retained at the exact structured references; no scientific verification is claimed.':'Not applicable to the synthetic work performed; no additional code, execution or unrecorded failed approaches are claimed.','refs'=>array_values(array_unique($refs)),'access_instructions'=>''];}
+    $d['evidence']['supporting_materials']=['version'=>1,'work_performed'=>'narrative','items'=>$items,'files'=>[]];
+    if($task&&$task['kind']==='review'){
+        $d['evidence']['material_reviews']=[];foreach(wf_evidence_results($task) as $target){$result=$target['result'];$e=json_decode($result['metadata'],true)['evidence']??[];$support=$e['supporting_materials']??null;$refs=['body','methodology','sources'];foreach($support['items']??[] as $item)$refs=array_merge($refs,$item['refs']);
+            $d['evidence']['material_reviews'][]=['task_id'=>$target['task']['id'],'result_id'=>$result['id'],'verdict'=>'complete','reason'=>'Synthetic test audit inspected the retained materials and their declared limits; historical completeness needs a manual whole-result audit.','checked_refs'=>array_values(array_unique($refs))];
+        }
+    }
     return $d;
 }

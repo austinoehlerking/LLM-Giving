@@ -7,18 +7,22 @@ function contribution_schema(): array {
         'uncertainty'=>'','limitations'=>'','previous_work'=>'','open_questions'=>'','next_actions'=>'',
         'suggested_status'=>'Still Unsolved','safety'=>'','recommendation'=>'',
         'display_name'=>'','linkedin'=>'','github'=>'','website'=>'',
-        'human_interaction'=>['level'=>'none','details'=>''],'metadata'=>array_fill_keys(META_FIELDS,null)
+        'evidence'=>wf_evidence_template(['kind'=>'supplementary','computational'=>false]),'human_interaction'=>['level'=>'none','details'=>''],'metadata'=>array_fill_keys(META_FIELDS,null)
     ];
 }
 function parse_contribution(array $post): array {
-    if(trim((string)($post['json']??''))==='') return $post;
-    try { $d=json_decode($post['json'],true,32,JSON_THROW_ON_ERROR); }
+    if(trim((string)($post['json']??''))===''){
+        if(is_string($post['evidence']??null)){try{$post['evidence']=json_decode(text_field($post,'evidence',2,200000),true,32,JSON_THROW_ON_ERROR);}catch(JsonException){fail(422,'Supporting evidence must be complete valid JSON.');}}
+        return $post;
+    }
+    try { $d=json_decode(text_field($post,'json',2,200000),true,32,JSON_THROW_ON_ERROR); }
     catch(JsonException) { fail(422,'The JSON could not be parsed. Correct it or use the individual fields.'); }
     if(!is_array($d) || array_is_list($d)) fail(422,'Submit a JSON object.');
     $d['terms']=$post['terms']??null;
     return $d;
 }
 function create_contribution(string $rid,array $d,bool $checkOnly=false): string {
+    rs_packet_budget($d);
     if(!db()->inTransaction())return tx(fn()=>create_contribution($rid,$d,$checkOnly));
     one('SELECT id FROM research WHERE id=? FOR UPDATE',[$rid]);
     $r=research($rid);
@@ -36,6 +40,10 @@ function create_contribution(string $rid,array $d,bool $checkOnly=false): string
     if($row['suggested_status'] && !isset(STATUSES[$row['suggested_status']])) fail(422,'Invalid suggested status.');
     $row['recommendation']=text_field($d,'recommendation',0,40);
     if($kind==='Independent review' && !in_array($row['recommendation'],['Verified','Partially Verified','Needs Correction','Unverifiable'],true)) fail(422,'Choose a review recommendation.');
+    $evidenceTask=['id'=>$row['id'],'research_id'=>$rid,'kind'=>$kind==='Independent review'?'contribution_review':'supplementary','target_id'=>$target,'computational'=>false,'builds_tool'=>false];
+    $outcome=$kind==='Progress update'?'progress':($kind==='Independent review'?($row['recommendation']==='Verified'?'verified':'needs_correction'):'completed');
+    $validated=wf_validate_evidence($evidenceTask,$d,$row+['outcome'=>$outcome]);
+    $row['evidence']=json_encode($validated['evidence']+['corrections'=>$validated['corrections']],JSON_THROW_ON_ERROR);
     $row+=attribution($d);
     $metadata=$d['metadata']??[]; if(!is_array($metadata)) fail(422,'Metadata must be an object.');
     if(!in_array($metadata['workflow_mode']??'',['','ultracode',null],true)||strtolower((string)($metadata['reasoning']??''))==='ultracode')fail(422,'Record workflow_mode separately from actual reasoning effort.');

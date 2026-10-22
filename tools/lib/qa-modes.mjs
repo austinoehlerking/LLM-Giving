@@ -19,4 +19,5 @@ export const qaReports = Object.freeze({
   setup: 'setup-assist/browser-report.json',
   tools: 'tool-builds/browser-report.json',
   calculations: 'calculations/browser-report.json',
+  resources: 'resources/browser-report.json',
 });

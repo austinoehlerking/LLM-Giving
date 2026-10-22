@@ -1,12 +1,32 @@
 <?php
 /** Public context, immutable snapshots, task signatures and task prompts. */
 function wf_ledger(string $rid,bool $private=false): array {
-    if($private)require_admin();else research($rid);
-    return all("SELECT a.* FROM audit_events a WHERE a.research_id=?".($private?"":" AND a.visibility='public' AND (a.entity_type<>'submission' OR EXISTS(SELECT 1 FROM workflow_submissions s WHERE s.id=a.entity_id AND s.visibility='public')) AND (a.entity_type<>'task' OR EXISTS(SELECT 1 FROM workflow_tasks t WHERE t.id=a.entity_id AND t.visibility='public'))")." ORDER BY a.id",[$rid]);
+    if($private){require_admin();return all('SELECT * FROM audit_events WHERE research_id=? ORDER BY id',[$rid]);}
+    research($rid);
+    $events=all("SELECT * FROM audit_events WHERE research_id=? AND visibility='public' ORDER BY id",[$rid]);
+    $eligibleResult=function(string $id,bool $receipt=false)use($rid): bool {
+        $row=one("SELECT s.admission,s.snapshot_id FROM workflow_submissions s JOIN workflow_tasks t ON t.id=s.task_id AND t.research_id=s.research_id WHERE s.id=? AND s.research_id=? AND s.visibility='public' AND t.visibility='public'",[$id,$rid]);
+        if(!$row||(!$receipt&&$row['admission']!=='accepted'))return false;
+        try{wf_read_snapshot($rid,$row['snapshot_id']);return true;}catch(HttpError $error){if($error->status===404)return false;throw $error;}
+    };
+    return array_values(array_filter($events,function($event)use($rid,$eligibleResult){
+        if($event['entity_type']==='submission'&&!$eligibleResult($event['entity_id'],$event['action']!=='Task result submitted'))return false;
+        if($event['entity_type']==='task'&&!one("SELECT id FROM workflow_tasks WHERE id=? AND research_id=? AND visibility='public'",[$event['entity_id'],$rid]))return false;
+        $meta=json_decode($event['metadata'],true);
+        foreach(['previous_result_id','review_result_id'] as $key)if(!empty($meta[$key])&&!$eligibleResult($meta[$key]))return false;
+        foreach($meta['corrections']??[] as $correction)if(!empty($correction['result_id'])&&!$eligibleResult($correction['result_id']))return false;
+        if(!empty($meta['context_id'])){try{wf_read_snapshot($rid,$meta['context_id']);}catch(HttpError $error){if($error->status===404)return false;throw $error;}}
+        return true;
+    }));
 }
 function wf_public_data(string $rid): array {
     research($rid);
     $submissions=all("SELECT id,research_id,task_id,snapshot_id,admission,outcome,reason,body,methodology,sources,limitations,next_action,metadata,plan_json,display_name,created_at,license,submission_method FROM workflow_submissions WHERE research_id=? AND visibility='public' AND admission='accepted' ORDER BY created_at,id",[$rid]);
+    $publicTasks=array_column(array_filter(wf_tasks($rid,false),fn($t)=>$t['visibility']==='public'),null,'id');
+    $submissions=array_values(array_filter($submissions,function($s)use($rid,$publicTasks){
+        if(!isset($publicTasks[$s['task_id']]))return false;
+        try{wf_read_snapshot($rid,$s['snapshot_id']);return true;}catch(HttpError $error){if($error->status===404)return false;throw $error;}
+    }));
     return ['project'=>wf_project($rid),'admission_notice'=>wf_quarantine($rid)?'Awaiting admin decision. Research submissions are paused; quarantined packets are not research evidence.':'Only accepted packets are included as research evidence.','tasks'=>array_values(array_filter(wf_tasks($rid,false),fn($t)=>$t['visibility']==='public')),'submissions'=>$submissions,
       'clarifications'=>all('SELECT * FROM workflow_clarifications WHERE research_id=? ORDER BY created_at,id',[$rid]),
       'ledger'=>wf_ledger($rid),

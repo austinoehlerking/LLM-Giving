@@ -27,7 +27,7 @@ function rt_template(array $task): array {
         $reviews[]=['task_id'=>$target['task']['id'],'result_id'=>$target['result']['id'],'tool_id'=>$target['build']['id'],'verdict'=>'','method'=>'','environment'=>'','command'=>'','run_log'=>'','scientific_assessment'=>'','limitations'=>'','test_results'=>$tests];}
     return ['tool_builds'=>!empty($task['builds_tool'])?[[
         'id'=>'tool','title'=>'','version'=>'','status'=>'','license'=>RT_LICENSE,'usage'=>'','environment'=>'','command'=>'','dependency_notes'=>'','scientific_assumptions'=>'','limitations'=>'','maintenance'=>'','source_ids'=>[],
-        'files'=>[['id'=>'source','name'=>'tool.txt','role'=>'source','content'=>'','sha256'=>''],['id'=>'tests','name'=>'tests.txt','role'=>'test','content'=>'','sha256'=>'']],
+        'software'=>[['name'=>'','version'=>'']],'files'=>[['id'=>'source','name'=>'tool.txt','role'=>'source','content'=>'','sha256'=>''],['id'=>'tests','name'=>'tests.txt','role'=>'test','content'=>'','sha256'=>'']],
         'tests'=>[['id'=>'reference','kind'=>'reference','purpose'=>'','file_id'=>'tests','input'=>'','expected'=>'','observed'=>'','comparison'=>'exact','absolute_tolerance'=>0,'relative_tolerance'=>0,'tolerance_reason'=>'','status'=>'','run_log'=>'']]
     ]]:[],'tool_reviews'=>$reviews];
 }
@@ -40,16 +40,17 @@ function rt_matches(array $test,string $observed): bool {
     $expected=(float)$test['expected'];$actual=(float)$observed;
     return abs($actual-$expected)<=$test['absolute_tolerance']+$test['relative_tolerance']*abs($expected);
 }
-function rt_validate(array $task,array $data,array $evidence,array $row): array {
+function rt_validate(array $task,array $data,array $evidence,array $row,bool $historical=false): array {
     $r=research($task['research_id']);$terminal=in_array($row['outcome'],['completed','inconclusive','verified'],true);$required=!empty($task['builds_tool']);$builds=[];$bytes=0;
     foreach(ra_list($data,'tool_builds',2) as $build){
         if(!$required||$task['kind']!=='research'||!rt_is_tool($r))fail(422,'Tool builds belong to a planned build task in a research-tool project.');
-        ra_keys($build,['id','title','version','status','license','usage','environment','command','dependency_notes','scientific_assumptions','limitations','maintenance','source_ids','files','tests'],'tool build');
+        ra_keys($build,['id','title','version','status','license','usage','environment','command','dependency_notes','scientific_assumptions','limitations','maintenance','source_ids','files','tests','software'],'tool build');
         $id=wf_evidence_id($build);if(isset($builds[$id]))fail(422,'Duplicate tool build ID.');
         if(($build['license']??'')!==RT_LICENSE)fail(422,'Original tool source and test files must use the project software license: '.RT_LICENSE.'.');
         $clean=['id'=>$id,'license'=>RT_LICENSE,'title'=>text_field($build,'title',5,150),'version'=>text_field($build,'version',1,80),'status'=>wf_evidence_choice($build,'status',['draft','tested']),
             'source_ids'=>ra_refs($build['source_ids']??null,array_column($evidence['sources'],null,'id'),$terminal?1:0,40,'tool reference source')];
         foreach(['usage','environment','command','dependency_notes','scientific_assumptions','limitations','maintenance'] as $key)$clean[$key]=text_field($build,$key,$key==='command'?3:20,3000);
+        if(!$historical)$clean['software']=rs_software($build,$terminal);
         $files=[];$names=[];$roles=[];
         foreach(ra_list($build,'files',16) as $file){
             ra_keys($file,['id','name','role','content','sha256'],'tool file');$fid=wf_evidence_id($file);$name=text_field($file,'name',1,80);
@@ -60,7 +61,7 @@ function rt_validate(array $task,array $data,array $evidence,array $row): array 
             $hash=text_field($file,'sha256',64,64);if(!hash_equals(hash('sha256',$content),$hash))fail(422,'Tool file checksum mismatch: '.$name.'. Preserve exact UTF-8 bytes.');
             $files[$fid]=['id'=>$fid,'name'=>$name,'role'=>$role,'content'=>$content,'sha256'=>$hash];$names[strtolower($name)]=true;$roles[$role]=true;
         }
-        if(!isset($roles['source'],$roles['test']))fail(422,'A tool build needs exact source and test files.');
+        if(($terminal||$clean['status']==='tested')&&!isset($roles['source'],$roles['test']))fail(422,'A completed/tested tool build needs exact source and test files. Incomplete drafts can retain only the work actually performed.');
         $tests=[];$kinds=[];
         foreach(ra_list($build,'tests',30) as $test){
             ra_keys($test,['id','kind','purpose','file_id','input','expected','observed','comparison','absolute_tolerance','relative_tolerance','tolerance_reason','status','run_log'],'tool test');

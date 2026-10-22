@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__.'/workflow-acceptance.php';
 require_once __DIR__.'/workflow-evidence.php';
+require_once __DIR__.'/research-resources.php';
 require_once __DIR__.'/research-calculations.php';
 require_once __DIR__.'/research-tools.php';
 require_once __DIR__.'/research-artifacts.php';

@@ -45,7 +45,7 @@ You can request a tool or computational work as part of your brief. Contributors
 
 ## Built for work others can inspect
 
-**Follow the evidence.** Sources and claim references remain attached to results, alongside uncertainty and limitations.
+**Follow the evidence.** Each study has a Resources & sources section linking source attribution and precise extraction locations to claims, original data, derived calculations and supporting files. Required materials and independent completeness reviews keep work inspectable; historical gaps remain explicit.
 
 **See what changed.** Review history and corrections remain part of the research record. When a finding needs correction, affected tasks and dependent work reopen.
 

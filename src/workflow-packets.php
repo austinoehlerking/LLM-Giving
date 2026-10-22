@@ -36,7 +36,7 @@ function wf_review_influence(string $rid,string $id,string $reason,string $decis
         if($decision==='approve'){
             if(!$current||$r['moderation']!=='Approved'||in_array($r['status'],['Withdrawn','Paused','Solved','Archived — Inactive','Blocked','Needs Clarification','Review Complete'],true))
                 fail(409,'This packet is stale or the project is paused. Reject it and obtain a fresh handoff when research resumes.');
-            if(isset($meta['evidence']))wf_validate_evidence($task,$meta,$row);
+            if(isset($meta['evidence']))wf_validate_evidence($task,$meta,$row,!isset($meta['evidence']['supporting_materials']));
             wf_acceptance($task,$meta,$row);
         }
         $status=$decision==='approve'?'approved':($decision==='reject'?'rejected':'reviewed');

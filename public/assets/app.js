@@ -35,6 +35,7 @@ function loadJSON(){
  if(!data || Array.isArray(data) || typeof data!=='object')throw new Error('Expected a JSON object.');
  for(const [key,value] of Object.entries(data)){
   if(key==='human_interaction' && value && typeof value==='object'){form.elements.ai_level.value=value.level||'';form.elements.ai_details.value=value.details||'';}
+  else if(key==='evidence'){form.elements.namedItem('evidence').value=JSON.stringify(value,null,2);}
   else if(key==='metadata' && value && typeof value==='object'){
    for(const [k,v] of Object.entries(value)){if(!contributionMetadataFields.has(k))continue;const f=form.elements.namedItem('metadata['+k+']');if(f)f.value=v==null?'':Array.isArray(v)?v.join(', '):String(v);}
   }else if(contributionPacketFields.has(key)){const f=form.elements.namedItem(key);if(f)f.value=value==null?'':String(value);}
@@ -46,7 +47,7 @@ document.getElementById('copy-schema')?.addEventListener('click',()=>copy(docume
 document.getElementById('preview-submission')?.addEventListener('click',()=>{
  try{
   if(form.elements.namedItem('json').value.trim())loadJSON();
-  const data={metadata:{}};for(const [k,v] of new FormData(form)){if(['csrf','terms','attachments[]','json'].includes(k))continue;const m=k.match(/^metadata\[(.+)\]$/);if(m)data.metadata[m[1]]=v===''?null:v;else data[k]=v;}
+  const data={metadata:{}};for(const [k,v] of new FormData(form)){if(['csrf','terms','attachments[]','json'].includes(k))continue;const m=k.match(/^metadata\[(.+)\]$/);if(m)data.metadata[m[1]]=v===''?null:v;else data[k]=k==='evidence'?JSON.parse(v):v;}
   document.getElementById('preview-content').textContent=JSON.stringify(data,null,2);
   document.getElementById('preview').hidden=false;document.getElementById('preview').scrollIntoView({block:'start'});
  }catch(e){document.getElementById('parse-status').textContent=e.message;}

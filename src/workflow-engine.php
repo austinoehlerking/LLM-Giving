@@ -108,6 +108,7 @@ function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnl
         $nonce=text_field($d,'submission_key',32,32);if(!ctype_xdigit($nonce))fail(422,'Submission key must be 32 hexadecimal characters.');
         $existing=one('SELECT id,payload_hash,actor_hash FROM workflow_submissions WHERE research_id=? AND nonce=?',[$rid,$nonce]);
         if($existing){if(!hash_equals($existing['actor_hash'],$actor)||!hash_equals($existing['payload_hash'],$hash))fail(409,'Submission key already used for a different result.');return $existing['id'];}
+        rs_packet_budget($d);
         if(in_array($r['status'],['Needs Clarification','Blocked','Paused','Archived — Inactive','Solved','Review Complete'],true))fail(409,'Research is not accepting task results in its current state.');
         if(wf_quarantine($rid))fail(409,'Research is awaiting an admin decision on a quarantined packet. No task results can advance yet.');
         $p=wf_project($rid)??fail(422,'Topic must first be approved.');

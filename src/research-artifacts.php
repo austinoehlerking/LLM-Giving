@@ -24,15 +24,23 @@ function ra_review_targets(array $task): array {
 function ra_review_template(array $task): array {
     $out=[];foreach(ra_review_targets($task) as $target)$out[]=['task_id'=>$target['task']['id'],'result_id'=>$target['result']['id'],'artifact_id'=>$target['artifact']['id'],'verdict'=>'','reason'=>''];return $out;
 }
-function ra_validate(array $task,array $data,array $evidence,array $row): array {
+function ra_validate(array $task,array $data,array $evidence,array $row,bool $historical=false): array {
     $sources=array_column($evidence['sources'],null,'id');$claims=array_column($evidence['claims'],null,'id');$datasets=[];$artifacts=[];
     foreach(ra_list($data,'datasets',8) as $dataset){
-        ra_keys($dataset,['id','title','provenance','source_ids','method','limitations','uncertainty','columns','rows'],'dataset');
+        ra_keys($dataset,['id','title','provenance','source_ids','method','limitations','uncertainty','columns','rows','source_locations'],'dataset');
         $id=wf_evidence_id($dataset);if(isset($datasets[$id]))fail(422,'Duplicate dataset ID.');
         $d=['id'=>$id,'title'=>text_field($dataset,'title',5,140),'provenance'=>ra_provenance($dataset),
             'source_ids'=>ra_refs($dataset['source_ids']??null,$sources,0,20,'dataset source'),
             'method'=>text_field($dataset,'method',20,3000),'limitations'=>text_field($dataset,'limitations',20,3000),'uncertainty'=>text_field($dataset,'uncertainty',20,2000),'columns'=>[],'rows'=>[]];
         if(in_array($d['provenance'],['observed','derived'],true))ra_observed_sources($d['source_ids'],$sources,'Observed/derived dataset');
+        $d['source_locations']=[];$located=[];
+        foreach(ra_list($dataset,'source_locations',20) as $location){
+            ra_keys($location,['source_id','locator','extraction'],'dataset source location');$sid=text_field($location,'source_id',1,40);
+            if(!in_array($sid,$d['source_ids'],true)||isset($located[$sid]))fail(422,'Dataset extraction must identify each declared source once.');
+            if($sources[$sid]['access']==='unavailable'||($sources[$sid]['use']??'')!=='used')fail(422,'Dataset extraction requires an inspected-and-used source.');
+            $d['source_locations'][]=['source_id'=>$sid,'locator'=>text_field($location,'locator',3,500),'extraction'=>text_field($location,'extraction',10,3000)];$located[$sid]=true;
+        }
+        if(!$historical&&in_array($d['provenance'],['observed','derived'],true)&&array_diff($d['source_ids'],array_keys($located)))fail(422,'Observed/derived datasets need precise source locations and extracted data descriptions.');
         $keys=[];foreach(ra_list($dataset,'columns',8) as $column){
             ra_keys($column,['key','label','type','unit'],'data column');$key=wf_evidence_id(['id'=>$column['key']??'']);if(isset($keys[$key]))fail(422,'Duplicate dataset column key.');$keys[$key]=true;
             $type=wf_evidence_choice($column,'type',['number','text']);$d['columns'][]=['key'=>$key,'label'=>text_field($column,'label',1,80),'type'=>$type,'unit'=>text_field($column,'unit',$type==='number'?1:0,60)];
