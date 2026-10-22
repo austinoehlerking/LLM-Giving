@@ -80,7 +80,7 @@ try{
   check('About navigation marks current page '+size.width,await page.locator('.floating-header a[href="/about"]').getAttribute('aria-current')==='page');
 
   if(sample){await goto(page,'/research/'+sample.slug);await shot(page,'research-'+size.width+'x'+size.height);await visibleActions(page,'.research-heading .primary-actions > *','Research '+size.width);}
-  await goto(page,'/submit');await shot(page,'submit-'+size.width+'x'+size.height);await visibleActions(page,'.form-actions button','Submission '+size.width);
+  await goto(page,'/submit');await page.locator('#copy-setup-prompt').waitFor({state:'visible'});await shot(page,'submit-'+size.width+'x'+size.height);await visibleActions(page,'.form-actions button','Submission '+size.width);
   await goto(page,'/research');await shot(page,'discovery-'+size.width+'x'+size.height);await visibleActions(page,'.filters .search-submit','Search '+size.width);
  }
  await page.setViewportSize({width:1366,height:768});await goto(page,'/');await page.keyboard.press('Tab');check('Keyboard skip link receives focus',await page.evaluate(()=>document.activeElement.classList.contains('skip')));await shot(page,'keyboard-focus');await page.keyboard.press('Enter');check('Skip link reaches main content',new URL(page.url()).hash==='#main');

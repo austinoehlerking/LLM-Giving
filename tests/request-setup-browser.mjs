@@ -4,7 +4,7 @@ export async function requestSetupQa({page,ctx,base,runPhp,check,visibleActions}
  const shot=async name=>{const file=path.join(output,name+'.png');await page.screenshot({path:file,fullPage:false});shots.push(file);};
  const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}];
  for(const size of sizes){
-  await page.setViewportSize(size);await page.goto(base+'/submit');await shot('initial-'+size.width);
+  await page.setViewportSize(size);await page.goto(base+'/submit');await page.locator('#copy-setup-prompt').waitFor({state:'visible'});await shot('initial-'+size.width);
   await visibleActions(page,'.form-actions button','Setup assistant initial '+size.width);
   check('Essential request fields fully visible '+size.width,await page.locator('[name=project_type],[name=title],[name=question]').evaluateAll(els=>els.every(el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;})));
   check('Paste field initially hidden '+size.width,!await page.locator('#paste-setup-prompt').isVisible());
