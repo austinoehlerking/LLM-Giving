@@ -46,7 +46,7 @@ function wf_handoff_code(array $task,array $snapshot,string $nonce): string {
 function wf_schema(array $task,array $snapshot): array {
     $nonce=uid();
     return ['submission_key'=>$nonce,'handoff_code'=>wf_handoff_code($task,$snapshot,$nonce),'task_revision'=>(int)$task['revision'],'context_id'=>$snapshot['id'],'outcome'=>'','human_interaction'=>['level'=>'none','details'=>''],'reason'=>'','body'=>'','methodology'=>'','sources'=>'','limitations'=>'','next_action'=>'',
-      'evidence'=>wf_evidence_template($task),'acceptance_checks'=>wf_check_template($task),'corrections'=>[],'display_name'=>'','metadata'=>['provider'=>'','model'=>'','reasoning'=>'','tool'=>'','run_id'=>'','run_at_utc'=>'','run_evidence'=>''],
+      'evidence'=>wf_evidence_template($task),'acceptance_checks'=>wf_check_template($task),'corrections'=>[],'display_name'=>'','metadata'=>['provider'=>'','model'=>'','reasoning'=>'','workflow_mode'=>'','tool'=>'','run_id'=>'','run_at_utc'=>'','run_evidence'=>''],
       'tasks'=>$task['kind']==='planning'?[['key'=>'evidence','title'=>'','objective'=>'','deliverable'=>'','acceptance'=>'','evidence_needs'=>'','stopping_rule'=>'','computational'=>false,'builds_tool'=>rt_is_tool(research($task['research_id'])),'dependencies'=>[]]]:[]];
 }
 function wf_prompt(string $rid,string $tid,?array &$issuance=null): string {

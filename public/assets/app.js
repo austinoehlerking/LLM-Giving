@@ -1,9 +1,4 @@
 'use strict';
-for(const rule of document.querySelectorAll('[name="reasoning_rule"]')){
- const level=rule.closest('fieldset').querySelector('[name="required_reasoning"]');
- const sync=()=>{level.disabled=rule.value==='none';level.required=rule.value!=='none';if(level.disabled)level.value='';};
- rule.addEventListener('change',sync);sync();
-}
 const status = (message) => { const el=document.querySelector('#copy-status'); el.textContent=message; setTimeout(()=>{el.textContent='';},5000); };
 async function copy(text){try{await navigator.clipboard.writeText(text);status('Copied. Ready to paste.');}catch{status('Copy unavailable in this browser. Select and copy the text manually.');}}
 document.addEventListener('click',async event=>{
@@ -33,7 +28,7 @@ if(exchange && location.hash){
 const form=document.getElementById('submission');
 // The AI packet owns research/provenance fields, never the volunteer declaration or consent.
 const contributionPacketFields=new Set(['kind','target_id','summary','body','methodology','sources','uncertainty','limitations','previous_work','open_questions','next_actions','suggested_status','safety','recommendation','display_name','linkedin','github','website']);
-const contributionMetadataFields=new Set(['provider','model','harness','harness_version','reasoning','input_tokens','output_tokens','total_tokens','measurement','duration','tools','prompt_version']);
+const contributionMetadataFields=new Set(['provider','model','harness','harness_version','reasoning','workflow_mode','input_tokens','output_tokens','total_tokens','measurement','duration','tools','prompt_version']);
 function loadJSON(){
  const area=form.elements.namedItem('json');
  let data;try{data=JSON.parse(area.value);}catch{throw new Error('Invalid JSON. Check commas, quotes, and the complete object.');}
