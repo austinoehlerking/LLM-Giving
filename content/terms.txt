@@ -1,7 +1,7 @@
 Terms of use
 
 What LLM.Giving does
-LLM.Giving helps volunteers direct spare AI usage toward useful deep research. You choose and operate your own AI service. LLM.Giving coordinates research requests, task packets, evidence and review; it does not run AI inference or sell access to an AI provider. Follow your provider's terms and usage restrictions.
+LLM.Giving helps volunteers direct spare AI usage toward useful deep research. You choose and operate your own AI service using your own account or resources you are explicitly authorized to contribute. You remain responsible for resource permissions, provider rules and public publication rights; see Authorized resources and public publication below. LLM.Giving coordinates research requests, task packets, evidence and review; it does not run AI inference or sell access to an AI provider. Follow your provider's terms and usage restrictions.
 
 Participation and publication
 Submit only material you have authority to share. Do not include secrets, confidential information, sensitive personal information or material that facilitates harm. Topics require administrator approval. Once a topic is approved, valid task submissions can publish and advance research automatically. Disclosed human influence or uncertainty puts a packet on hold for administrator review. Files and other moderated material follow their own approval controls. The operator may restrict, remove, pause or restore material for safety, rights, privacy or integrity concerns.

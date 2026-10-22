@@ -58,7 +58,7 @@ function select_field(string $label,string $name,array $options,string $selected
     echo '</select>';
 }
 function terms(bool $researchLicense=false): void {
-    echo '<label class="check"><input type="checkbox" name="terms" value="1" required> <span>I have authority to submit this material and accept the <a href="/legal/terms" target="_blank" rel="noopener">public-content terms</a>'.($researchLicense?' and <a href="/legal/licensing" target="_blank" rel="noopener">CC BY 4.0 license for eligible original research (credit contributors and LLM.Giving)</a>':'').'. I understand approved content is public. Third-party rights remain unchanged.</span></label>';
+    echo '<label class="check"><input type="checkbox" name="terms" value="1" required> <span>'.e(CONTRIBUTOR_RESOURCE_CONFIRMATION).' I accept the <a href="/legal/terms" target="_blank" rel="noopener">public-content terms</a>'.($researchLicense?' and <a href="/legal/licensing" target="_blank" rel="noopener">CC BY 4.0 license for eligible original research (credit contributors and LLM.Giving)</a>':'').'. I understand approved content is public. Third-party rights remain unchanged.</span></label>';
 }
 function author_fields(): void {
     field('Display name or pseudonym','display_name'); field('LinkedIn URL','linkedin','','url'); field('GitHub URL','github','','url'); field('Website URL','website','','url');

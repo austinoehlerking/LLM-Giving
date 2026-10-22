@@ -35,6 +35,10 @@ function external_parse(array $d): array {
 }
 
 const TERMS_VERSION='2026-10-v1-ccby';
+const CONTRIBUTOR_RESOURCE_CONFIRMATION="I confirm that I use my own AI account or resources I am explicitly authorized to contribute, follow the provider's rules, and submit only material I have permission to publish publicly.";
+function contributor_resource_notice(): array {
+    return ['title'=>'Authorized resources and public publication', 'body'=>trim(file_get_contents(ROOT.'/content/contributor-resources.txt'))];
+}
 function save_operator_details(array $data): void {
  $name=text_field($data,'operator_name',1,150);$country=text_field($data,'operator_country',1,100);
  $email=text_field($data,'operator_email',1,254);$source=text_field($data,'source_url',0,2000);
@@ -49,6 +53,8 @@ function legal_pages(): array {
     }
     $notice = google_privacy_notice();
     $pages['privacy'] .= "\n\n".$notice['title']."\n".$notice['body'];
+    $resources = contributor_resource_notice();
+    $pages['terms'] .= "\n\n".$resources['title']."\n".$resources['body'];
     return $pages;
 }
 function legal_policy_version(array $pages, string $base): string {
