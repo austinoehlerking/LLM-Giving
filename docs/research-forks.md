@@ -17,6 +17,9 @@ Parent/child purge cannot delete the other identity. Parent references deliberat
 
 Later public source changes/reopened or replaced records show live warnings while pinned bytes remain unchanged. Task and repair prompts explicitly require checking current sources and prohibit treating inherited work as new or verified work. Exact archived bodies remain immutable and contain the historical-background notice; source visibility/revocation still gates every archived read. Fork chains carry the exact earlier bindings as well as live public links.
 
+## Resources dependency
+This implementation is stacked on the independently reviewed resources/supporting-materials PR #11. Its source/material catalogue and visibility contracts supply the pinned projection. No prerequisite PR or main branch was merged by this task.
+
 ## Acceptance and QA
 - A public question starts an editable related request with exact attributed background.
 - Creation/retry/import/preview preserve the source binding and independent review, management, planning and results.

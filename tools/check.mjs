@@ -32,6 +32,7 @@ process.stdout.write(runPhp(['tests/browser-return.php']));
 process.stdout.write(runPhp(['tests/citation.php']));
 process.stdout.write(runPhp(['tests/requirements.php']));
 process.stdout.write(runPhp(['tests/forks.php']));
+process.stdout.write(runPhp(['tests/fork-resources.php']));
 process.stdout.write(runPhp(['tests/ai-selection.php']));
 process.stdout.write(runPhp(['tests/external-requirements.php']));
 const artifactHttp=spawnSync(process.execPath,['tests/artifact-http.mjs'],{encoding:'utf8'});

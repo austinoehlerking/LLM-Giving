@@ -11,6 +11,7 @@ function rf_test_parent(): array {
     $d['body']='Synthetic inherited finding with explicit uncertainty. No real scientific conclusion is established.';
     foreach($d['evidence']['claims'] as &$claim){$claim['statement']=$d['body'];$claim['links'][0]['excerpt']=$d['body'];}unset($claim);
     foreach($d['acceptance_checks'] as &$check)if($check['result_id']==='self')$check['evidence_quote']=$d['body'];unset($check);
+    $d=rs_test_materials($d,$t);
     $result=wf_submit($rid,$t['id'],$d,str_repeat('b',64));
     return $parent+['result_id'=>$result,'task_id'=>$t['id'],'r'=>research($rid)];
 }

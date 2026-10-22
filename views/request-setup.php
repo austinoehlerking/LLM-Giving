@@ -9,4 +9,4 @@
 <details><summary>Read or manually copy setup prompt</summary><label for="request-setup-prompt">Setup prompt to copy</label><textarea data-setup-text id="request-setup-prompt" readonly rows="8"><?=e($setupConfig['instructions'])?></textarea></details>
 </div>
 
-<script type="module" src="/assets/request-setup.js?v=ai-selection3"></script>
+<script type="module" src="/assets/request-setup.js?v=forks1"></script>

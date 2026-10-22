@@ -73,6 +73,28 @@ export async function forkQa({page,ctx,base,runPhp,check,visibleActions,report})
    await nojs.locator('[name=terms]').press('Space');await nojs.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval'}).press('Enter');
    check('No-JS fork receives independent receipt',await nojs.locator('#management-link').count()===1);
   }finally{await native.close();}
+  const resources=JSON.parse(runPhp(['tests/fork-qa-state.php','resources']));
+  try{
+   const resourceSource=base+'/research/'+resources.slug;await page.goto(resourceSource+'/fork');
+   await page.locator('[name=title]').fill('[QA] Fork with attributed retained materials');
+   await page.locator('[name=question]').fill('Which independent follow-up can reuse the original attributed mass conversion as background?');
+   await page.locator('[name=terms]').press('Space');await page.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval'}).press('Enter');
+   const materialLink=await page.locator('#management-link').inputValue(),materialChild=new URL(materialLink).pathname.split('/').pop();await saveManagementLink(page);
+   runPhp(['tests/fork-qa-state.php','approve',materialChild]);await page.goto(base+'/research/'+materialChild);
+   await page.locator('[data-fork-background] > details > summary').press('Enter');
+   await page.locator('.fork-resources > summary').press('Enter');
+   const tableLink=page.locator('.fork-resources a').filter({hasText:'Original complete table (CSV)'}).first(),notes=page.locator('.fork-resources a').filter({hasText:'continuation.txt'}).first();
+   const tableUrl=await tableLink.getAttribute('href'),notesUrl=await notes.getAttribute('href');
+   await tableLink.scrollIntoViewIfNeeded();await shot(page,'inherited-resources');
+   check('Inherited resource attribution visible in real UI',await page.locator('.fork-resources').innerText().then(text=>text.includes('LLM.Giving synthetic QA fixture')&&text.includes('synthetic-v1')&&text.includes('mass = 2 kg')));
+   const csv=await page.request.get(base+tableUrl),note=await page.request.get(base+notesUrl);
+   check('Inherited links retain original complete table and material',csv.status()===200&&(await csv.text()).includes('mass,2')&&note.status()===200&&(await note.text()).includes('mass=2 kg'));
+   const downloadEvent=page.waitForEvent('download');await tableLink.click();const download=await downloadEvent;check('Actual inherited table action downloads original file',download.suggestedFilename()==='original-mass.csv');
+   await download.saveAs(path.join(output,'original-mass.csv'));
+   runPhp(['tests/fork-qa-state.php','withdraw',resources.id]);
+   check('Source withdrawal blocks inherited material downloads',(await page.request.get(base+tableUrl)).status()===404&&(await page.request.get(base+notesUrl)).status()===404);
+   check('Source withdrawal blocks forked resource catalogue',(await page.request.get(base+'/research/'+materialChild+'/resources')).status()===404);
+  }finally{runPhp(['tests/fork-qa-state.php','cleanup',resources.id]);}
   runPhp(['tests/fork-qa-state.php','withdraw',parent.id]);
   for(const suffix of ['', '/context.json','/context.md','/prompt.md','/fork-background.json','/packages/'+packageId,'/results/'+resultId,...(archiveId?['/issued/'+archiveId]:[])]){
    const response=await page.request.get(childUrl+suffix);check('Source withdrawal blocks child HTTP '+suffix,response.status()===404&&!(await response.text()).includes('Synthetic inherited finding'));

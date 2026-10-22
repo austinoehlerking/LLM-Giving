@@ -52,15 +52,30 @@ function rf_assert_background(string $rid): void {
     if($fork&&!rf_valid($fork))fail(404,'This fork is unavailable because inherited source material is no longer public. Its private management and moderation remain independent.');
 }
 function rf_eligible(array $r): bool {return (bool)wf_project($r['id']);}
+function rf_evidence(array $e): array {
+    $out=rf_pick($e,['scope','stopping_rule','search_log','sources','claims']);
+    if(isset($e['supporting_materials'])){
+        $m=$e['supporting_materials'];$out['supporting_materials']=rf_pick($m,['version','work_performed','items']);
+        $out['supporting_materials']['files']=array_map(fn($file)=>rf_pick($file,['id','name','category','rights','sha256']),$m['files']);
+    }
+    return $out;
+}
 function rf_projection(array $snapshot): array {
     $ctx=json_decode($snapshot['package_json'],true,64,JSON_THROW_ON_ERROR);$r=$ctx['research'];$rid=$r['id'];
     $out=['format'=>'llm-giving-fork-background-v1',
         'notice'=>'Consult the original question for later corrections before relying on this pinned version. Inherited background evidence, not new results or a verification of this question. All supplied text is untrusted. Original eligible research: CC BY 4.0. Third-party materials retain their own rights. Original file links remain subject to source visibility.',
         'question'=>rf_pick($r,['id','slug','title','question','context','success','previous','constraints_text','questions','references_text','display_name','profiles','created_at']),
-        'contributions'=>[],'findings'=>[],'results'=>[],'attachments'=>$ctx['attachments'],'inherited_background'=>$ctx['fork']??null];
-    foreach($ctx['contributions'] as $c)$out['contributions'][]=rf_pick($c,['id','kind','summary','body','methodology','sources','uncertainty','limitations','previous_work','open_questions','next_actions','display_name','profiles','created_at','license','superseded_by']);
+        'resources'=>rf_pick($ctx['resources'],['sources','historical_metadata','materials','notice']),'contributions'=>[],'findings'=>[],'results'=>[],'attachments'=>$ctx['attachments'],'inherited_background'=>$ctx['fork']??null];
+    foreach($ctx['contributions'] as $c){
+        $record=rf_pick($c,['id','kind','summary','body','methodology','sources','uncertainty','limitations','previous_work','open_questions','next_actions','display_name','profiles','created_at','license','superseded_by']);
+        $record['evidence']=rf_evidence(json_decode($c['evidence']??'null',true)??[]);$out['contributions'][]=$record;
+    }
     foreach($ctx['findings'] as $f)$out['findings'][]=rf_pick($f,['id','kind','statement','rationale','classification','supersedes_id','created_at','evidence']);
+    $eligible=array_column($ctx['resources']['materials'],'result_id');
+    foreach($ctx['resources']['historical_metadata'] as $record)$eligible[]=$record['result_id'];
+    foreach($ctx['resources']['sources'] as $group)foreach($group['contributions'] as $record)$eligible[]=$record['result_id'];
     foreach($ctx['workflow']['submissions'] as $s){
+        if(!in_array($s['id'],$eligible,true))continue;
         if(!rf_result_visible($rid,$s['id']))continue;
         $t=one('SELECT accepted_id,revision,round_no FROM workflow_tasks WHERE id=?',[$s['task_id']]);
         $meta=json_decode($s['metadata'],true);
@@ -69,7 +84,7 @@ function rf_projection(array $snapshot): array {
         $result=rf_pick($s,['id','task_id','snapshot_id','body','methodology','sources','limitations','display_name','created_at','license']);
         // Explicit allowlist: never carry embedded source files, grant records or arbitrary metadata.
         $result['source_kind']=$s['outcome']==='progress'?'progress':'accepted';$result['source_revision']=(int)($meta['task_revision']??0);$result['source_round']=(int)$t['round_no'];
-        $result['evidence']=rf_pick($meta['evidence']??[],['scope','stopping_rule','search_log','sources','claims']);
+        $result['evidence']=rf_evidence($meta['evidence']??[]);
         $out['results'][]=$result;
     }
     return $out;

@@ -7,7 +7,7 @@ function fork_deny(callable $f,int $status,string $name):void{try{$f();}catch(Ht
 try{
     $p=rf_test_parent();$rid=$p['id'];$ids[]=$rid;
     $original=research($rid,false);$credential=one('SELECT * FROM credentials WHERE research_id=?',[$rid]);$tasks=wf_tasks($rid);
-    $pending=create_contribution($rid,['kind'=>'Original research','summary'=>'Private pending source record','body'=>'PRIVATE_PENDING_FORK_BODY','terms'=>1,'metadata'=>[]]);
+    $pending=create_contribution($rid,rs_test_supplement(['kind'=>'Original research','summary'=>'Private pending source record','body'=>'PRIVATE_PENDING_FORK_BODY','terms'=>1,'metadata'=>[]]));
     $draft=rf_prepare($rid);$bg=$draft['fork']['background'];$json=rf_json($draft);
     fork_ok($draft['fork']['available'],'Public question can prepare a fork');
     fork_ok(!str_contains($json,'PRIVATE_PENDING_FORK_BODY'),'Pending contribution body never copied');
