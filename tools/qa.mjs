@@ -41,7 +41,9 @@ async function visibleActions(page,selector,name){
  const boxes=await page.locator(selector).evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect();const hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return {text:el.textContent.trim(),x:r.x,y:r.y,width:r.width,height:r.height,inside:r.x>=0&&r.y>=0&&r.right<=innerWidth&&r.bottom<=innerHeight,uncovered:!!hit&&(el===hit||el.contains(hit))};}));
  check(name+' all primary actions in first viewport',boxes.length>0&&boxes.every(b=>b.inside&&b.uncovered&&b.height>=44));
  report.viewports.push({name,viewport:page.viewportSize(),actions:boxes});
- check(name+' no horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+ const layout=await page.evaluate(()=>({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll('body *')].filter(el=>el.getBoundingClientRect().right>innerWidth+1).slice(0,8).map(el=>({tag:el.tagName,class:String(el.className),right:el.getBoundingClientRect().right}))}));
+ if(layout.scrollWidth>layout.width+1)console.error('Viewport overflow diagnostic: '+JSON.stringify(layout));
+ check(name+' no horizontal overflow',layout.scrollWidth<=layout.width+1);
 }
 async function goto(page,url){const res=await page.goto(url.startsWith('http')?url:base+url);assert.ok(res.status()<400,'GET '+url+' returned '+res.status());if(await page.locator('.giving-art img').count())await page.locator('.giving-art img').evaluate(img=>img.decode());}
 async function moderate(page,type,id,reason='Reviewed local synthetic test fixture',exception=''){

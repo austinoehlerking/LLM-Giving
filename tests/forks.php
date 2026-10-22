@@ -1,10 +1,12 @@
 <?php
-require __DIR__.'/bootstrap.php';require __DIR__.'/workflow-fixture.php';require __DIR__.'/fork-fixture.php';
+require __DIR__.'/bootstrap.php';require __DIR__.'/workflow-fixture.php';require __DIR__.'/fork-fixture.php';require __DIR__.'/tool-fixture.php';
 session_start_safe();$_SESSION['admin']=1;$_SERVER['REMOTE_ADDR']='fork-test-'.uid();
 $ids=[];$checks=[];
 function fork_ok(bool $value,string $name):void{global $checks;if(!$value)throw new RuntimeException($name);$checks[]=$name;}
 function fork_deny(callable $f,int $status,string $name):void{try{$f();}catch(HttpError $e){fork_ok($e->status===$status,$name.': '.$e->getMessage());return;}throw new RuntimeException('Expected denial: '.$name);}
 try{
+    $tool=create_research(rt_test_request());$ids[]=$tool['id'];moderate('request',$tool['id'],'Approved','Synthetic source tool scope.');
+    $toolDraft=rf_prepare($tool['id']);fork_ok($toolDraft['fork']['background']['question']['tool_requirements']===rt_brief(research($tool['id'])),'Original tool-project scope retained as read-only background');
     $p=rf_test_parent();$rid=$p['id'];$ids[]=$rid;
     $original=research($rid,false);$credential=one('SELECT * FROM credentials WHERE research_id=?',[$rid]);$tasks=wf_tasks($rid);
     $pending=create_contribution($rid,rs_test_supplement(['kind'=>'Original research','summary'=>'Private pending source record','body'=>'PRIVATE_PENDING_FORK_BODY','terms'=>1,'metadata'=>[]]));
