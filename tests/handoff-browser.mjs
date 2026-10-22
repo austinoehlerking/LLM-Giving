@@ -50,7 +50,8 @@ export async function handoffQa({page,ctx,base,runPhp,check,visibleActions,passw
     check('Invalid signature check does not advance',(await data()).workflow.tasks.length===1);
    }
    await page.locator('[name=payload]').fill(JSON.stringify(packet,null,2));await page.locator('[name=human_level]').selectOption(human);await page.locator('[name=human_details]').fill(human==='none'?'':details);
-   await page.getByRole('button',{name:'Check packet',exact:true}).click();await page.locator('[data-workflow-error]').filter({hasText:'Packet checks passed'}).waitFor();
+   const checkedResponse=page.waitForResponse(response=>response.request().method()==='POST'&&response.url()===url+'/tasks/'+t.id);
+   await page.getByRole('button',{name:'Check packet',exact:true}).click();const validation=await(await checkedResponse).json();check(name+' packet validation: '+validation.message,validation.ok);await page.locator('[data-workflow-error]').filter({hasText:'Packet checks passed'}).waitFor();
    await page.locator('[name=terms]').check();await page.getByRole('button',{name:'Submit task result',exact:true}).click();
    const held=!['unchanged','platform-repair'].includes(name);
    await page.getByRole('heading',{name:held?'Packet quarantined — awaiting admin':'Submission accepted',exact:true}).waitFor();

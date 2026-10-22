@@ -1,14 +1,35 @@
 <?php
 
-const EXTERNAL_HELP=['unspecified'=>'Not specified','prepare_review'=>'Prepare inputs or review results only','run'=>'Run calculations and share reproducible results'];
-const EXTERNAL_ACCESS=['unspecified'=>'Not specified','none'=>'No external tools required','free'=>'Free external tools required','licensed'=>'Licensed or paid external tools required','mixed'=>'Mixed free and licensed tools','unknown'=>'Tool availability needs checking'];
-const EXTERNAL_TEXT=['required_software'=>'Required software and versions','software_licensing'=>'License eligibility and access','computing_resources'=>'Computing resources and budget','setup_needs'=>'Downloads and setup needed'];
-function external_requirements(array $r): array {return json_decode($r['external_requirements']??'{}',true)?:[];}
+const EXTERNAL_HELP=['unspecified'=>'None specified','maybe'=>'Maybe — if useful','prepare_review'=>'Prepare inputs or review results only','run'=>'Run calculations and share reproducible results'];
+const EXTERNAL_ACCESS=['unspecified'=>'None specified','none'=>'No external tools required','free'=>'Free external tools required','licensed'=>'Licensed or paid external tools required','mixed'=>'Mixed free and licensed tools','unknown'=>'Tool availability needs checking'];
+const EXTERNAL_TEXT=['required_software'=>'Required software and versions','setup_needs'=>'Downloads and setup needed'];
+const EXTERNAL_LEGACY_TEXT=['software_licensing'=>'License eligibility and access','computing_resources'=>'Computing resources and budget'];
+function external_requirements(array $r): array {
+ $raw=json_decode($r['external_requirements']??'{}',true);$raw=is_array($raw)?$raw:[];
+ $out=array_intersect_key($raw,array_flip(['version','calculation_help','external_tools',...array_keys(EXTERNAL_TEXT),...array_keys(EXTERNAL_LEGACY_TEXT)]));
+ $out['calculation_help']=$out['calculation_help']??'unspecified';
+ if($out['calculation_help']==='unspecified'&&!empty($r['computational_models']))$out['calculation_help']='run';
+ $out['external_tools']=$out['external_tools']??'unspecified';
+ // Retain original database/snapshot records, but stale hidden software is never active.
+ if($out['external_tools']==='none')$out['required_software']='';
+ $out['setup_needs']=trim($out['setup_needs']??'')?:'None specified';
+ return $out;
+}
+function calculation_policy(array $r): array {
+ $mode=external_requirements($r)['calculation_help'];
+ return ['mode'=>$mode,'allowed'=>in_array($mode,['maybe','run'],true),'required'=>$mode==='run','preparation_only'=>$mode==='prepare_review'];
+}
 function external_parse(array $d): array {
- $out=[];
- foreach(['calculation_help'=>EXTERNAL_HELP,'external_tools'=>EXTERNAL_ACCESS] as $key=>$options){$value=$d[$key]??'unspecified';if(!is_string($value)||!isset($options[$value]))fail(422,'Choose a valid '.$key.'.');$out[$key]=$value;}
- foreach(EXTERNAL_TEXT as $key=>$label)$out[$key]=text_field($d,$key,0,3000);
- if($out['calculation_help']==='prepare_review'&&!empty($d['computational_models']))fail(422,'Preparation/review only cannot also request running computational models.');
+ $out=['version'=>2];
+ // Old clients with only the checkbox retain their original explicit choice.
+ $default=array_key_exists('computational_models',$d)?(!empty($d['computational_models'])?'run':'unspecified'):'maybe';
+ foreach(['calculation_help'=>EXTERNAL_HELP,'external_tools'=>EXTERNAL_ACCESS] as $key=>$options){$value=$d[$key]??($key==='calculation_help'?$default:'unspecified');if(!is_string($value)||!isset($options[$value]))fail(422,'Choose a valid '.$key.'.');$out[$key]=$value;}
+ if(array_key_exists('computational_models',$d)){
+  if(!in_array($d['computational_models'],['1',1,true,'0',0,false],true))fail(422,'Computational models must be an explicit boolean selection.');
+  if((bool)$d['computational_models']!==in_array($out['calculation_help'],['maybe','run'],true))fail(422,'Calculation help and the legacy computational-model flag conflict. Choose one consistent calculation preference.');
+ }
+ foreach(EXTERNAL_TEXT as $key=>$label)$out[$key]=($key==='required_software'&&$out['external_tools']==='none')?'':text_field($d,$key,0,3000);
+ $out['setup_needs']=$out['setup_needs']?:'None specified';
  if(in_array($out['external_tools'],['free','licensed','mixed'],true)&&$out['required_software']==='')fail(422,'Name the required external software.');
  return $out;
 }
@@ -113,11 +134,8 @@ function create_research(array $d): array {
     $row['slug']=substr(trim(preg_replace('/[^a-z0-9]+/','-',strtolower($title)),'-'),0,120).'-'.substr($row['id'],0,10);
     foreach(['context','success','previous','questions','references_text'] as $key) $row[$key]=text_field($d,$key);
     $row['constraints_text']=text_field($d,'constraints_text');
-    if(isset($d['computational_models'])&&!in_array($d['computational_models'],['1',1,true,'0',0,false],true))fail(422,'Computational models must be an explicit checkbox selection.');
-    $row['computational_models']=!empty($d['computational_models'])?1:0;
     $external=external_parse($d);
-    if($external['calculation_help']==='run')$row['computational_models']=1;
-    if($row['computational_models'])$external['calculation_help']='run';
+    $row['computational_models']=in_array($external['calculation_help'],['maybe','run'],true)?1:0;
     $row['external_requirements']=json_encode($external);
     $row+=rt_parse($d);
     $row['ai_requirements']=json_encode(rq_parse($d));
