@@ -51,6 +51,18 @@ function rf_assert_background(string $rid): void {
     $fork=rf_row($rid);
     if($fork&&!rf_valid($fork))fail(404,'This fork is unavailable because inherited source material is no longer public. Its private management and moderation remain independent.');
 }
+/** Resolve the authoritative live gate before SQL counts/order/LIMIT, with no stale cache.
+ * The returned predicate uses the query's developer-owned research alias r.
+ */
+function rf_listing_filter(): array {
+    $blocked=[];
+    // Load only candidate IDs together; validate one bounded background at a time.
+    foreach(all("SELECT f.research_id FROM research_forks f JOIN research r ON r.id=f.research_id WHERE r.moderation='Approved' AND r.status<>'Withdrawn' ORDER BY f.research_id") as $candidate){
+        $fork=rf_row($candidate['research_id']);
+        if(!$fork||!rf_valid($fork))$blocked[]=$candidate['research_id'];
+    }
+    return ['sql'=>$blocked?'r.id NOT IN ('.implode(',',array_fill(0,count($blocked),'?')).')':'1=1','params'=>$blocked];
+}
 function rf_eligible(array $r): bool {return (bool)wf_project($r['id']);}
 function rf_evidence(array $e): array {
     $out=rf_pick($e,['scope','stopping_rule','search_log','sources','claims']);
@@ -152,8 +164,8 @@ function rf_present(array $f): array {
 function rf_context(string $rid): ?array {$f=rf_row($rid);return $f?rf_present($f):null;}
 function rf_children(string $rid): array {
     research($rid);
-    $rows=all("SELECT r.id,r.title,r.slug FROM research_forks f JOIN research r ON r.id=f.research_id WHERE f.parent_id=? AND r.moderation='Approved' AND r.status<>'Withdrawn' ORDER BY r.created_at,r.id",[$rid]);
-    return array_values(array_filter($rows,fn($r)=>rf_valid(rf_row($r['id']))));
+    $gate=rf_listing_filter();
+    return all("SELECT r.id,r.title,r.slug FROM research_forks f JOIN research r ON r.id=f.research_id WHERE f.parent_id=? AND r.moderation='Approved' AND r.status<>'Withdrawn' AND ".$gate['sql']." ORDER BY r.created_at,r.id",[$rid,...$gate['params']]);
 }
 function rf_instructions(string $rid): string {
     if(!rf_row($rid))return '';

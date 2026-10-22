@@ -6,6 +6,11 @@ if($action==='setup'){$p=rf_test_parent();echo json_encode(['id'=>$p['id'],'slug
 $rid=$argv[2]??'';
 $r=one("SELECT id FROM research WHERE id=? AND (title LIKE '[QA]%' OR title LIKE '[Resources QA]%')",[$rid])??fail(404,'Only synthetic QA research may be changed.');
 if($action==='approve'){moderate('request',$rid,'Approved','Local synthetic fork browser QA.');echo 'approved';}
+elseif($action==='related'){
+    $anchor=rf_test_request('related anchor');moderate('request',$anchor['id'],'Approved','Synthetic related discovery anchor.');
+    insert('research_links',['research_id'=>$anchor['id'],'related_id'=>$rid,'reason'=>'Synthetic independent related-research discovery QA.']);echo $anchor['id'];
+}
+elseif($action==='unrevoke'){query('UPDATE workflow_snapshots SET public_allowed=1 WHERE id IN (SELECT snapshot_id FROM research_forks WHERE parent_id=?)',[$rid]);}
 elseif($action==='plan'){$t=wf_tasks($rid)[0];$id=wf_submit($rid,$t['id'],wf_test_payload($rid,$t),str_repeat('d',64));echo $id;}
 elseif($action==='withdraw'){change_status($rid,'Withdrawn','Local source visibility QA.','requester');}
 elseif($action==='restore'){change_status($rid,'Open for Research','Local source restoration QA.','administrator');}

@@ -188,7 +188,8 @@ function discovery_filters(array $input): array {
     return $out;
 }
 function discovery_categories(): array {
-    return all("SELECT c.id,c.name,COUNT(r.id) request_count FROM categories c LEFT JOIN research r ON r.category_id=c.id AND r.moderation='Approved' AND r.status<>'Withdrawn' GROUP BY c.id,c.name ORDER BY c.name");
+    $gate=rf_listing_filter();
+    return all("SELECT c.id,c.name,COUNT(r.id) request_count FROM categories c LEFT JOIN research r ON r.category_id=c.id AND r.moderation='Approved' AND r.status<>'Withdrawn' AND ".$gate['sql']." GROUP BY c.id,c.name ORDER BY c.name",$gate['params']);
 }
 function discover(array $input): array {
     $filters=discovery_filters($input);
@@ -207,6 +208,7 @@ function discover(array $input): array {
     $visible="x.research_id=r.id AND x.moderation='Approved' AND (x.target_id IS NULL OR EXISTS(SELECT 1 FROM contributions t WHERE t.id=x.target_id AND t.research_id=x.research_id AND t.moderation='Approved'))";
     $count="((SELECT COUNT(*) FROM contributions x WHERE ".$visible." AND x.kind<>'Independent review')+(SELECT COUNT(*) FROM workflow_submissions ws JOIN workflow_tasks wt ON wt.id=ws.task_id WHERE ws.research_id=r.id AND ws.visibility='public' AND wt.visibility='public' AND ws.admission='accepted' AND wt.kind<>'review'))";
     if($filters['no_contributions']==='1') $where[]=$count.'=0';
+    $gate=rf_listing_filter();$where[]=$gate['sql'];array_push($params,...$gate['params']);
     $w=implode(' AND ',$where);
     $total=(int)one('SELECT COUNT(*) n FROM research r WHERE '.$w,$params)['n'];
     $page=min((int)$filters['page'],max(1,(int)ceil($total/12))); $filters['page']=(string)$page; $offset=($page-1)*12;
@@ -214,6 +216,10 @@ function discover(array $input): array {
     $rows=all("SELECT r.*,c.name category,".$count." contribution_count,((SELECT COUNT(*) FROM contributions x WHERE ".$visible." AND x.kind='Independent review')+(SELECT COUNT(*) FROM workflow_submissions ws JOIN workflow_tasks wt ON wt.id=ws.task_id WHERE ws.research_id=r.id AND ws.visibility='public' AND wt.visibility='public' AND ws.admission='accepted' AND wt.kind='review')) review_count FROM research r JOIN categories c ON c.id=r.category_id WHERE ".$w." ORDER BY ".$orders[$filters['sort']]." LIMIT 12 OFFSET ".$offset,$params);
     foreach($rows as &$r) $r['tags']=all('SELECT t.name FROM tags t JOIN research_tags rt ON rt.tag_id=t.id WHERE rt.research_id=? ORDER BY t.name',[$r['id']]);
     return compact('rows','total','page','filters');
+}
+function public_related_research(string $rid): array {
+    research($rid);$gate=rf_listing_filter();
+    return all("SELECT l.related_id,l.reason,r.title,r.slug FROM research_links l JOIN research r ON r.id=l.related_id WHERE l.research_id=? AND r.moderation='Approved' AND r.status<>'Withdrawn' AND ".$gate['sql']." ORDER BY r.id",[$rid,...$gate['params']]);
 }
 function moderate(string $type,string $id,string $state,string $reason,string $exception=''): void {
     require_admin();

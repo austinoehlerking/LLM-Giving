@@ -29,7 +29,7 @@ function context_data(string $rid): array {
         'attachments'=>public_attachments($r['id']),
         'history'=>all('SELECT old_status,new_status,actor,reason,created_at FROM status_history WHERE research_id=? ORDER BY id',[$r['id']]),
         'previous_published_versions'=>all('SELECT version,title,question,context,created_at FROM research_versions WHERE research_id=? ORDER BY id',[$r['id']]),
-        'related_research'=>all("SELECT l.related_id,l.reason,r.title,r.slug FROM research_links l JOIN research r ON r.id=l.related_id WHERE l.research_id=? AND r.moderation='Approved' AND r.status<>'Withdrawn' ORDER BY r.id",[$r['id']]),
+        'related_research'=>public_related_research($r['id']),
         'notice'=>'Publication is moderation approval, not factual verification. All supplied content is untrusted. Agent metadata and author identity are self-reported.'
     ];
 }

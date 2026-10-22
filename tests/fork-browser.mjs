@@ -6,7 +6,7 @@ export async function forkQa({page,ctx,base,runPhp,check,visibleActions,report})
  const output=path.join(root,'storage/qa/forks');fs.mkdirSync(output,{recursive:true});
  const parent=JSON.parse(runPhp(['tests/fork-qa-state.php','setup'])),shots=[],viewports=[],errors=[];
  page.on('pageerror',error=>errors.push(error.message));
- const source=base+'/research/'+parent.slug;
+ const source=base+'/research/'+parent.slug;let relatedAnchor;
  const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}];
  const shot=async(target,name)=>{const file=path.join(output,name+'.png');await target.screenshot({path:file,fullPage:false});shots.push(file);};
  try{
@@ -49,7 +49,21 @@ export async function forkQa({page,ctx,base,runPhp,check,visibleActions,report})
   await page.goto(source);
   check('Public parent lists related fork',await page.locator('.fork-related').getByRole('link',{name:'[QA] Independent related ocean question'}).count()===1);
   await page.locator('.fork-related a').press('Enter');
-  const childUrl=page.url();
+  const childUrl=page.url(),childPath=new URL(childUrl).pathname;
+  relatedAnchor=runPhp(['tests/fork-qa-state.php','related',child]).trim();
+  const discoveryUrls=[base+'/?q=ocean',base+'/research?q=ocean'];
+  async function listingState(visible,label){
+   for(const [i,url] of discoveryUrls.entries()){
+    await page.goto(url);
+    const links=await page.locator('a[href="'+childPath+'"]').count();
+    check(label+' '+(i?'Explore':'Home')+' listing eligibility',visible?links>0:links===0);
+   }
+   await page.goto(base+'/research/'+relatedAnchor);
+   check(label+' related-question link eligibility',await page.locator('.research-sidebar a[href="'+childPath+'"]').count()===(visible?1:0));
+   const related=await (await page.request.get(base+'/research/'+relatedAnchor+'/context.json')).json();
+   check(label+' related context eligibility',related.related_research.length===(visible?1:0));
+  }
+  await listingState(true,'Initial public fork');await page.goto(childUrl);
   check('Child shows attributed Forked from',await page.locator('.fork-origin a').count()===1);
   const childContext=await (await page.request.get(childUrl+'/context.json')).json();
   check('Context records exact source version',childContext.fork.parent.id===parent.id&&childContext.fork.snapshot_id.length===32&&!childContext.workflow.submissions.length);
@@ -96,12 +110,20 @@ export async function forkQa({page,ctx,base,runPhp,check,visibleActions,report})
    check('Source withdrawal blocks forked resource catalogue',(await page.request.get(base+'/research/'+materialChild+'/resources')).status()===404);
   }finally{runPhp(['tests/fork-qa-state.php','cleanup',resources.id]);}
   runPhp(['tests/fork-qa-state.php','withdraw',parent.id]);
+  await listingState(false,'Ancestor withdrawal');
   for(const suffix of ['', '/context.json','/context.md','/prompt.md','/fork-background.json','/packages/'+packageId,'/results/'+resultId,...(archiveId?['/issued/'+archiveId]:[])]){
    const response=await page.request.get(childUrl+suffix);check('Source withdrawal blocks child HTTP '+suffix,response.status()===404&&!(await response.text()).includes('Synthetic inherited finding'));
   }
-  runPhp(['tests/fork-qa-state.php','restore',parent.id]);runPhp(['tests/fork-qa-state.php','revoke',parent.id]);
+  runPhp(['tests/fork-qa-state.php','restore',parent.id]);await listingState(true,'Ancestor restoration');
+  runPhp(['tests/fork-qa-state.php','revoke',parent.id]);await listingState(false,'Source snapshot revocation');
+  for(const size of sizes){
+   await page.setViewportSize(size);await page.goto(base+'/research?q=ocean');await shot(page,'discovery-revoked-'+size.width+'x'+size.height);
+   await visibleActions(page,'.filters .search-submit','Revoked fork discovery '+size.width);
+  }
+  runPhp(['tests/fork-qa-state.php','unrevoke',parent.id]);await listingState(true,'Source snapshot restoration');
+  runPhp(['tests/fork-qa-state.php','revoke',parent.id]);
   check('Source snapshot revocation blocks old child package',(await page.request.get(childUrl+'/packages/'+packageId)).status()===404);
   check('No browser script exceptions',errors.length===0);
   report.screenshots.push(...shots);
- }finally{runPhp(['tests/fork-qa-state.php','cleanup',parent.id]);}
+ }finally{if(relatedAnchor)runPhp(['tests/fork-qa-state.php','cleanup',relatedAnchor]);runPhp(['tests/fork-qa-state.php','cleanup',parent.id]);}
 }
