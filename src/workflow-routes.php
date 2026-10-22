@@ -21,6 +21,9 @@ function wf_route(array $r,string $suffix,string $method,?array $grant=null): bo
     }
     if(preg_match('~^results/([a-f0-9]{32})$~',$suffix,$m)){
         $result=one("SELECT * FROM workflow_submissions WHERE id=? AND research_id=? AND visibility='public'",[$m[1],$rid])??fail(404,'Result not found.');
+        $resultTask=wf_task($rid,$result['task_id']);
+        if($resultTask['visibility']!=='public')fail(404,'Result not found.');
+        wf_read_snapshot($rid,$result['snapshot_id']);
         render('workflow-result',['title'=>'Research task result','r'=>$r,'result'=>$result]);return true;
     }
     if(preg_match('~^tasks/([a-f0-9]{32})(/prompt.md)?$~',$suffix,$m)){
