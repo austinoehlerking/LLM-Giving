@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__.'/workflow-fixture.php';
+require_once __DIR__.'/artifact-fixture.php';
 function rs_test_source(string $id='s1'): array {
     return ['id'=>$id,'title'=>'Synthetic original mass table — local QA only','url'=>'https://example.invalid/llm-giving/synthetic-mass-table','type'=>'dataset','access'=>'full_text','access_note'=>'Inspected the original mass=2 kg row in tests/resources-fixture.php, an explicitly synthetic local table. No external page was fetched.',
         'authors'=>'LLM.Giving synthetic QA fixture','publication_date'=>'2026-10-21 (synthetic fixture)','publisher'=>'Local regression fixtures; no scholarly publication claimed','doi'=>'','edition'=>'synthetic-v1','metadata_note'=>'This is supplied synthetic test material, not a scientific publication; no DOI exists for this fixture.','use'=>'used'];
@@ -34,4 +35,10 @@ function rs_test_create(): array {
     $supplement=rs_test_supplement(['kind'=>'Original research','summary'=>'Synthetic supplementary source registry','body'=>'This synthetic supplementary record preserves a background source without claiming a scientific observation.','terms'=>1]);$supplement['evidence']['sources'][0]=rs_test_source('fixture');$supplement['evidence']['claims'][0]['links'][0]['source_id']='fixture';
     $cid=create_contribution($rid,$supplement);moderate('contribution',$cid,'Approved','Synthetic resource supplementary fixture.','Synthetic fixture explicitly has no AI provider run.');
     return ['id'=>$rid,'slug'=>research($rid)['slug'],'result_id'=>$id,'task_id'=>$a['id'],'progress_id'=>$progressId,'ready_task_id'=>$b['id'],'contribution_id'=>$cid,'snapshot_id'=>one('SELECT snapshot_id FROM workflow_submissions WHERE id=?',[$id])['snapshot_id']];
+}
+
+function rs_test_artifact_progress(string $rid,array $task): array {
+    $packet=ra_test_visuals(wf_test_payload($rid,$task,'progress'));
+    $id=wf_submit($rid,$task['id'],$packet,str_repeat('a',64));
+    return ['result_id'=>$id,'snapshot_id'=>one('SELECT snapshot_id FROM workflow_submissions WHERE id=?',[$id])['snapshot_id'],'artifact_ids'=>array_column($packet['evidence']['artifacts'],'id')];
 }
