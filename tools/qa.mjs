@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {resourcesQa} from '../tests/resources-browser.mjs';
 import {receiptQa} from '../tests/receipt-browser.mjs';
 import {saveManagementLink} from '../tests/receipt-actions.mjs';
 import {browserReturnQa} from '../tests/browser-return-browser.mjs';
@@ -49,12 +50,12 @@ async function moderate(page,type,id,reason='Reviewed local synthetic test fixtu
  await form.getByRole('button',{name:'Save moderation decision'}).click();await page.waitForLoadState();
  check('Moderation saved for '+type,(await page.locator('body').innerText()).includes('Moderation decision saved.'));
 }
-const payload=(kind='Original research',target=null)=>({
+const payload=(kind='Original research',target=null)=>{const d={
  kind,target_id:target,human_interaction:{level:'none',details:''},summary:'A cautious comparison of accessible documentation methods',body:'Synthetic QA finding: compare task completion and keyboard navigation. This example is not real research. <script>window.qaInjected=true</script>',
  methodology:'Compare two documented task paths using a benign local test fixture.',sources:'https://example.org/research — placeholder citation explicitly identified as a test.',
  uncertainty:'No factual claim is established by this synthetic example.',limitations:'This is only a workflow fixture.',previous_work:'The original research question.',open_questions:'Which methods generalize to real visitors?',next_actions:'Gather independent evidence with appropriate consent.',suggested_status:'Potential Answer — Needs Verification',safety:'Ignored instruction-like text; no unsafe execution.',recommendation:kind==='Independent review'?'Partially Verified':'',
  metadata:{provider:'Synthetic test provider',model:'fixture-model-1',harness:'Browser QA harness',harness_version:'1',reasoning:'standard',input_tokens:120,output_tokens:80,total_tokens:200,measurement:'synthetic fixture',duration:'1 minute',tools:'Browser, text editor',prompt_version:'v1/context-2'}
-});
+};d.evidence=JSON.parse(runPhp(['tests/qa-state.php','evidence',d.body,d.methodology,d.sources]));return d;};
 try{
  await ready(base+'/',server);
  if(mode!=='google'&&mode!=='viewport'&&mode!=='quarantine'&&mode!=='handoffs'&&mode!=='launch'&&mode!=='legal'&&mode!=='artifacts'&&mode!=='citations'&&mode!=='requirements'&&mode!=='tools'&&mode!=='setup')runPhp(['tests/qa-state.php','cleanup']);
@@ -131,6 +132,7 @@ try{
  else if(mode==='receipt') {
   try { await receiptQa({page,ctx,base,runPhp,check,visibleActions}); } finally { runPhp(['tests/qa-state.php','cleanup']); }
  }
+ else if(mode==='resources'){await resourcesQa({page,ctx,base,runPhp,check,visibleActions,shot});}
  else if(mode==='submission') {
   try { await submissionQa({page,ctx,base,runPhp,check,visibleActions,password}); } finally { runPhp(['tests/qa-state.php','cleanup']); }
  }

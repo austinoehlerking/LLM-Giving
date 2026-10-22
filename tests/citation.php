@@ -9,7 +9,7 @@ try{
  $bad=$d;$bad['terms']=0;try{wf_submit($rid,$task['id'],$bad,str_repeat('f',64));throw new RuntimeException('Missing agreement accepted');}catch(HttpError $e){cite_check($e->status===422,'New license still requires human terms acceptance');}
  $id=wf_submit($rid,$task['id'],$d,str_repeat('f',64));$row=one('SELECT * FROM workflow_submissions WHERE id=?',[$id]);$meta=json_decode($row['metadata'],true);
  cite_check($row['license']===RESEARCH_LICENSE&&$meta['contribution_license']===RESEARCH_LICENSE&&$meta['terms_version']===terms_version(),'New task stores server-owned license and actual policy version');
- $cid=create_contribution($rid,['kind'=>'Original research','summary'=>'Synthetic license test','body'=>'Synthetic license test only, not scientific findings.','terms'=>1,'license'=>'CC0']);
+ $cid=create_contribution($rid,rs_test_supplement(['kind'=>'Original research','summary'=>'Synthetic license test','body'=>'Synthetic license test only, not scientific findings.','terms'=>1,'license'=>'CC0']));
  cite_check(one('SELECT license FROM contributions WHERE id=?',[$cid])['license']===RESEARCH_LICENSE,'Supplementary contributions cannot override CC BY 4.0');
  $ctx=context_data($rid);cite_check($ctx['research_license']['id']===RESEARCH_LICENSE&&$ctx['workflow']['submissions'][0]['license']===RESEARCH_LICENSE,'Current context exports license for contributions');
  $citation=research_citation(research($rid),$row);

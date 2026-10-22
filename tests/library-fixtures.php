@@ -9,7 +9,7 @@ for($i=0;$i<14;$i++){
  query("UPDATE research SET created_at=?,updated_at=?,activity_at=? WHERE id=?",[sprintf('2026-01-%02d 12:00:00',$i+1),sprintf('2026-02-%02d 12:00:00',14-$i),sprintf('2026-03-%02d 12:00:00',14-$i),$created['id']]);
 }
 foreach([0,0,1] as $i){
- $c=create_contribution($ids[$i],['kind'=>'Original research','summary'=>'Synthetic library browser contribution','body'=>'Synthetic fixture content with no scientific claims.','terms'=>1,'metadata'=>[]]);
+ $c=create_contribution($ids[$i],rs_test_supplement(['kind'=>'Original research','summary'=>'Synthetic library browser contribution','body'=>'Synthetic fixture content with no scientific claims.','terms'=>1,'metadata'=>[]]));
  moderate('contribution',$c,'Approved','Synthetic fixture.','Local synthetic test explicitly allows missing model metadata.');
 }
 query("UPDATE research SET status='Under Independent Review' WHERE id=?",[$ids[0]]);

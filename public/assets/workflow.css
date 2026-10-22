@@ -12,3 +12,6 @@
 .agent-handoff{scroll-margin-top:20px;margin-top:24px}.agent-handoff h2{margin:12px 0}.agent-handoff>p{max-width:80ch}.agent-steps{padding-left:22px;max-width:90ch;font-size:14px}.agent-steps li{padding:5px 0}.agent-task{border-top:1px solid var(--line);padding:16px 0}.agent-task h4{margin:0 0 6px}.agent-task-list{padding-left:20px}.agent-task-list li{padding:10px 0;border-bottom:1px solid var(--line)}.agent-handoff .actions a{min-height:44px;display:inline-flex;align-items:center}.agent-handoff .prose{font-size:14px}
 
 .agent-next{border-left:2px solid var(--accent);padding:10px 16px;margin:16px 0;background:#9bbcf508;max-width:90ch}.agent-next p{margin:6px 0;font-size:14px}.agent-copy-actions{margin:18px 0 8px}.agent-copy-actions button{min-width:180px}.agent-handoff [data-handoff-status]{min-height:24px}
+
+/* Long evidence paths and source URLs remain readable with enlarged text. */
+#supporting-materials,#resource-list{min-width:0;overflow-wrap:anywhere}

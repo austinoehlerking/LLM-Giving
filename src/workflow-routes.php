@@ -2,7 +2,7 @@
 function wf_route(array $r,string $suffix,string $method,?array $grant=null): bool {
     $rid=$r['id'];$base='/research/'.$r['slug'];
     if(!$grant&&ar_route($r,$suffix,$method))return true;
-    if(ra_route($r,$suffix,$method)||rc_route($r,$suffix,$method)||rt_route($r,$suffix,$method))return true;
+    if(rs_route($r,$suffix,$method)||ra_route($r,$suffix,$method)||rc_route($r,$suffix,$method)||rt_route($r,$suffix,$method))return true;
     if($suffix==='work'){
         if($method==='POST'){throttle('workflow-review-request',5);if(empty($_POST['terms']))fail(422,'Accept the public-content terms.');wf_request_review($rid,text_field($_POST,'reason',10,500),text_field($_POST,'display_name',0,120));flash('Another independent review is now available.');redirect($base.'/work');}
         render('workflow',['title'=>'Research tasks','r'=>$r]);return true;
@@ -21,6 +21,9 @@ function wf_route(array $r,string $suffix,string $method,?array $grant=null): bo
     }
     if(preg_match('~^results/([a-f0-9]{32})$~',$suffix,$m)){
         $result=one("SELECT * FROM workflow_submissions WHERE id=? AND research_id=? AND visibility='public'",[$m[1],$rid])??fail(404,'Result not found.');
+        $resultTask=wf_task($rid,$result['task_id']);
+        if($resultTask['visibility']!=='public')fail(404,'Result not found.');
+        wf_read_snapshot($rid,$result['snapshot_id']);
         render('workflow-result',['title'=>'Research task result','r'=>$r,'result'=>$result]);return true;
     }
     if(preg_match('~^tasks/([a-f0-9]{32})(/prompt.md)?$~',$suffix,$m)){

@@ -6,7 +6,7 @@ function wf_criteria(array $t): array {
 function wf_check_targets(array $t): array {
  $out=[['task'=>$t,'result'=>null]];
  if($t['kind']==='review')foreach(wf_tasks($t['research_id']) as $target)if(in_array($target['kind'],['research','synthesis'],true)&&$target['visibility']==='public'&&$target['state']==='Completed'){
- $result=one("SELECT * FROM workflow_submissions WHERE id=? AND research_id=? AND visibility='public'",[$target['accepted_id'],$t['research_id']]);if($result)$out[]=['task'=>$target,'result'=>$result];
+ $result=one("SELECT * FROM workflow_submissions WHERE id=? AND research_id=? AND visibility='public'",[$target['accepted_id'],$t['research_id']]);if($result&&ra_current($result))$out[]=['task'=>$target,'result'=>$result];
  }return $out;
 }
 function wf_check_template(array $t): array {
@@ -41,6 +41,8 @@ function wf_acceptance(array $t,array $d,array $row): array {
   $accepted=one("SELECT metadata FROM workflow_submissions WHERE id=? AND research_id=? AND visibility='public' AND admission='accepted'",[$target['accepted_id'],$t['research_id']]);
   $artifacts=json_decode($accepted['metadata'],true)['evidence']['artifacts']??[];
   if(!in_array($artifactId,array_column($artifacts,'id'),true))fail(422,'Visual correction must identify an artifact in the current accepted result.');
+ }elseif($criterion==='supporting-materials'){
+  if(!isset(wf_evidence_results($t)[$target['accepted_id']]))fail(422,'Material correction needs eligible current evidence.');
  }elseif(!isset(wf_criteria($target)[$criterion]))fail(422,'Correction criterion does not belong to its task.');
  $targets[]=['task_id'=>$target['id'],'result_id'=>$target['accepted_id'],'criterion_id'=>$criterion,'claim_id'=>$claimId,'artifact_id'=>$artifactId,'calculation_id'=>$calculationId,'tool_id'=>$toolId,'reason'=>text_field($c,'reason',10,1000),'required_change'=>text_field($c,'required_change',10,3000)];
  }if($row['outcome']==='needs_correction'&&!$targets)fail(422,'Select at least one task, accepted result and criterion requiring correction.');
@@ -52,7 +54,10 @@ function wf_correct_tasks(string $rid,array $issues,string $reviewId): void {
  foreach($tasks as $t)if(isset($affected[$t['id']])){query("UPDATE workflow_tasks SET state='Waiting',revision=revision+1,accepted_id=NULL WHERE id=?",[$t['id']]);audit_event($rid,'Task correction required','Independent review requires this task or its evidence dependencies to be revised.','task',$t['id'],$t['state'],'Waiting','Read the targeted correction and submit a new evidence-backed result.','system','LLM.Giving',['review_result_id'=>$reviewId,'previous_result_id'=>$t['accepted_id'],'corrections'=>$issues]);}
 }
 function wf_findings(string $rid): ?array {
- research($rid);foreach(wf_tasks($rid) as $t)if($t['kind']==='synthesis'&&$t['state']==='Completed'&&$t['visibility']==='public')return one("SELECT * FROM workflow_submissions WHERE id=? AND research_id=? AND visibility='public'",[$t['accepted_id'],$rid]);return null;
+ research($rid);foreach(wf_tasks($rid) as $t)if($t['kind']==='synthesis'&&$t['state']==='Completed'&&$t['visibility']==='public'){
+  $result=one("SELECT * FROM workflow_submissions WHERE id=? AND research_id=? AND visibility='public' AND admission='accepted'",[$t['accepted_id'],$rid]);
+  if($result&&ra_current($result))return $result;
+ }return null;
 }
 
 // Use the submitted context, not today's task wording; revoked snapshots stay private.

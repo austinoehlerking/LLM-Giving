@@ -51,7 +51,7 @@ node tools/qa-all.mjs
 
 `qa-all` runs the server checks, blog HTTP checks and all browser modes sequentially. Keep `node tools/dev.mjs start` running so the database and the blog HTTP target remain available. Each run has its own timestamped directory under `storage/qa/runs/`, containing exit status, commands, logs and fresh report copies. Screenshots remain in the suite directories. A missing or stale browser report cannot count as a pass. Inspect the screenshots before claiming visual QA.
 
-Single modes are listed in `tools/lib/qa-modes.mjs`: viewport, returns, full, library, blog, google, submission, receipt, workflow, artifacts, quarantine, handoffs, launch, legal, citations, requirements, setup, tools and calculations. An unknown mode fails before starting a server. `full` is the original general lifecycle suite; `qa-all` is the complete set.
+Single modes are listed in `tools/lib/qa-modes.mjs`: viewport, returns, full, library, blog, google, submission, receipt, workflow, artifacts, quarantine, handoffs, launch, legal, citations, requirements, setup, tools, calculations and resources. An unknown mode fails before starting a server. `full` is the original general lifecycle suite; `qa-all` is the complete set.
 
 For concurrent local worktrees, use separate development databases. `QA_PORT` selects an unused loopback port (1024–65535) for the browser suites. `QA_APP_URL` selects the local app URL used by the complete runner’s blog HTTP checks; that test accepts only `http://127.0.0.1:<port>`. Other HTTP fixtures can use fixed ports, so avoid overlapping complete server-check runs.
 

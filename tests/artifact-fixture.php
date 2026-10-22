@@ -21,7 +21,7 @@ function ra_test_visuals(array $packet): array {
         $common+['id'=>'pathway-diagram','title'=>'Conceptual carbon export pathway','kind'=>'diagram','dataset_ids'=>[],'control_label'=>'','panels'=>[$diagram],'states'=>[]],
         $common+['id'=>'pathway-animation','title'=>'Step through the research illustration','kind'=>'animation','dataset_ids'=>['series-data'],'control_label'=>'Research illustration stage','panels'=>[$diagram,$plot],'states'=>$states],
         $common+['id'=>'scenario-page','title'=>'Explore hypothetical export scenarios','kind'=>'interactive','dataset_ids'=>['series-data'],'control_label'=>'Compare a hypothetical scenario','panels'=>[$plot,$diagram],'states'=>$states]
-    ];return $packet;
+    ];return rs_test_materials($packet);
 }
 function ra_test_create(): array {
     $_SESSION['admin']=1;$category=(int)one('SELECT id FROM categories LIMIT 1')['id'];$r=create_research(['title'=>'[Artifact QA] Visual artifact evidence and controls','question'=>'Exercise native visual research artifacts with synthetic data, source references, limitations and corrections.','category_id'=>$category,'terms'=>1]);

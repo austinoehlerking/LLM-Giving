@@ -18,14 +18,18 @@ function wf_evidence_id(array $data): string {
 }
 function wf_evidence_results(array $task): array {
     research($task['research_id']);$out=[];
+    if($task['kind']==='contribution_review'){
+        foreach(rs_contributions($task['research_id']) as $target)if($target['id']===($task['target_id']??'')&&!$target['superseded_by'])return [$target['id']=>['task'=>['id'=>$target['id'],'research_id'=>$target['research_id'],'kind'=>'supplementary'],'result'=>$target+['metadata'=>json_encode(['evidence'=>$target['evidence']?json_decode($target['evidence'],true):null])]]];
+        fail(422,'Independent review target is unavailable or superseded.');
+    }
     foreach(wf_tasks($task['research_id']) as $target)if($target['visibility']==='public'&&$target['state']==='Completed'&&in_array($target['kind'],['research','synthesis'],true)){
         $result=one("SELECT * FROM workflow_submissions WHERE id=? AND research_id=? AND visibility='public' AND admission='accepted'",[$target['accepted_id'],$task['research_id']]);
-        if($result)$out[$result['id']]=['task'=>$target,'result'=>$result];
+        if($result&&ra_current($result))$out[$result['id']]=['task'=>$target,'result'=>$result];
     }
     return $out;
 }
 function wf_evidence_review_targets(array $task): array {
-    if($task['kind']!=='review')return [];$out=[];
+    if(!in_array($task['kind'],['review','contribution_review'],true))return [];$out=[];
     foreach(wf_evidence_results($task) as $target){
         $evidence=json_decode($target['result']['metadata'],true)['evidence']??null;
         // Historical results receive an explicit whole-result audit, never invented claims.
@@ -40,10 +44,10 @@ function wf_evidence_template(array $task): array {
         $reviews[]=['task_id'=>$target['task']['id'],'result_id'=>$target['result']['id'],'claim_id'=>$target['claim']['id'],'verdict'=>'','reason'=>'','source_checks'=>$checks];
     }
     return ['version'=>1,'scope'=>'','stopping_rule'=>'','search_log'=>[['query'=>'','where'=>'','result'=>'']],
-        'sources'=>[['id'=>'s1','title'=>'','url'=>'','type'=>'','access'=>'','access_note'=>'']],
+        'sources'=>[['id'=>'s1','authors'=>'','title'=>'','publication_date'=>'','publisher'=>'','doi'=>'','url'=>'','edition'=>'','metadata_note'=>'','type'=>'','access'=>'','access_note'=>'','use'=>'']],
         'claims'=>[['id'=>'c1','statement'=>'','kind'=>'','support'=>'','confidence'=>'','confidence_reason'=>'','derivation'=>'','limitations'=>'','counterevidence'=>'','basis_result_ids'=>[],
             'links'=>[['source_id'=>'s1','relation'=>'','locator'=>'','excerpt'=>'','explanation'=>'']]]],
-        'review_checks'=>$reviews,'datasets'=>[],'artifacts'=>[],'artifact_reviews'=>ra_review_template($task)]+rc_template($task)+rt_template($task);
+        'supporting_materials'=>rs_material_template(),'material_reviews'=>rs_review_template($task),'review_checks'=>$reviews,'datasets'=>[],'artifacts'=>[],'artifact_reviews'=>ra_review_template($task)]+rc_template($task)+rt_template($task);
 }
 function wf_evidence_instructions(string $kind): string {
     $stage=match($kind){
@@ -54,7 +58,7 @@ function wf_evidence_instructions(string $kind): string {
     };
     return file_get_contents(ROOT.'/templates/evidence.txt')."\n".$stage."\n".file_get_contents(ROOT.'/templates/artifacts.txt');
 }
-function wf_validate_evidence(array $task,array $packet,array $row): array {
+function wf_validate_evidence(array $task,array $packet,array $row,bool $historical=false): array {
     $data=$packet['evidence']??null;
     if(!is_array($data)||($data['version']??null)!==1)fail(422,'Structured evidence version 1 is required. Return the platform repair prompt to the AI; do not edit its packet.');
     $terminal=in_array($row['outcome'],['completed','inconclusive','verified'],true);
@@ -68,6 +72,8 @@ function wf_validate_evidence(array $task,array $packet,array $row): array {
             'type'=>wf_evidence_choice($source,'type',['primary','dataset','review','official','provided','other']),
             'access'=>wf_evidence_choice($source,'access',['full_text','abstract_only','unavailable']),'access_note'=>text_field($source,'access_note',10,1500)];
         if($item['url']===''&&$item['type']!=='provided')fail(422,'External evidence sources need a URL. Provided material needs an explicit location in access_note.');
+        if(!$historical||isset($source['use']))$item+=rs_attribution($source);
+        if(($item['use']??'')==='used'&&$item['access']==='unavailable')fail(422,'Unavailable sources cannot be classified as inspected and used.');
         $sources[$id]=$item;$e['sources'][]=$item;
     }
     $basis=wf_evidence_results($task);$claimIds=[];
@@ -89,7 +95,7 @@ function wf_validate_evidence(array $task,array $packet,array $row): array {
             $sourceId=text_field($link,'source_id',1,40);if(!isset($sources[$sourceId]))fail(422,'Claim links reference an unknown evidence source.');
             $relation=wf_evidence_choice($link,'relation',['supports','contradicts','context']);$key=$sourceId.'/'.$relation;
             if(isset($linkKeys[$key]))fail(422,'Duplicate claim/source relationship.');$linkKeys[$key]=true;
-            $source=$sources[$sourceId];$excerpt=text_field($link,'excerpt',$source['access']==='unavailable'?0:10,1500);
+            $source=$sources[$sourceId];if((!$historical||isset($source['use']))&&($source['use']??'')!=='used'&&$relation!=='context')fail(422,'Background or rejected sources cannot support or contradict an active claim.');$excerpt=text_field($link,'excerpt',$source['access']==='unavailable'?0:10,1500);
             if($source['access']==='unavailable'&&($excerpt!==''||$relation==='supports'))fail(422,'An unavailable source cannot supply a quotation or support a claim. Record it as context and disclose the gap.');
             $item['links'][]=['source_id'=>$sourceId,'relation'=>$relation,'locator'=>text_field($link,'locator',3,500),'excerpt'=>$excerpt,'explanation'=>text_field($link,'explanation',20,2000)];
             if($relation==='supports')$supports[]=$source['access'];
@@ -129,14 +135,17 @@ function wf_validate_evidence(array $task,array $packet,array $row): array {
         }
         $e['review_checks'][]=$item;
     }
-    if($task['kind']!=='review'&&$e['review_checks'])fail(422,'Only review tasks can audit other results.');
+    if(!in_array($task['kind'],['review','contribution_review'],true)&&$e['review_checks'])fail(422,'Only review tasks can audit other results.');
     if($row['outcome']==='verified'&&count($seen)!==count($targets))fail(422,'Verified review must assess every current research and synthesis claim. Historical results need an explicit legacy audit.');
-    $visuals=ra_validate($task,$data,$e,$row);
-    $calculations=rc_validate($task,$data,$e,$row);
-    $tools=rt_validate($task,$data,$e,$row);
-    return ['evidence'=>$e+$visuals['fields']+$calculations['fields']+$tools['fields'],'corrections'=>array_merge($corrections,$visuals['corrections'],$calculations['corrections'],$tools['corrections'])];
+    $visuals=ra_validate($task,$data,$e,$row,$historical);
+    $calculations=rc_validate($task,$data,$e,$row,$historical);
+    $tools=rt_validate($task,$data,$e,$row,$historical);
+    $complete=$e+$visuals['fields']+$calculations['fields']+$tools['fields'];
+    $materials=$historical?['fields'=>[],'corrections'=>[]]:rs_validate($task,$data,$complete,$row);
+    return ['evidence'=>$complete+$materials['fields'],'corrections'=>array_merge($corrections,$visuals['corrections'],$calculations['corrections'],$tools['corrections'],$materials['corrections'])];
 }
 function wf_correction_label(?array $task,string $criterion): string {
+    if($criterion==='supporting-materials')return 'Supporting material completeness and reproducibility';
     if($criterion==='tool-standard')return 'Research tool: reproducible tests and scientific assumptions';
     if($criterion==='calculation-standard')return 'Calculation reproducibility, output values and unit consistency';
     if($criterion==='artifact-standard')return 'Visual artifact: data fidelity, evidence links, assumptions and limitations';

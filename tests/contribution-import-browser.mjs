@@ -31,6 +31,7 @@ export async function contributionImportQa({page,url,fixture,runPhp,check,shot})
       ai_details: 'A direct alias must not replace the mapped AI declaration.',
       terms: 'packet-terms', tool_terms: 'packet-software-terms', csrf: 'packet-csrf'
     };
+    packet.evidence=JSON.parse(runPhp(['tests/qa-state.php','evidence',packet.body,packet.methodology,packet.sources]));
     await page.locator('[name=json]').fill(JSON.stringify(packet));
     await page.getByRole('button', {name: operation === 'load' ? 'Load JSON into fields' : 'Preview contribution', exact: true}).click();
     check(operation + ' preserves independent volunteer level', await page.locator('[name=human_level]').inputValue() === 'influenced');

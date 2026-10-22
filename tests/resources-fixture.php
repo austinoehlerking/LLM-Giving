@@ -1,0 +1,44 @@
+<?php
+require_once __DIR__.'/workflow-fixture.php';
+require_once __DIR__.'/artifact-fixture.php';
+function rs_test_source(string $id='s1'): array {
+    return ['id'=>$id,'title'=>'Synthetic original mass table — local QA only','url'=>'https://example.invalid/llm-giving/synthetic-mass-table','type'=>'dataset','access'=>'full_text','access_note'=>'Inspected the original mass=2 kg row in tests/resources-fixture.php, an explicitly synthetic local table. No external page was fetched.',
+        'authors'=>'LLM.Giving synthetic QA fixture','publication_date'=>'2026-10-21 (synthetic fixture)','publisher'=>'Local regression fixtures; no scholarly publication claimed','doi'=>'','edition'=>'synthetic-v1','metadata_note'=>'This is supplied synthetic test material, not a scientific publication; no DOI exists for this fixture.','use'=>'used'];
+}
+function rs_test_packet(string $rid,array $task,string $outcome='completed'): array {
+    $d=wf_test_payload($rid,$task,$outcome);$statement='In this synthetic arithmetic example, 2 kg is converted to 2000 g.';
+    $d['body']=$statement.' This local test establishes no scientific observation.';$d['reason']='Retained a source-to-input-to-output trace for synthetic local arithmetic.';
+    $d['methodology']='Read the supplied original synthetic table mass=2 kg. Multiply kilograms by 1000 to obtain grams; retain exact input, code and output bytes. No external study was inspected.';
+    $d['sources']='Supplied synthetic mass table, row mass, in tests/resources-fixture.php. No external scientific publication was inspected.';
+    $d['evidence']['sources']=[rs_test_source()];$claim=&$d['evidence']['claims'][0];$claim['statement']=$statement;$claim['links'][0]['locator']='Original synthetic mass table, row mass';$claim['links'][0]['excerpt']='Original synthetic table: mass = 2 kg.';$claim['links'][0]['explanation']='The original supplied value is 2 kg. The retained calculation multiplies by 1000 g/kg to produce 2000 g, without asserting scientific evidence.';
+    foreach(['background','abstract','unavailable','rejected'] as $kind){$source=rs_test_source($kind);$source['url']='https://example.invalid/llm-giving/'.$kind;$source['title']='Synthetic '.$kind.' reference — not supporting evidence';$source['type']='other';$source['edition']='';$source['use']=$kind==='rejected'?'rejected':'background';$source['access']=match($kind){'abstract'=>'abstract_only','unavailable'=>'unavailable',default=>'full_text'};$source['access_note']='Synthetic access classification for UI regression only; no external source was inspected or fetched.';$d['evidence']['sources'][]=$source;}
+    $d['evidence']['datasets']=[['id'=>'original-mass','title'=>'Original synthetic mass table','provenance'=>'observed','source_ids'=>['s1'],'source_locations'=>[['source_id'=>'s1','locator'=>'Original synthetic mass table, row mass','extraction'=>'mass = 2 kg; original supplied synthetic data, not a real scientific observation.']],
+        'method'=>'Copy the supplied original mass row exactly; no derived values are added to the source table.','limitations'=>'Synthetic fixture only; not a measurement or scientific dataset.','uncertainty'=>'No measurement uncertainty is asserted for this literal synthetic value.','columns'=>[['key'=>'quantity','label'=>'Quantity','type'=>'text','unit'=>''],['key'=>'mass','label'=>'Original mass','type'=>'number','unit'=>'kg']],'rows'=>[['mass',2]]]];
+    $input="{\"mass_kg\":2}\n";$code='<?php echo 2 * 1000;';$value=2*1000;$output=json_encode(['mass_g'=>$value])."\n";$files=[];
+    foreach([['input','inputs.json','input',$input],['code','convert.php','code',$code],['output','outputs.json','output',$output]] as [$id,$name,$role,$content])$files[]=['id'=>$id,'name'=>$name,'role'=>$role,'content'=>$content,'sha256'=>hash('sha256',$content)];
+    $d['evidence']['calculations']=[['id'=>'mass-conversion','title'=>'Synthetic kilogram-to-gram conversion','status'=>'executed','software'=>[['name'=>'PHP','version'=>PHP_VERSION]],'claim_ids'=>['c1'],'source_ids'=>['s1'],'method'=>$d['methodology'],'environment'=>'Local synthetic PHP fixture, version '.PHP_VERSION.'; deterministic literal arithmetic; no submitted code is executed by the web application.','command'=>'php tests/resources-state.php create','execution_note'=>'The local synthetic fixture calculated 2 * 1000 while creating this test record. Execution remains a contributor declaration.','limitations'=>'A synthetic unit-conversion example, not a scientific measurement.','files'=>$files,
+        'inputs'=>[['id'=>'mass','value'=>2,'unit'=>'kg','file_id'=>'input','locator'=>'JSON key mass_kg','source_id'=>'s1','source_locator'=>'Original synthetic mass table, row mass','extraction'=>'mass = 2 kg from the original synthetic table row.','provenance'=>'original','derivation'=>'']],
+        'outputs'=>[['id'=>'mass','value'=>$value,'unit'=>'g','file_id'=>'output','locator'=>'JSON key mass_g']],
+        'unit_checks'=>[['input_id'=>'mass','output_id'=>'mass','mode'=>'automatic','explanation'=>'Multiply 2 kilograms by 1000 grams per kilogram to obtain 2000 grams with the same quantity boundary.']]]];
+    $d['evidence']['calculation_checkpoint']=['resume_from_result_id'=>'','completed'=>'Retained synthetic source table, input, code, output and matching unit check.','remaining'=>'Independent inspection and reproduction of the synthetic arithmetic remain.','next_action'=>'Read the source row, retained input/code/output and reproduce the conversion.','required_tools'=>'PHP CLI only for this synthetic example; no new installation or purchase is authorized.'];
+    foreach($d['acceptance_checks'] as &$check)if($check['result_id']==='self')$check['evidence_quote']=$statement;unset($check);
+    $d=rs_test_materials($d,$task);$d['evidence']['supporting_materials']['work_performed']='executed_analysis';return $d;
+}
+function rs_test_create(): array {
+    $_SESSION['admin']=1;$created=create_research(['title'=>'[Resources QA] Source-to-result trace','question'=>'Synthetic local resource trace and visibility verification only; no scientific investigation.','category_id'=>1,'terms'=>1]);$rid=$created['id'];moderate('request',$rid,'Approved','Disposable local resource contract fixture.');
+    $plan=wf_tasks($rid)[0];wf_submit($rid,$plan['id'],wf_test_payload($rid,$plan),str_repeat('a',64));
+    $tasks=array_values(array_filter(wf_tasks($rid),fn($t)=>$t['kind']==='research'));$a=$tasks[0];$id=wf_submit($rid,$a['id'],rs_test_packet($rid,$a),str_repeat('a',64));$b=wf_task($rid,$tasks[1]['id']);
+    $progress=rs_test_packet($rid,$b,'progress');$content='Useful synthetic intermediate notes: mass=2 kg, multiply by 1000 g/kg. No failed approaches were attempted.';
+    $progress['evidence']['supporting_materials']['files']=[['id'=>'notes','name'=>'continuation.txt','category'=>'intermediate_results','content'=>$content,'sha256'=>hash('sha256',$content),'rights'=>'Original synthetic QA notes; redistribution permitted under the research contribution terms.']];
+    foreach($progress['evidence']['supporting_materials']['items'] as &$item)if($item['category']==='intermediate_results'){$item['status']='supplied';$item['refs']=['supporting.files/notes'];$item['details']='Retained useful intermediate notes for continuation; no undocumented execution is claimed.';}unset($item);
+    $progressId=wf_submit($rid,$b['id'],$progress,str_repeat('a',64));
+    $supplement=rs_test_supplement(['kind'=>'Original research','summary'=>'Synthetic supplementary source registry','body'=>'This synthetic supplementary record preserves a background source without claiming a scientific observation.','terms'=>1]);$supplement['evidence']['sources'][0]=rs_test_source('fixture');$supplement['evidence']['claims'][0]['links'][0]['source_id']='fixture';
+    $cid=create_contribution($rid,$supplement);moderate('contribution',$cid,'Approved','Synthetic resource supplementary fixture.','Synthetic fixture explicitly has no AI provider run.');
+    return ['id'=>$rid,'slug'=>research($rid)['slug'],'result_id'=>$id,'task_id'=>$a['id'],'progress_id'=>$progressId,'ready_task_id'=>$b['id'],'contribution_id'=>$cid,'snapshot_id'=>one('SELECT snapshot_id FROM workflow_submissions WHERE id=?',[$id])['snapshot_id']];
+}
+
+function rs_test_artifact_progress(string $rid,array $task): array {
+    $packet=ra_test_visuals(wf_test_payload($rid,$task,'progress'));
+    $id=wf_submit($rid,$task['id'],$packet,str_repeat('a',64));
+    return ['result_id'=>$id,'snapshot_id'=>one('SELECT snapshot_id FROM workflow_submissions WHERE id=?',[$id])['snapshot_id'],'artifact_ids'=>array_column($packet['evidence']['artifacts'],'id')];
+}

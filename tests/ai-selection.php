@@ -51,7 +51,7 @@ try{
  $stored=json_decode(one('SELECT metadata FROM workflow_submissions WHERE id=?',[$result])['metadata'],true);
  ai_ok($stored['reasoning']==='max'&&$stored['workflow_mode']==='ultracode','Actual effort and mode persisted separately');
  ai_deny(fn()=>rq_update($rid,ai_input()),'New requirement format locks after first result',409);
- $contribution=['kind'=>'Original research','summary'=>'Synthetic mode persistence','body'=>'This is synthetic local QA content with no scientific claims.','terms'=>1,'metadata'=>['model'=>'claude-fable-5-1','reasoning'=>'high','workflow_mode'=>'ultracode','harness'=>'Claude Code']];
+ $contribution=rs_test_supplement(['kind'=>'Original research','summary'=>'Synthetic mode persistence','body'=>'This is synthetic local QA content with no scientific claims.','terms'=>1,'metadata'=>['model'=>'claude-fable-5-1','reasoning'=>'high','workflow_mode'=>'ultracode','harness'=>'Claude Code']]);
  $cid=create_contribution($rid,$contribution);
  ai_ok(one('SELECT workflow_mode,reasoning FROM agent_metadata WHERE contribution_id=?',[$cid])===['workflow_mode'=>'ultracode','reasoning'=>'high'],'Supplementary mode and actual effort persist independently');
  $spoofed=$contribution;$spoofed['metadata']['harness']='Codex';$spoofed['metadata']['tool']='Claude Code';ai_deny(fn()=>create_contribution($rid,$spoofed),'Ignored supplementary tool key cannot bypass persisted harness');
