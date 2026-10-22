@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {navigationGeometry} from '../tests/navigation-layout.mjs';
 import {resourcesQa} from '../tests/resources-browser.mjs';
 import {forkQa} from '../tests/fork-browser.mjs';
 import {receiptQa} from '../tests/receipt-browser.mjs';
@@ -80,11 +81,19 @@ try{
   check('About navigation marks current page '+size.width,await page.locator('.floating-header a[href="/about"]').getAttribute('aria-current')==='page');
 
   if(sample){await goto(page,'/research/'+sample.slug);await shot(page,'research-'+size.width+'x'+size.height);await visibleActions(page,'.research-heading .primary-actions > *','Research '+size.width);}
-  await goto(page,'/submit');await shot(page,'submit-'+size.width+'x'+size.height);await visibleActions(page,'.form-actions button','Submission '+size.width);
+  await goto(page,'/submit');await page.locator('#copy-setup-prompt').waitFor({state:'visible'});await shot(page,'submit-'+size.width+'x'+size.height);await visibleActions(page,'.form-actions button','Submission '+size.width);
   await goto(page,'/research');await shot(page,'discovery-'+size.width+'x'+size.height);await visibleActions(page,'.filters .search-submit','Search '+size.width);
  }
  await page.setViewportSize({width:1366,height:768});await goto(page,'/');await page.keyboard.press('Tab');check('Keyboard skip link receives focus',await page.evaluate(()=>document.activeElement.classList.contains('skip')));await shot(page,'keyboard-focus');await page.keyboard.press('Enter');check('Skip link reaches main content',new URL(page.url()).hash==='#main');
  await page.setViewportSize({width:1366,height:768});await goto(page,'/research?q=no-match-'+randomBytes(4).toString('hex'));await shot(page,'discovery-empty');check('Empty discovery message',await page.getByText('No matching research requests.').isVisible());
+ // Enlarge every rendered font, including explicit pixel sizes, without changing viewport size.
+ await page.setViewportSize({width:1366,height:768});await goto(page,'/');
+ await page.evaluate(()=>{const fonts=[...document.querySelectorAll('body,body *')].filter(el=>el instanceof HTMLElement).map(el=>[el,parseFloat(getComputedStyle(el).fontSize)]);for(const [el,size]of fonts)if(Number.isFinite(size))el.style.fontSize=(size*2)+'px';});
+ await shot(page,'home-200-percent-text');report.navigationReflow=await navigationGeometry(page);
+ check('200% navigation links do not overlap',report.navigationReflow.overlaps.length===0);
+ check('200% navigation text fits its links',report.navigationReflow.links.every(link=>link.textFits));
+ check('200% navigation text remains unobscured',report.navigationReflow.links.every(link=>link.uncovered));
+ check('200% all-font page reflows without horizontal clipping',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  // 200% browser zoom equivalent: reduced CSS viewport plus text scaling checks.
  await page.setViewportSize({width:683,height:384});await goto(page,'/');await page.evaluate(()=>{document.body.style.fontSize='200%';});await shot(page,'home-enlarged-text');check('Enlarged text reflow without horizontal clipping',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  if(mode==='viewport'){check('No browser script exceptions',errors.length===0);console.log('Initial viewport screenshots and '+report.checks.length+' checks captured. Inspect screenshots before full workflow QA.');}

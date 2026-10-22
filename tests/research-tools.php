@@ -42,6 +42,11 @@ try{
  $progress=rt_test_build($rid,$task,'progress');$progress['evidence']['tool_builds'][0]['status']='draft';$progress['evidence']['tool_builds'][0]['tests'][0]['status']='not_run';$progress['evidence']['tool_builds'][0]['tests'][0]['observed']='';$progressId=wf_submit($rid,$task['id'],$progress,str_repeat('d',64));tc(wf_task($rid,$task['id'])['state']==='Ready'&&rt_read($rid,$progressId)['id']===$progressId,'Incomplete draft retained and downloadable without advancement');
  $packet=rt_test_build($rid,$task);$resultId=wf_submit($rid,$task['id'],$packet,str_repeat('a',64));tc(wf_task($rid,$task['id'])['state']==='Completed','Tested build completes its task');td(fn()=>rt_read($rid,$progressId),'Completed version supersedes draft downloads',404);
  $result=rt_read($rid,$resultId);$meta=json_decode($result['metadata'],true);tc($meta['tool_software_license']===RT_LICENSE&&$meta['tool_terms_version']===RT_TERMS,'Server records software license and consent version');
+ $r=research($rid);ob_start();
+ set_error_handler(static function(int $severity,string $message,string $file,int $line):never{throw new ErrorException($message,0,$severity,$file,$line);});
+ try{include ROOT.'/views/tool-catalogue.php';$catalogue=ob_get_contents();}
+ finally{restore_error_handler();ob_end_clean();}
+ tc(str_contains($catalogue,'Current research tool builds')&&str_contains($catalogue,'/tools/distance/bundle.json'),'Public tool catalogue renders current accepted builds without PHP warnings');
  ob_start();rt_route(research($rid),'results/'.$resultId.'/tools/distance/bundle.json','GET');$bundle=json_decode(ob_get_clean(),true);tc($bundle['format']==='llm-giving-tool-v1'&&$bundle['software_license']===RT_LICENSE&&str_contains($bundle['software_license_text'],'GNU AFFERO'),'Download includes software license text and immutable result/context identities');foreach($bundle['build']['files'] as $file)tc($file['sha256']===hash('sha256',$file['content']),'Bundle preserves exact '.$file['role'].' file bytes');
  td(fn()=>rt_read($plain['id'],$resultId),'Cross-project bundle access rejected',404);
  ob_start();rt_route(research($rid),'results/'.$resultId.'/tools/distance/files/source','GET');$source=ob_get_clean();tc($source===$bundle['build']['files'][0]['content'],'Individual source download preserves exact bytes');

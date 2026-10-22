@@ -9,7 +9,7 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
  const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}];
  async function shot(name,fullPage=false,mask=[]){await page.screenshot({path:path.join(out,name+'.png'),fullPage,mask});shots.push(name+'.png');}
  for(const size of sizes){
-  await page.setViewportSize(size);await page.goto(base+'/submit');await shot('01-form-'+size.width+'x'+size.height);
+  await page.setViewportSize(size);await page.goto(base+'/submit');await page.locator('#copy-setup-prompt').waitFor({state:'visible'});await shot('01-form-'+size.width+'x'+size.height);
   await visibleActions(page,'.form-actions button','Updated submission '+size.width);
   check('Untouched required fields are neutral '+size.width,await page.locator('[name=title],[name=question],[name=category_id],[name=terms]').evaluateAll(els=>els.every(el=>!el.hasAttribute('aria-invalid')&&getComputedStyle(el).borderColor!=='rgb(255, 157, 157)')));
   check('No initial inline errors '+size.width,await page.locator('.validation-message:not([hidden])').count()===0);

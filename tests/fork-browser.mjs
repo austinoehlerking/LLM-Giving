@@ -14,7 +14,7 @@ export async function forkQa({page,ctx,base,runPhp,check,visibleActions,report})
    await page.setViewportSize(size);await page.goto(source);await shot(page,'source-'+size.width+'x'+size.height);
    await visibleActions(page,'.research-heading .primary-actions > *','Fork source '+size.width);viewports.push({size,source:true});
    await page.getByRole('link',{name:'Fork this question',exact:true}).press('Enter');
-   await shot(page,'form-'+size.width+'x'+size.height);
+   await page.locator('#copy-setup-prompt').waitFor({state:'visible'});await shot(page,'form-'+size.width+'x'+size.height);
    await visibleActions(page,'#copy-setup-prompt,.fork-form input[name=title],.fork-form textarea[name=question]','Fork creation '+size.width);viewports.push({size,creation:true});
    check('New question starts blank '+size.width,await page.locator('[name=title]').inputValue()===''&&await page.locator('[name=question]').inputValue()==='');
    check('No private source contact copied '+size.width,!await page.content().then(text=>text.includes('private-fork@example.invalid')));
