@@ -35,6 +35,8 @@ function wf_validate_plan(mixed $tasks,bool $modelsAllowed=false,bool $toolReque
 function wf_metadata(array $d,array $snapshot,bool $planning): array {
     $m=$d['metadata']??null;if(!is_array($m)||array_is_list($m))fail(422,'Supply model and run metadata.');
     $out=[];foreach(['provider','model','reasoning','tool','run_id','run_at_utc','run_evidence'] as $key)$out[$key]=text_field($m,$key,$key==='run_evidence'?0:1,$key==='run_evidence'?5000:200);
+    $out['workflow_mode']=text_field($m,'workflow_mode',0,20);
+    if(!in_array($out['workflow_mode'],['','ultracode'],true)||strtolower($out['reasoning'])==='ultracode')fail(422,'Record workflow_mode separately from actual reasoning effort. Ultracode is not an effort level.');
     if(!preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/',$out['run_at_utc'])||!($date=DateTimeImmutable::createFromFormat('!Y-m-d\TH:i:s\Z',$out['run_at_utc']))||$date->format('Y-m-d\TH:i:s\Z')!==$out['run_at_utc']||$date->getTimestamp()>time()+300)fail(422,'Run time must be a real UTC timestamp, for example 2026-10-19T16:00:00Z, not a future time.');
     if($planning){
         $ctx=json_decode($snapshot['package_json'],true);$allowed=false;

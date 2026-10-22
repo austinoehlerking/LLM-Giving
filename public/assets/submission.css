@@ -81,3 +81,17 @@
  .request-form .setup-panel label{margin:4px 0}
  .request-form .setup-panel>p{margin:0 0 4px}
 }
+
+/* Native disclosure dropdowns preserve checkbox semantics and touch/keyboard access. */
+.ai-choice-menu{border:1px solid #547180;border-radius:8px;margin:12px 0;min-width:0}
+.ai-choice-menu>summary{padding:12px;min-height:48px;overflow-wrap:anywhere}
+.ai-choice-options{padding:4px 12px 12px}
+.ai-choice-options .check{display:flex;align-items:center;gap:10px;min-height:48px;margin:0;padding:8px 0}
+.ai-choice-options small{display:block;overflow-wrap:anywhere}
+.ai-choice-options input[type=checkbox]{flex:none}
+.ai-effort-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;border-bottom:1px solid #314651}
+[data-ai-selection]{min-width:0}
+[data-ai-summary]{overflow-wrap:anywhere}
+[data-ai-selection][aria-invalid=true]{border-color:#ff9292}
+[data-ai-error]:empty{display:none}
+@media(max-width:480px){.ai-effort-row{grid-template-columns:1fr}.ai-effort-row>.check+label{padding-left:28px}}

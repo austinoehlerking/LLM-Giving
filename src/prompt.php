@@ -9,7 +9,7 @@ function context_data(string $rid): array {
     $request['tool_requirements']=rt_brief($r);
     $request['tool_software_license']=rt_is_tool($r)?RT_LICENSE:null;
     $contributions=[];
-    $allowed=['id','research_id','kind','target_id','summary','body','methodology','sources','uncertainty','limitations','previous_work','open_questions','next_actions','suggested_status','safety','recommendation','display_name','profiles','created_at','published_at','provider','model','harness','harness_version','reasoning','input_tokens','output_tokens','total_tokens','measurement','duration','tools','prompt_version','missing_fields','license','submission_method','human_influence'];
+    $allowed=['id','research_id','kind','target_id','summary','body','methodology','sources','uncertainty','limitations','previous_work','open_questions','next_actions','suggested_status','safety','recommendation','display_name','profiles','created_at','published_at','provider','model','harness','harness_version','reasoning','workflow_mode','input_tokens','output_tokens','total_tokens','measurement','duration','tools','prompt_version','missing_fields','license','submission_method','human_influence'];
     foreach(approved_contributions($r['id']) as $c) {
         $record=array_intersect_key($c,array_flip($allowed));
         $record['incomplete_metadata']=$c['missing_fields']!=='[]';

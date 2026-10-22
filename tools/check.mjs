@@ -3,7 +3,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {assertLocalEnvironment} from './runtime.mjs';
 assertLocalEnvironment();
-for(const args of [['tools/source-check.mjs'],['tests/source-tooling.mjs'],['tests/error-http.mjs'],['tools/build-blog.mjs','--check'],['tests/blog-build.mjs'],['tests/calculation-model.mjs'],['tools/tool-build-pilot.mjs'],['tests/artifact-controls.mjs'],['tests/request-setup.mjs']]) {
+for(const args of [['tools/source-check.mjs'],['tests/source-tooling.mjs'],['tests/error-http.mjs'],['tools/build-blog.mjs','--check'],['tests/blog-build.mjs'],['tests/calculation-model.mjs'],['tools/tool-build-pilot.mjs'],['tests/artifact-controls.mjs'],['tests/request-setup.mjs'],['tests/ai-selection.mjs']]) {
  const result=spawnSync(process.execPath,args,{encoding:'utf8'});
  if(result.status!==0)throw new Error(result.stdout+result.stderr);
  process.stdout.write(result.stdout);
@@ -30,6 +30,7 @@ process.stdout.write(runPhp(['tests/handoffs.php']));
 process.stdout.write(runPhp(['tests/browser-return.php']));
 process.stdout.write(runPhp(['tests/citation.php']));
 process.stdout.write(runPhp(['tests/requirements.php']));
+process.stdout.write(runPhp(['tests/ai-selection.php']));
 process.stdout.write(runPhp(['tests/external-requirements.php']));
 const artifactHttp=spawnSync(process.execPath,['tests/artifact-http.mjs'],{encoding:'utf8'});
 if(artifactHttp.status!==0)throw new Error(artifactHttp.stdout+artifactHttp.stderr);

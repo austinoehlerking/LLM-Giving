@@ -159,7 +159,7 @@ function change_status(string $rid,string $status,string $reason,string $actor):
 }
 function approved_contributions(string $rid): array {
     research($rid);
-    return all("SELECT c.*, a.provider,a.model,a.harness,a.harness_version,a.reasoning,a.input_tokens,a.output_tokens,a.total_tokens,a.measurement,a.duration,a.tools,a.prompt_version,a.missing_fields FROM contributions c JOIN agent_metadata a ON a.contribution_id=c.id WHERE c.research_id=? AND c.moderation='Approved' AND (c.target_id IS NULL OR EXISTS(SELECT 1 FROM contributions t WHERE t.id=c.target_id AND t.research_id=c.research_id AND t.moderation='Approved')) ORDER BY c.created_at,c.id",[$rid]);
+    return all("SELECT c.*, a.provider,a.model,a.harness,a.harness_version,a.reasoning,a.workflow_mode,a.input_tokens,a.output_tokens,a.total_tokens,a.measurement,a.duration,a.tools,a.prompt_version,a.missing_fields FROM contributions c JOIN agent_metadata a ON a.contribution_id=c.id WHERE c.research_id=? AND c.moderation='Approved' AND (c.target_id IS NULL OR EXISTS(SELECT 1 FROM contributions t WHERE t.id=c.target_id AND t.research_id=c.research_id AND t.moderation='Approved')) ORDER BY c.created_at,c.id",[$rid]);
 }
 function public_feedback(string $rid): array {
     research($rid);

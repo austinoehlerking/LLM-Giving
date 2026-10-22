@@ -16,6 +16,7 @@ if(requestForm){
   software.required=['free','licensed','mixed'].includes(access);
   for(const field of requestForm.querySelectorAll(validationFields)){
    // Match PHP trim and UTF-8 byte limits; browser string length differs for Unicode.
+   if(field.hasAttribute('data-ai-choice'))continue;
    field.setCustomValidity('');
    let message='';
    if(field.required&&!field.disabled){
@@ -76,7 +77,7 @@ if(requestForm){
  resizeAll();updateProjectType();validateRequest();
  const preview=document.getElementById('request-preview');
  const content=document.getElementById('request-preview-content');
- const labels={calculation_help:'Calculation help needed',external_tools:'External tool access',required_software:'Required software and versions',setup_needs:'Downloads and setup needed',project_type:'Project type',tool_intended_users:'Intended users and scientific use',tool_requirements:'Bounded requirements and exclusions',tool_inputs_outputs:'Inputs, outputs and units',tool_validation_plan:'Reference cases and test expectations',tool_maintenance:'Maintenance plan or experimental status',title:'Research title',question:'Research objective',category_id:'Category',required_model:'Required AI model',reasoning_rule:'Reasoning requirement',required_reasoning:'Reasoning level',context:'Background and context',success:'Desired outcome',previous:'Previous research',constraints_text:'Limitations or constraints',questions:'Specific questions',references_text:'References and source URLs',tags:'Tags',display_name:'Public attribution',linkedin:'LinkedIn URL',github:'GitHub URL',website:'Website URL',email:'Private email (not published)'};
+ const labels={calculation_help:'Calculation help needed',external_tools:'External tool access',required_software:'Required software and versions',setup_needs:'Downloads and setup needed',project_type:'Project type',tool_intended_users:'Intended users and scientific use',tool_requirements:'Bounded requirements and exclusions',tool_inputs_outputs:'Inputs, outputs and units',tool_validation_plan:'Reference cases and test expectations',tool_maintenance:'Maintenance plan or experimental status',title:'Research title',question:'Research objective',category_id:'Category',context:'Background and context',success:'Desired outcome',previous:'Previous research',constraints_text:'Limitations or constraints',questions:'Specific questions',references_text:'References and source URLs',tags:'Tags',display_name:'Public attribution',linkedin:'LinkedIn URL',github:'GitHub URL',website:'Website URL',email:'Private email (not published)'};
  const editButton=document.getElementById('edit-request');
  const reviewButton=document.getElementById('review-request');
  reviewButton.hidden=false;
@@ -91,6 +92,7 @@ if(requestForm){
    heading.textContent=label;body.textContent=value||'Not provided — complete before submitting.';
    section.append(heading,body);content.append(section);
   }
+  const ai=document.createElement('section'),aiHeading=document.createElement('h3'),aiBody=document.createElement('p');aiHeading.textContent='AI requirements';aiBody.textContent=requestForm.querySelector('[data-ai-summary]').textContent;ai.append(aiHeading,aiBody);content.append(ai);
   const files=requestForm.elements.namedItem('attachments[]').files;
   if(files.length){const heading=document.createElement('h3'),list=document.createElement('ul');heading.textContent='Files (require separate approval)';for(const file of files){const item=document.createElement('li');item.textContent=file.name;list.append(item);}content.append(heading,list);}
   preview.hidden=false;preview.focus();preview.scrollIntoView({block:'start',behavior:'instant'});
