@@ -22,3 +22,4 @@ require __DIR__.'/prompt.php';
 require __DIR__.'/backup.php';
 require __DIR__.'/workflow.php';
 require __DIR__.'/workflow-routes.php';
+require __DIR__.'/research-forks.php';

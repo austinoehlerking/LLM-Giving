@@ -97,6 +97,7 @@ if($path==='/recover') {
 if(preg_match('~^/files/([a-f0-9]{32})$~',$path,$m)) serve_attachment($m[1]);
 if(preg_match('~^/research/([^/]+)(?:/(.*))?$~',$path,$m)) {
     $r=research($m[1]); $suffix=$m[2]??'';
+    if(rf_route($r,$suffix,$method))exit;
     if(wf_route($r,$suffix,$method))exit;
     if($suffix==='context.json') { header('Content-Type: application/json; charset=utf-8'); echo json_encode(context_data($r['id']),JSON_PRETTY_PRINT|JSON_HEX_TAG); exit; }
     if($suffix==='prompt.md' || preg_match('~^review/([a-f0-9]{32})/prompt.md$~',$suffix,$review)) {

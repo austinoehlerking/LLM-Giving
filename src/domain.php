@@ -98,7 +98,9 @@ const STATUSES=[
 function research(string $id,bool $public=true): array {
     $sql='SELECT r.*, c.name category FROM research r JOIN categories c ON c.id=r.category_id WHERE (r.id=? OR r.slug=?)';
     if($public) $sql.=" AND r.moderation='Approved' AND r.status<>'Withdrawn'";
-    return one($sql,[$id,$id]) ?? fail(404,'Research not found.');
+    $r=one($sql,[$id,$id]) ?? fail(404,'Research not found.');
+    if($public)rf_assert_background($r['id']);
+    return $r;
 }
 function touch_context(string $rid,bool $activity=true): void {
     query('UPDATE research SET context_version=context_version+1,updated_at=?'.($activity?',activity_at=?':'').' WHERE id=?',$activity?[now(),now(),$rid]:[now(),$rid]);
@@ -122,6 +124,7 @@ function set_tags(string $rid,string $names): void {
     }
 }
 function create_research(array $d): array {
+    if(isset($d['fork_nonce']))fail(422,'Submit a fork through its original question’s fork form.');
     if(empty($d['terms'])) fail(422,'Accept the public-content terms to submit.');
     $category=one('SELECT id FROM categories WHERE id=? AND enabled=1',[(int)($d['category_id']??0)]);
     if(!$category) fail(422,'Choose an available category.');
@@ -221,6 +224,7 @@ function moderate(string $type,string $id,string $state,string $reason,string $e
     tx(function() use($table,$type,$id,$state,$reason,$exception) {
         $row=one("SELECT * FROM $table WHERE id=? FOR UPDATE",[$id]) ?? fail(404,'Item not found.');
         $rid=$type==='request'?$id:$row['research_id'];
+        if($state==='Approved')rf_assert_background($rid);
         if($state==='Approved' && $type==='contribution') {
             $meta=one('SELECT missing_fields FROM agent_metadata WHERE contribution_id=?',[$id]);
             if($meta && $meta['missing_fields']!=='[]' && trim($exception)==='') fail(422,'Explain the metadata exception before approval.');
@@ -286,6 +290,7 @@ function purge_request(string $rid,string $confirmation): void {
         query('DELETE FROM browser_returns WHERE research_id=?',[$rid]);
         query('DELETE FROM workflow_handoffs WHERE research_id=?',[$rid]);
         query('DELETE FROM workflow_submissions WHERE research_id=?',[$rid]);
+        query('DELETE FROM research_fork_intents WHERE child_id=?',[$rid]);
         query('DELETE FROM research WHERE id=?',[$rid]);
         return $job;
     });

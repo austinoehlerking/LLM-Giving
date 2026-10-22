@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import {resourcesQa} from '../tests/resources-browser.mjs';
+import {forkQa} from '../tests/fork-browser.mjs';
 import {receiptQa} from '../tests/receipt-browser.mjs';
 import {saveManagementLink} from '../tests/receipt-actions.mjs';
 import {browserReturnQa} from '../tests/browser-return-browser.mjs';
@@ -85,6 +86,9 @@ try{
  // 200% browser zoom equivalent: reduced CSS viewport plus text scaling checks.
  await page.setViewportSize({width:683,height:384});await goto(page,'/');await page.evaluate(()=>{document.body.style.fontSize='200%';});await shot(page,'home-enlarged-text');check('Enlarged text reflow without horizontal clipping',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  if(mode==='viewport'){check('No browser script exceptions',errors.length===0);console.log('Initial viewport screenshots and '+report.checks.length+' checks captured. Inspect screenshots before full workflow QA.');}
+ else if(mode==='forks') {
+  await forkQa({page,ctx,base,runPhp,check,visibleActions,report});
+ }
  else if(mode==='returns') {
   await browserReturnQa({page,ctx,base,runPhp,check,visibleActions});
  }

@@ -92,6 +92,7 @@ if(requestForm){
    heading.textContent=label;body.textContent=value||'Not provided — complete before submitting.';
    section.append(heading,body);content.append(section);
   }
+  const inherited=requestForm.querySelector('[data-fork-background]');if(inherited)content.append(inherited.cloneNode(true));
   const ai=document.createElement('section'),aiHeading=document.createElement('h3'),aiBody=document.createElement('p');aiHeading.textContent='AI requirements';aiBody.textContent=requestForm.querySelector('[data-ai-summary]').textContent;ai.append(aiHeading,aiBody);content.append(ai);
   const files=requestForm.elements.namedItem('attachments[]').files;
   if(files.length){const heading=document.createElement('h3'),list=document.createElement('ul');heading.textContent='Files (require separate approval)';for(const file of files){const item=document.createElement('li');item.textContent=file.name;list.append(item);}content.append(heading,list);}
