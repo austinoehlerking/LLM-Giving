@@ -18,7 +18,7 @@ function wf_evidence_id(array $data): string {
 }
 function wf_evidence_results(array $task): array {
     research($task['research_id']);$out=[];
-    if($task['kind']==='contribution_review'){
+    if(($task['kind']??'')==='contribution_review'){
         foreach(rs_contributions($task['research_id']) as $target)if($target['id']===($task['target_id']??'')&&!$target['superseded_by'])return [$target['id']=>['task'=>['id'=>$target['id'],'research_id'=>$target['research_id'],'kind'=>'supplementary'],'result'=>$target+['metadata'=>json_encode(['evidence'=>$target['evidence']?json_decode($target['evidence'],true):null])]]];
         fail(422,'Independent review target is unavailable or superseded.');
     }
