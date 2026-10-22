@@ -5,6 +5,7 @@ function context_data(string $rid): array {
     $request=array_intersect_key($r,array_flip($fields));
     $request['computational_models']=(bool)$r['computational_models'];
     $request['external_requirements']=external_requirements($r);
+    $request['calculation_policy']=calculation_policy($r);
     $request['tool_requirements']=rt_brief($r);
     $request['tool_software_license']=rt_is_tool($r)?RT_LICENSE:null;
     $contributions=[];

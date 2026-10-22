@@ -3,7 +3,7 @@ import path from 'node:path';
 import {root} from '../tools/runtime.mjs';
 export async function receiptQa({page,ctx,base,runPhp,check,visibleActions}){
  const output=path.join(root,'storage/qa/receipt');fs.mkdirSync(output,{recursive:true});
- const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}];
+ const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667},{width:768,height:1024}];
  const errors=[],shots=[];page.on('pageerror',error=>errors.push(error.message));
  const title='[QA] Effects of plastic pollution on the biological carbon pump: transparent methods and reproducible evidence for community researchers';
  async function submit(target,email=''){
@@ -74,7 +74,12 @@ export async function receiptQa({page,ctx,base,runPhp,check,visibleActions}){
  check('Successful copy includes the complete replacement capability',await page.evaluate(()=>navigator.clipboard.readText())===replacement);
  for(const size of sizes){
   await page.setViewportSize(size);await shot(page,'confirmation-'+size.width+'x'+size.height);
-  await visibleActions(page,'#management-save-dialog .dialog-actions > button','Save confirmation '+size.width);
+  await visibleActions(page,'#management-save-dialog .dialog-actions > button,label[for=management-saved-confirmation]','Save confirmation '+size.width);
+  const acknowledgment=page.locator('label[for=management-saved-confirmation]'),box=await acknowledgment.boundingBox();
+  check('Acknowledgment target is at least 44 CSS px '+size.width,box.height>=44);
+  // Click the associated label away from the smaller checkbox graphic.
+  await acknowledgment.click({position:{x:box.width-2,y:2}});check('Full acknowledgment label toggles checkbox '+size.width,await page.locator('#management-saved-confirmation').isChecked());
+  await acknowledgment.click({position:{x:box.width-2,y:2}});check('Label toggle remains reversible '+size.width,!await page.locator('#management-saved-confirmation').isChecked());
   check('Confirmation checkbox visible '+size.width,await page.locator('#management-saved-confirmation').evaluate(el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}));
  }
  check('Private capability is absent from Web Storage',await page.evaluate(value=>![...Object.values(localStorage),...Object.values(sessionStorage)].some(text=>text.includes(value)),replacement));
@@ -94,9 +99,12 @@ export async function receiptQa({page,ctx,base,runPhp,check,visibleActions}){
  try{
   const zoom=await enlarged.newPage();await submit(zoom);await shot(zoom,'initial-enlarged');
   await zoom.getByRole('button',{name:'Copy management link',exact:true}).click();
-  const modal=zoom.getByRole('dialog',{name:'Have you saved your management link?',exact:true});await modal.waitFor();await shot(zoom,'confirmation-enlarged');
+  const modal=zoom.getByRole('dialog',{name:'Have you saved your management link?',exact:true});await modal.waitFor();
+  await zoom.evaluate(()=>{const sizes=[...document.querySelectorAll('body *')].map(el=>[el,parseFloat(getComputedStyle(el).fontSize)]);for(const [el,size] of sizes)el.style.fontSize=size*2+'px';});await shot(zoom,'confirmation-enlarged');
   check('Receipt dialog reflows at 200% viewport/device scale',await zoom.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)&&await modal.evaluate(el=>el.scrollWidth<=el.clientWidth+1));
-  await modal.getByLabel('I confirm I have copied and saved my management link.',{exact:true}).check();await modal.getByRole('button',{name:'Confirm saved',exact:true}).click();
+  const saved=modal.getByLabel('I confirm I have copied and saved my management link.',{exact:true});await saved.focus();await saved.press('Space');check('Enlarged acknowledgment supports keyboard activation',await saved.isChecked());
+  for(let step=0;step<3;step++)await zoom.keyboard.press('Tab');
+  check('Enlarged confirm action remains keyboard reachable',await modal.getByRole('button',{name:'Confirm saved',exact:true}).evaluate(el=>el===document.activeElement));await shot(zoom,'confirmation-enlarged-actions');await zoom.keyboard.press('Enter');await modal.waitFor({state:'hidden'});
  }finally{await enlarged.close();}
  check('No receipt script exceptions',errors.length===0);
  fs.writeFileSync(path.join(output,'evidence.json'),JSON.stringify({shots,errors},null,2));

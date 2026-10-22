@@ -13,7 +13,7 @@
 .management-save-dialog::backdrop{background:#030b14cc}
 .management-save-dialog h2{font-size:22px;line-height:1.25;margin:0 0 12px;color:#ffda96}
 .management-save-dialog p{font-size:14px;line-height:1.45;margin:0 0 12px}
-.management-save-dialog .check{font-size:14px;line-height:1.4;align-items:flex-start;margin:14px 0}
+.management-save-dialog .check{font-size:14px;line-height:1.4;min-height:44px;align-items:center;margin:14px 0}
 .management-save-dialog .check input{width:22px;height:22px;flex:0 0 22px;margin-top:1px}
 .management-save-dialog .dialog-actions{display:flex;flex-wrap:wrap;gap:8px}
 .management-save-dialog button{flex:1 1 130px;min-height:44px;font-size:14px;padding:10px 12px}
