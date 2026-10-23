@@ -1,6 +1,6 @@
 # Shared task reservations
 
-Core implementation integration pin (local only): `40803f6b79271230b7e53f61f7415f893541728a`. Use the final task handoff for completed validation and any subsequent fixes.
+Core implementation integration pin (local only): `b308fde6f0ad029df1057bc7ee3efee3c35494dc`. Use the final task handoff for completed validation and any subsequent fixes.
 
 ## Scope and rollout
 
