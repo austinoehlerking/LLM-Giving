@@ -73,6 +73,9 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
  await page.locator('[name=title]').fill(brief.title);await page.locator('[name=question]').fill(brief.question);await page.locator('[name=category_id]').selectOption({label:'Environment & Climate'});
  await page.getByText('Background, objectives & references',{exact:true}).click();
  for(const key of ['context','success','previous','constraints_text','questions','references_text','tags'])await page.locator('[name='+key+']').fill(brief[key]);
+ // Details toggle and viewport resizing finish in animation frames; assert the same sizing invariant after layout settles.
+ try{await page.waitForFunction(()=>[...document.querySelectorAll('textarea')].every(el=>el.scrollHeight<=el.clientHeight+2),null,{timeout:5000});}
+ catch(error){console.log('Textarea sizing diagnostics:',JSON.stringify(await page.locator('textarea').evaluateAll(els=>els.map(el=>({name:el.name,id:el.id,visible:!!el.getClientRects().length,clientHeight:el.clientHeight,scrollHeight:el.scrollHeight})))));await shot('02-sizing-failure');throw error;}
  check('Long text expands without internal clipping',await page.locator('textarea').evaluateAll(els=>els.every(el=>el.scrollHeight<=el.clientHeight+2)));
  await page.locator('[name=context]').scrollIntoViewIfNeeded();await shot('02-expanding-fields');
  await page.getByRole('button',{name:'Review your request',exact:true}).click();
