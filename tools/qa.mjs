@@ -36,7 +36,7 @@ assert.ok(Number.isInteger(qaPort)&&qaPort>=1024&&qaPort<=65535,'QA_PORT must be
 const base='http://127.0.0.1:'+qaPort;
 const mode=process.argv[2]||'full';
 if(!Object.hasOwn(qaReports,mode))throw new Error('Unknown QA mode. Choose: '+Object.keys(qaReports).join(', '));
-const report={browser:'Microsoft Edge (installed Chromium engine)',screenshots:[],checks:[],viewports:[]};
+const report={browser:'Not launched',screenshots:[],checks:[],viewports:[]};
 const password=randomBytes(24).toString('hex');
 const server=spawnPhp(['-S','127.0.0.1:'+qaPort,'-t','public','public/router.php'],{APP_URL:base,...(mode==='google'?{GOOGLE_ANALYTICS_ENABLED:'1',GOOGLE_ANALYTICS_ID:'G-TEST123456',GOOGLE_SITE_VERIFICATION:'synthetic_verification_token_123456'}:{}),RATE_LIMIT_NAMESPACE:'browser-qa-'+randomBytes(12).toString('hex')});
 let browser;
@@ -68,7 +68,10 @@ try{
  await ready(base+'/',server);
  if(mode!=='google'&&mode!=='viewport'&&mode!=='quarantine'&&mode!=='handoffs'&&mode!=='launch'&&mode!=='legal'&&mode!=='artifacts'&&mode!=='citations'&&mode!=='requirements'&&mode!=='tools'&&mode!=='setup')runPhp(['tests/qa-state.php','cleanup']);
  const pw=await playwright();
- browser=await pw.chromium.launch({headless:true,executablePath:browserExecutable(),env,args:['--no-sandbox'],downloadsPath:path.join(output,'downloads')});
+ const executable=browserExecutable();
+ browser=await pw.chromium.launch({headless:true,executablePath:executable,env,args:['--no-sandbox'],downloadsPath:path.join(output,'downloads')});
+ report.browser=path.basename(executable||'playwright-chromium')+' '+browser.version();
+ report.browserExecutable=executable||'Playwright managed Chromium';
  const ctx=await browser.newContext({permissions:['clipboard-read','clipboard-write'],viewport:{width:1366,height:768}});
  if(mode==='google'){
   await ctx.route('https://www.googletagmanager.com/**',route=>route.fulfill({contentType:'text/javascript',body:'/* synthetic Google library; no real measurement */'}));
@@ -80,8 +83,17 @@ try{
  const sample=JSON.parse(runPhp(['tests/qa-state.php','preview']));
  for(const size of [{width:1366,height:768},{width:390,height:844},{width:375,height:667},{width:768,height:1024}]){
   await page.setViewportSize(size);await goto(page,'/');await shot(page,'home-'+size.width+'x'+size.height);await visibleActions(page,'.hero .primary-actions > *','Home '+size.width);
+  if(mode==='viewport'){
+   await visibleActions(page,'.giving-source','Open-source link '+size.width);
+   check('Homepage links the published GitHub project '+size.width,await page.locator('.giving-source').getAttribute('href')==='https://github.com/austinoehlerking/LLM-Giving');
+   check('Homepage identifies the platform as open source '+size.width,(await page.locator('.giving-trust').innerText()).includes('Open-source platform'));
+  }
   await visibleActions(page,'.floating-header a','Navigation '+size.width);
   check('Navigation touch targets '+size.width,await page.locator('.floating-header a').evaluateAll(links=>links.every(a=>a.getBoundingClientRect().height>=44)));
+  if(mode==='viewport'){
+   await page.locator('.hero .primary-actions a[href="#research"]').click();
+   check('Find research opens the actual research catalogue '+size.width,new URL(page.url()).hash==='#research'&&await page.locator('#research').isVisible());
+  }
   await page.getByRole('navigation',{name:'Main navigation',exact:true}).getByRole('link',{name:'How it works',exact:true}).click();
   check('Navigation opens about page '+size.width,new URL(page.url()).pathname==='/about');
   check('About navigation marks current page '+size.width,await page.locator('.floating-header a[href="/about"]').getAttribute('aria-current')==='page');

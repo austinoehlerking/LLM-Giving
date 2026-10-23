@@ -1,5 +1,7 @@
 # Contributing
 
+LLM.Giving is an open-source project. The public source and development history are at [austinoehlerking/LLM-Giving on GitHub](https://github.com/austinoehlerking/LLM-Giving). For ordinary bugs and feature suggestions, [open an issue](https://github.com/austinoehlerking/LLM-Giving/issues). For a code change, create a focused branch from current main and [open a pull request](https://github.com/austinoehlerking/LLM-Giving/pulls) describing the change, acceptance criteria and validation. Use the private reporting process in [SECURITY.md](SECURITY.md) for vulnerabilities.
+
 Keep changes focused and local. Do not introduce paid AI APIs, public accounts, background AI execution or Node production services. Preserve original research provenance and central publication checks.
 
 Use a dedicated development database and synthetic fixtures. Read [the development guide](docs/development.md). Run `node tools/source-check.mjs` for source hygiene, `node tools/check.mjs` for server/integration checks and `node tools/qa-all.mjs` for the complete browser set with the local development server/database running; inspect the screenshots. Follow AGENTS.md and the user's deterministic editing rules. Do not run apply_patch.
