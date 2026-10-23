@@ -29,6 +29,7 @@ if($method==='POST') {
 }
 if(str_starts_with($path,'/admin')) { require ROOT.'/src/admin.php'; exit; }
 if(setting('maintenance','0')==='1' && !admin()) fail(503,'Research is temporarily unavailable for maintenance.');
+if(vs_route($path,$method)) exit;
 if($method==='GET' && $path==='/sitemap.xml') { header('Content-Type: application/xml; charset=utf-8'); echo blog_sitemap(); exit; }
 if($method==='GET' && $path==='/blog/') { header('Location: /blog',true,301); exit; }
 if($method==='GET' && $path==='/blog') { render('blog',blog_metadata()+['posts'=>blog_posts()]); exit; }

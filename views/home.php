@@ -4,7 +4,7 @@
 <h1 id="giving-title"><?php if($homeTitle===HOME_TITLE): ?>Folding@home, <span class="giving-headline">but for AI usage.</span><?php else: ?><?=e($homeTitle)?><?php endif ?></h1>
 <p class="giving-subtitle">Put your spare AI usage to help open-source research.</p>
 <p class="giving-description">Use your own AI tools to investigate questions, share findings, and review the evidence.</p>
-<div class="actions primary-actions"><a class="button giving-primary" href="#research">Find research <span aria-hidden="true">→</span></a><a class="button secondary" href="/submit">Submit Research Request</a></div>
+<div class="actions primary-actions"><a class="button giving-primary" href="/volunteer">Start volunteering <span aria-hidden="true">→</span></a><a class="button secondary" href="#research">Find research</a><a class="button secondary" href="/submit">Submit Research Request</a></div>
 <p class="giving-trust">Open research. Transparent sources. Independent review.</p></div>
 <div class="giving-art"><img src="/assets/research-community.webp" alt="" width="2172" height="724" fetchpriority="high" decoding="async"></div>
 <div class="giving-workflow" aria-label="How contributions become open research">

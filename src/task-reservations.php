@@ -64,7 +64,8 @@ function wr_fence(string $rid): string {
 }
 function wr_live(string $rid,string $tid): ?array {
     $row=one('SELECT v.* FROM task_reservations v JOIN workflow_tasks t ON t.id=v.task_id AND t.revision=v.task_revision WHERE v.research_id=? AND v.task_id=? AND v.ended_at IS NULL AND v.expires_at>? ORDER BY v.created_at DESC,v.id DESC LIMIT 1',[$rid,$tid,wr_stamp()]);
-    return $row&&hash_equals($row['eligibility_fence'],wr_fence($rid))?$row:null;
+    if (!$row || !hash_equals($row['eligibility_fence'],wr_fence($rid))) return null;
+    return function_exists('vs_reservation_projection') ? vs_reservation_projection($row) : $row;
 }
 function wr_claim(string $rid,string $tid,int $revision,string $actor): array {
     wr_rate('claim',$actor);
@@ -79,6 +80,7 @@ function wr_claim(string $rid,string $tid,int $revision,string $actor): array {
         }
         $others=all("SELECT v.* FROM task_reservations v JOIN workflow_tasks t ON t.id=v.task_id AND t.revision=v.task_revision JOIN workflow_projects p ON p.research_id=t.research_id AND p.round_no=t.round_no WHERE v.actor_hash=? AND v.ended_at IS NULL AND v.expires_at>? AND v.task_id<>? AND t.state='Ready' AND t.visibility='public'",[$actor,wr_stamp(),$tid]);
         foreach($others as $other){
+            if (function_exists('vs_reservation_projection') && !vs_reservation_projection($other)) continue;
             if(!hash_equals($other['eligibility_fence'],wr_fence($other['research_id'])))continue;
             try{wr_eligible($other['research_id'],$other['task_id'],(int)$other['task_revision'],$actor);}
             catch(HttpError $error){if(in_array($error->status,[404,409,422],true))continue;throw $error;}
@@ -105,7 +107,7 @@ function wr_renew(string $rid,string $tid,int $revision,string $actor): array {
         $live=wr_require($rid,$tid,$revision,$actor);
         $live['expires_at']=wr_stamp(wr_time()+WR_SECONDS);
         query('UPDATE task_reservations SET expires_at=? WHERE id=?',[$live['expires_at'],$live['id']]);
-        return $live;
+        return function_exists('vs_reservation_projection') ? vs_reservation_projection($live) : $live;
     });
 }
 function wr_release(string $rid,string $tid,string $actor): void {
