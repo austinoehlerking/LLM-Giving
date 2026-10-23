@@ -14,6 +14,10 @@ if($action==='create') {
     $data=json_decode(stream_get_contents(STDIN),true,16,JSON_THROW_ON_ERROR);
     foreach($data['sessions']??[] as $id)query('DELETE FROM volunteer_sessions WHERE id=?',[$id]);
     foreach($data['fixtures']??[] as $fixture)if(one("SELECT id FROM research WHERE id=? AND title LIKE '[QA] Volunteer browser%'",[$fixture['id']]))purge_request($fixture['id'],$fixture['id']);
+} elseif($action==='withdraw-study') {
+    $rid=$argv[2]??'';
+    if(!one("SELECT id FROM research WHERE id=? AND title LIKE '[QA] Volunteer browser%'",[$rid]))throw new RuntimeException('Not an owned volunteer browser fixture.');
+    change_status($rid,'Withdrawn','Synthetic private-history browser check.','requester');echo 'withdrawn';
 } else {
     $session=vs_read($argv[2]??'',false);$assignment=vs_current($session);
     if($action==='packet') {

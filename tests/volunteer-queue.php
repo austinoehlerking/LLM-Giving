@@ -132,9 +132,21 @@ try {
     vqc(vs_public_assignment(vs_read($heldId),vs_assignment(vs_read($heldId),$heldAssignment['id']))['outcome']==='Rejected','Dashboard follows the current rejection while retaining original assignment history');
     vqc((int)vs_read($heldId)['assignments_used']===1,'Quarantine or rejection never refunds the consumed assignment');
     $privateProject=vq_project(false);$privateSession=vq_session($privateProject);$privateId=$privateSession['id'];$privateAssignment=vs_claim_next($privateId);
+    vs_record($privateId,$privateAssignment['id'],vq_packet(vs_read($privateId),$privateAssignment,'progress'),false);
     change_status($privateProject['id'],'Withdrawn','Synthetic visibility revocation.','requester');
     vqc(!vs_public_assignment(vs_read($privateId),$privateAssignment)['available'],'Private dashboard does not expose a withdrawn parent through aggregation');
+    $hidden=vs_public_assignment(vs_read($privateId),vs_assignment(vs_read($privateId),$privateAssignment['id']));
+    vqc($hidden['outcome']==='Recorded previously — research unavailable' && $hidden['receipt_url']===null && $hidden['task_url']===null,'Revocation preserves the fact of recording without exposing hidden evidence or claiming current acceptance');
     vs_stop($privateId);
+    $controlsProject=vq_project(false);$controls=vq_session($controlsProject);$controlsId=$controls['id'];$oldAssignment=vs_claim_next($controlsId);$controlsSession=vs_read($controlsId);$oldGrant=vs_assignment_grant($controlsSession,$oldAssignment);$controlsTask=wf_task($controlsProject['id'],$oldAssignment['task_id']);
+    vs_record($controlsId,$oldAssignment['id'],vq_packet($controlsSession,$oldAssignment,'progress'),false);
+    $freshAssignment=vs_claim_next($controlsId);$freshLease=wr_live($controlsProject['id'],$freshAssignment['task_id']);
+    foreach(['claim','renew','release'] as $operation) {
+        vqd(fn()=>mp_control($controlsProject,$controlsTask,$operation,(int)$oldAssignment['task_revision'],$oldGrant),409,'Consumed session worker cannot '.$operation.' through native pickup controls');
+        $stillLive=wr_live($controlsProject['id'],$freshAssignment['task_id']);
+        vqc($stillLive && $stillLive['id']===$freshLease['id'] && $stillLive['expires_at']===$freshLease['expires_at'] && (int)vs_read($controlsId)['assignments_used']===2,'Rejected session '.$operation.' retains the new generation and consumed allowance');
+    }
+    vs_stop($controlsId);
     $checksFile=storage('qa/volunteer-draft/queue-tests.json');file_put_contents($checksFile,json_encode(['pass'=>true,'count'=>count($checks),'checks'=>$checks],JSON_PRETTY_PRINT));
     echo count($checks)." volunteer queue and lifecycle checks passed.\n";
 } finally {

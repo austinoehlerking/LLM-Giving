@@ -4,7 +4,7 @@ Core implementation integration pin (local only): `b308fde6f0ad029df1057bc7ee3ef
 
 ## Scope and rollout
 
-`src/task-reservations.php` is the single lease service for manual AI handoff pickup and the volunteer orchestrator. This change owns persistence, lifecycle, HTTP integration seams and result enforcement. Public pickup/renew/release controls belong to the next task. Do not implement another lease table or let an orchestrator submit around `wf_submit`.
+`src/task-reservations.php` is the single lease service for manual AI handoff pickup and the volunteer orchestrator. It owns persistence, lifecycle, HTTP integration seams and result enforcement. The [manual pickup controls](manual-pickup.md) and [Volunteer session controllers](volunteer-sessions.md) reuse it for pickup, renewal and release; they keep full handoff preparation inside the claim transaction. Do not implement another lease table or let an orchestrator submit around `wf_submit`.
 
 Migration **016_task_reservations.sql** is additive. It creates private `reservation_actors` mutex rows and `task_reservations` generations, with same-research task foreign keys and live-task/live-actor indexes. No historical handoff, consent, snapshot, task or result is rewritten. Logical backup discovers both tables automatically. Parent purge cascades lease generations; an actor mutex contains only the existing anonymous actor hash and may outlive a purged project. No account, runtime AI call or scheduled cleanup is introduced.
 
@@ -88,7 +88,7 @@ An outstanding unrecorded public/manual handoff must explicitly claim its exact 
 
 Expired holders must explicitly reacquire. If another holder won or work completed, they stop; they cannot overwrite results or displace the winner. Invalid/recoverable packet errors and Check packet retain the lease without renewing it. Any successfully recorded packet ends it. Quarantine's existing project hold and independent administrative decision still determine whether more work can become available.
 
-Until the next task supplies the public pickup controls, manual-return integration uses the explicit POST seam above. Do not silently claim on packet check, page load or final submission to hide the missing controls.
+Manual and Volunteer pickup controls use the explicit CSRF-protected actions above. Packet checks, page loads, reference reads and final submission never silently acquire a missing reservation. Expired or conflicting work stays in its original form for explicit eligible reacquisition or an honest not-submitted report.
 
 ## Verification
 

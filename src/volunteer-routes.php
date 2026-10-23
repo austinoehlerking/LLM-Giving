@@ -24,7 +24,8 @@ function vs_form_draft(array $input): array {
     return $draft;
 }
 function vs_public_assignment(array $session,array $assignment): array {
-    $item=['available'=>false,'outcome'=>'Not submitted','receipt_url'=>null,'reacquire'=>false,'title'=>'Research unavailable','task_url'=>null,'reservation_text'=>'No live reservation'];
+    $historicalRecorded=in_array($assignment['outcome']??'',['accepted','quarantined','rejected'],true);
+    $item=['available'=>false,'outcome'=>$historicalRecorded?'Recorded previously — research unavailable':'Not submitted','receipt_url'=>null,'reacquire'=>false,'title'=>'Research unavailable','task_url'=>null,'reservation_text'=>'No live reservation'];
     try {
         $grant=vs_assignment_grant($session,$assignment);
         $r=research($assignment['research_id']); $task=wf_task($r['id'],$assignment['task_id']);

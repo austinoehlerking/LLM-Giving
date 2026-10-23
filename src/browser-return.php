@@ -77,6 +77,11 @@ function ar_validate(array $r,array $g): void {
     if($g['scope']['requirements']!==rq_requirements($r))fail(409,'Requester AI requirements changed. Obtain fresh authorization and reassess with a qualifying run.');
 }
 function ar_record(array $r,array $grant,array $d,bool $checkOnly): string {
+    // A separate session worker reads its grant before waiting for the parent lock.
+    // Keep later eligibility reads current; the controller already owns READ COMMITTED.
+    if (!db()->inTransaction() && !empty($grant['scope']['volunteer_session_id'])) {
+        query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+    }
     return tx(function()use($r,$grant,$d,$checkOnly){
         wr_actor_lock($grant['actor_hash']);
         if (!empty($grant['scope']['volunteer_session_id'])) {
