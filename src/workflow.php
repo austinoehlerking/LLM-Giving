@@ -8,6 +8,7 @@ require_once __DIR__.'/research-artifacts.php';
 require_once __DIR__.'/artifact-render.php';
 require_once __DIR__.'/workflow-packets.php';
 require_once __DIR__.'/browser-return.php';
+require_once __DIR__.'/volunteer-orchestrator.php';
 require_once __DIR__.'/workflow-handoffs.php';
 require_once __DIR__.'/workflow-context.php';
 require_once __DIR__.'/workflow-engine.php';

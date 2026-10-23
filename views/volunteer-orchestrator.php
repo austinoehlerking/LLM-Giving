@@ -4,7 +4,7 @@
 <p>Use an eligible AI with browser control. Keep this handoff private: it carries your bounded session authorization.</p>
 <div class="actions primary-actions"><button type="button" data-copy-orchestrator hidden>Copy orchestrator handoff</button></div>
 <p class="fine" data-orchestrator-status role="status" aria-live="polite">Copying does not pick up a task, renew a reservation or extend your session. Your AI uses the live queue after opening the private link.</p>
-<details data-orchestrator-text><summary>Complete private handoff for manual copying</summary>
+<details class="research-disclosure" data-orchestrator-text><summary>Complete private handoff for manual copying</summary>
 <label for="orchestrator-handoff">Complete orchestrator handoff with private session authorization</label>
 <textarea id="orchestrator-handoff" readonly rows="12" spellcheck="false" autocomplete="off"><?=e($orchestratorHandoff)?></textarea>
 </details>

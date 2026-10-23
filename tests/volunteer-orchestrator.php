@@ -24,6 +24,19 @@ $_SESSION ??= [];
 $originalClock = $GLOBALS['vs_test_now'] ?? null;
 try {
     $public = vo_instructions();
+    $single = ar_instructions();
+    $sessionInstructions = ar_instructions(true);
+    vo_check('Default mode retains single-assignment stopping boundary', str_contains($single, 'Stop after this single assignment; do not begin another task or review your own work.'));
+    vo_check('Session mode retains worker boundary and bounds orchestrator continuation', !str_contains($sessionInstructions, 'Stop after this single assignment;') && str_contains($sessionInstructions, 'The assigned worker stops after its recorded outcome.') && str_contains($sessionInstructions, 'server-validated session scope, allowance and deadline'));
+    $_POST['volunteer_session'] = '1';
+    vo_check('Packet or POST mode flags do not select session instructions', ar_instructions() === $single);
+    unset($_POST['volunteer_session']);
+    try {
+        vo_return_instructions('A changed procedure without the required stopping boundary.');
+        throw new LogicException('Unreconciled instructions were accepted.');
+    } catch (RuntimeException $error) {
+        vo_check('Changed templates fail closed instead of publishing conflicting session guidance', str_contains($error->getMessage(), 'must be reconciled'));
+    }
     $archiveCount = (int)one('SELECT COUNT(*) AS n FROM workflow_handoffs')['n'];
     $reservationStorage = vo_reservation_storage();
     $GLOBALS['vs_test_now'] = time();
