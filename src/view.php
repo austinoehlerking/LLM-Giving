@@ -1,4 +1,11 @@
 <?php
+const SOURCE_REPOSITORY_URL='https://github.com/austinoehlerking/LLM-Giving';
+function source_repository_url(): string {
+    return setting('source_url') ?: SOURCE_REPOSITORY_URL;
+}
+function source_repository_label(): string {
+    return strtolower((string)parse_url(source_repository_url(), PHP_URL_HOST)) === 'github.com' ? 'View code on GitHub' : 'View source code';
+}
 const HOME_TITLE='Folding@home, but for AI usage.';
 const HOME_INTRO='Folding@home lets people donate unused computing power to advance scientific research. LLM.Giving brings that same concept to AI.';
 function home_metadata(): array {
