@@ -1,9 +1,11 @@
+import {qaLoopbackPort} from '../tools/lib/qa-ports.mjs';
 import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';import {root,runPhp,spawnPhp,ready} from '../tools/runtime.mjs';
 if(runPhp(['-r',"require 'src/bootstrap.php';echo env('APP_ENV');"]).trim()==='production')throw Error('Local QA only.');
-const fixture=JSON.parse(runPhp(['tests/tool-state.php','http-fixture']));const base='http://127.0.0.1:8099',url='/research/'+fixture.slug+'/results/'+fixture.result+'/tools/distance',checks=[];let server;
+const fixturePort=qaLoopbackPort('QA_TOOL_HTTP_PORT',8099),address='127.0.0.1:'+fixturePort;
+const fixture=JSON.parse(runPhp(['tests/tool-state.php','http-fixture']));const base='http://'+address,url='/research/'+fixture.slug+'/results/'+fixture.result+'/tools/distance',checks=[];let server;
 const check=(name,value)=>{assert.ok(value,name);checks.push(name);};
 try{
- server=spawnPhp(['-S','127.0.0.1:8099','-t','public','public/router.php'],{APP_URL:base});await ready(base+'/',server);
+ server=spawnPhp(['-S',address,'-t','public','public/router.php'],{APP_URL:base});await ready(base+'/',server);
  let response=await fetch(base+url+'/bundle.json');check('Bundle route is public for accepted current build',response.status===200);check('Bundle is attachment-only JSON',response.headers.get('content-type').includes('application/json')&&response.headers.get('content-disposition').includes('attachment'));check('Bundle is sandboxed and not cached',response.headers.get('content-security-policy').includes("sandbox; default-src 'none'")&&response.headers.get('cache-control')==='no-store');
  const bundle=await response.json();check('Bundle retains software/research license distinction',bundle.software_license==='AGPL-3.0-only'&&bundle.research_license==='CC-BY-4.0');check('Bundle retains original task/result/context identity',bundle.result_id===fixture.result&&bundle.task_id===fixture.task&&bundle.context_id===fixture.snapshot);
  for(const file of bundle.build.files){response=await fetch(base+url+'/files/'+file.id);const text=await response.text();check('Exact '+file.role+' bytes and checksum',text===file.content&&createHash('sha256').update(text).digest('hex')===file.sha256);check(file.role+' download has inert MIME and attachment filename',response.headers.get('content-type').includes('text/plain')&&response.headers.get('content-disposition').includes(file.name)&&response.headers.get('x-content-type-options')==='nosniff');}

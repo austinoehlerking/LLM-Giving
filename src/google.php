@@ -10,7 +10,7 @@ function google_verification_token(): string {
 }
 function google_analytics_request(): bool {
     if (env('GOOGLE_ANALYTICS_ENABLED', env('APP_ENV') === 'production' ? '1' : '0') !== '1' || google_measurement_id() === '') return false;
-    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET' || !empty($_SESSION['admin']) || !empty($_SESSION['manage'])) return false;
+    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET' || !empty($_SESSION['admin']) || !empty($_SESSION['manage']) || !empty($_SESSION['volunteer_sessions'])) return false;
     $path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
     // A closed route list excludes receipts, management secrets, forms, packets, files and errors.
     return is_string($path) && (bool)preg_match('~^/(?:research|about|contact|blog(?:/[a-z0-9]+(?:-[a-z0-9]+)*)?|legal/(?:terms|privacy|licensing|moderation|copyright)|research/[a-z0-9]+(?:-[a-z0-9]+)*)?$~D', $path);

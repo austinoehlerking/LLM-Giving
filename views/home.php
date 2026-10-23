@@ -4,8 +4,8 @@
 <h1 id="giving-title"><?php if($homeTitle===HOME_TITLE): ?>Folding@home, <span class="giving-headline">but for AI usage.</span><?php else: ?><?=e($homeTitle)?><?php endif ?></h1>
 <p class="giving-subtitle">Put your spare AI usage to help open-source research.</p>
 <p class="giving-description">Use your own AI tools to investigate questions, share findings, and review the evidence.</p>
-<div class="actions primary-actions"><a class="button giving-primary" href="#research">Find research <span aria-hidden="true">→</span></a><a class="button secondary" href="/submit">Submit Research Request</a></div>
-<p class="giving-trust">Open-source platform <span aria-hidden="true">·</span> <a class="giving-source" href="<?=e(source_repository_url())?>"><?=e(source_repository_label())?> <span aria-hidden="true">↗</span></a></p></div>
+<div class="actions primary-actions"><a class="button giving-primary" href="/volunteer">Start volunteering <span aria-hidden="true">→</span></a><a class="button secondary" href="#research">Find research</a><a class="button secondary" href="/submit">Submit Research Request</a></div>
+<p class="giving-trust">Open-source platform <span aria-hidden="true">·</span> <a class="giving-source" href="<?=e(source_repository_url())?>"><?=e(source_repository_label())?> <span aria-hidden="true">↗</span></a> · <a class="text-action" href="/volunteer/quick-start">Volunteer quick start</a></p></div>
 <div class="giving-art"><img src="/assets/research-community.webp" alt="" width="2172" height="724" fetchpriority="high" decoding="async"></div>
 <div class="giving-workflow" aria-label="How contributions become open research">
 <div class="giving-step"><svg viewBox="0 0 72 72" role="img" aria-label="Illustrative example: 67 percent AI usage remaining"><circle class="giving-track" cx="36" cy="36" r="29" fill="none" stroke-width="5"/><circle class="giving-arc" cx="36" cy="36" r="29" fill="none" stroke-width="5" pathLength="100"/><text class="giving-percent" x="36" y="36">67%</text><text class="giving-left" x="36" y="48">LEFT</text></svg><div><h2>Spare AI Usage</h2><p>Put your spare AI usage toward shared research.</p></div></div>

@@ -28,6 +28,7 @@ The production application uses PHP and MariaDB/MySQL. Node 22.16+ is used only 
 - `workflow-engine.php`: planning validation, submission transactions and state transitions.
 - `workflow-routes.php`: HTTP form handling and response formats.
 - `browser-return.php`: private one-assignment volunteer consent, browser exchange, receipt recovery and submission-method labels.
+- `volunteer-sessions.php`, `volunteer-queue.php` and `volunteer-routes.php`: bounded anonymous authorization, atomic eligible queue and private session UI. See [the integration contract](volunteer-sessions.md).
 - `workflow-handoffs.php`: exact issued archives, quotas and retention.
 - `workflow-packets.php`: influence disclosures, quarantine and admin decisions.
 - `workflow-acceptance.php` and `workflow-evidence.php`: acceptance criteria, evidence checks and corrections.
@@ -51,9 +52,9 @@ node tools/qa-all.mjs
 
 `qa-all` runs the server checks, blog HTTP checks and all browser modes sequentially. Keep `node tools/dev.mjs start` running so the database and the blog HTTP target remain available. Each run has its own timestamped directory under `storage/qa/runs/`, containing exit status, commands, logs and fresh report copies. Screenshots remain in the suite directories. A missing or stale browser report cannot count as a pass. Inspect the screenshots before claiming visual QA.
 
-Single modes are listed in `tools/lib/qa-modes.mjs`: viewport, returns, full, library, blog, google, submission, receipt, workflow, artifacts, quarantine, handoffs, launch, legal, citations, requirements, setup, tools, calculations and resources. An unknown mode fails before starting a server. `full` is the original general lifecycle suite; `qa-all` is the complete set.
+Single modes are listed in `tools/lib/qa-modes.mjs`: volunteers, reservations, pickups, forks, viewport, returns, full, library, blog, google, submission, receipt, workflow, artifacts, quarantine, handoffs, launch, legal, citations, requirements, setup, tools, calculations, resources and orchestrator. An unknown mode fails before starting a server. `full` is the original general lifecycle suite; `qa-all` is the complete set.
 
-For concurrent local worktrees, use separate development databases. `QA_PORT` selects an unused loopback port (1024–65535) for the browser suites. `QA_APP_URL` selects the local app URL used by the complete runner’s blog HTTP checks; that test accepts only `http://127.0.0.1:<port>`. Other HTTP fixtures can use fixed ports, so avoid overlapping complete server-check runs.
+For concurrent local worktrees, use separate development databases. `QA_PORT` selects an unused loopback port (1024–65535) for the browser suites. `QA_APP_URL` selects the local app URL used by the complete runner’s blog HTTP checks; that test accepts only `http://127.0.0.1:<port>`. Set `QA_CALCULATION_PORT` (default 8089) and `QA_TOOL_HTTP_PORT` (default 8099) to distinct unused loopback ports for the calculation pilot and tool HTTP fixture. Overrides accept decimal ports 1024–65535 only. Database, app and browser ports must also remain isolated; port isolation alone does not establish browser/resource capacity. Follow [bounded delivery and QA](delivery-workflow.md) before starting or repeating a complete matrix.
 
 Browser discovery uses `QA_BROWSER` when set, otherwise installed Edge on Windows or Playwright's Chromium on other platforms. `PLAYWRIGHT_MODULE` may name an existing package/path. The optional Codex-bundled fallback is resolved from the current user's home directory. Nothing is downloaded automatically. `PHP_BINARY` overrides the PHP executable; `MARIADB_BIN` overrides the Windows database binary directory. Other platforms use the portable PHP or Docker instructions.
 

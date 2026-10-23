@@ -31,7 +31,8 @@ export async function quarantineQa({page,ctx,base,runPhp,check,visibleActions,pa
   await viewports(page,rejectedUrl,'quarantined','.workflow-heading .primary-actions > *');
   await viewports(page,url,'project-held','.research-heading .primary-actions > *');
   check('Research clearly shows hold',(await page.locator('.handoff-state').innerText()).includes('Awaiting admin decision'));
-  await page.getByRole('button',{name:'Copy AI handoff',exact:true}).click();await page.locator('[data-handoff-status]').filter({hasText:'Copied!'}).waitFor();const heldText=await page.evaluate(()=>navigator.clipboard.readText());check('Held handoff gives admin next action without schema',heldText.includes('A packet is quarantined')&&!heldText.includes('REQUIRED OUTPUT JSON'));
+  check('Held research offers reference text rather than a task pickup',await page.getByRole('link',{name:'Copy AI handoff',exact:true}).count()===0);
+  await page.getByRole('link',{name:'Read reference handoff',exact:true}).click();const heldText=await page.locator('body').innerText();check('Held handoff gives admin next action without schema',heldText.includes('A packet is quarantined')&&!heldText.includes('REQUIRED OUTPUT JSON'));
   await page.goto(url+'/tasks/'+t.id);check('Return form unavailable during hold',await page.locator('[name=payload]').count()===0);
   await ap.goto(base+'/admin/research/'+fixture.id);
   let form=ap.locator('form').filter({has:ap.locator('[name=result_id][value="'+rejectedId+'"]')});
