@@ -18,9 +18,11 @@ try{
  $bad=$post;$bad['policy_version']='old';ard(fn()=>ar_issue($r,$t['id'],$bad),409,'Changed policy requires new consent');
  [$g,$issued,$secret]=ar_test_grant($r,$t,$post);$issuer=wf_actor();
  arc($g['actor_hash']===$issuer&&$g['consent']['terms_version']===terms_version(),'Grant binds issuer and exact accepted policy');
+ arc($g['consent']['resource_confirmation']===CONTRIBUTOR_RESOURCE_CONFIRMATION && str_contains($issued['handoff'],CONTRIBUTOR_RESOURCE_CONFIRMATION),'Private consent and supplement retain the exact resource self-attestation');
  arc($g['consent']['disclosure_scope']==='Through authorization; the AI separately reports later input.','Volunteer declaration scope is explicit');
  arc(!str_contains(json_encode($g),$secret),'Database stores no raw return secret');
  $archive=wf_read_handoff($r['id'],$g['scope']['archive_id']);arc(!str_contains($archive['body'],$secret)&&!str_contains($archive['body'],$g['id']),'Public immutable archive contains no return credential');
+ arc(str_contains($archive['body'],"Follow the provider's rules") && str_contains($archive['body'],'permission to publish publicly') && str_contains($archive['body'],'does not audit or police'),'Public handoff includes resource rules and does not claim permissions were audited');
  arc(str_contains($archive['body'],'AI BROWSER RETURN PROCEDURE')&&str_contains($archive['body'],'JSON is the payload format'),'Trusted prompt permits browser tools');
  $_SESSION['browser_returns']=[];ard(fn()=>ar_read($r,$g['id']),403,'Public authorization id alone is not permission');
  $_SESSION['workflow_actor']=bin2hex(random_bytes(32));$_SESSION['browser_returns'][$g['id']]=$g['secret_hash'];arc(wf_actor()!==$issuer,'Separate anonymous browser actor simulated');
@@ -52,7 +54,9 @@ try{
  [$stale]=ar_test_grant($r,$t,$post);$packet=ar_test_packet($r,$t,$stale);query('UPDATE workflow_tasks SET revision=revision+1 WHERE id=?',[$t['id']]);ard(fn()=>ar_record($r,$stale,$packet,false),409,'Stale ready task cannot advance');query('UPDATE workflow_tasks SET revision=revision-1 WHERE id=?',[$t['id']]);
  query('UPDATE browser_returns SET expires_at=? WHERE id=?',['2000-01-01 00:00:00',$stale['id']]);ard(fn()=>ar_record($r,$stale,$packet,true),403,'Expired authorization cannot submit');
  [$changed]=ar_test_grant($r,$t,$post);$packet=ar_test_packet($r,$t,$changed);$old=setting('terms_version',TERMS_VERSION);set_setting('terms_version','changed-policy');ard(fn()=>ar_record($r,$changed,$packet,true),409,'Changed legal terms cannot reuse old consent');set_setting('terms_version',$old);
- $manual=wf_test_payload($r['id'],$t,'progress');$mid=wf_submit($r['id'],$t['id'],$manual,wf_actor(),false,'manual');arc(one('SELECT submission_method FROM workflow_submissions WHERE id=?',[$mid])['submission_method']==='manual','Unchanged manual return labeled separately without quarantine');
+ $manual=wf_test_payload($r['id'],$t,'progress');$unconfirmed=$manual;$unconfirmed['terms']=null;ard(fn()=>wf_submit($r['id'],$t['id'],$unconfirmed,wf_actor(),true,'manual'),422,'Manual result requires the current resource/publication confirmation');
+ $forged=parse_contribution(['json'=>json_encode(['terms'=>1]),'terms'=>null]);ard(fn()=>create_contribution($r['id'],$forged),422,'Packet-supplied confirmation cannot replace the supplementary form checkbox');
+ $mid=wf_submit($r['id'],$t['id'],$manual,wf_actor(),false,'manual');arc(one('SELECT submission_method FROM workflow_submissions WHERE id=?',[$mid])['submission_method']==='manual','Unchanged manual return labeled separately without quarantine');
  arc(ar_method(null)==='Submission method not recorded'&&ar_method('manual')==='Manually submitted'&&ar_method('ai_browser')==='AI browser submission','Method display does not backfill history');
  $other=create_research(['title'=>'[QA] Foreign authorization parent','question'=>'Synthetic public parent boundary check for browser returns.','category_id'=>1,'terms'=>1]);moderate('request',$other['id'],'Approved','Synthetic foreign-parent test.');ard(fn()=>ar_read(research($other['id']),$g['id']),404,'Grant cannot cross research parents');
  query("UPDATE research SET status='Withdrawn' WHERE id=?",[$r['id']]);ard(fn()=>ar_read($r,$g['id']),404,'Withdrawal revokes public return access');query("UPDATE research SET status='Needs Research Plan' WHERE id=?",[$r['id']]);

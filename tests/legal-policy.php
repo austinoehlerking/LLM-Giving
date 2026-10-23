@@ -14,12 +14,16 @@ try {
     $legacy = 'legacy-policy-'.substr(uid(), 0, 12);
     $historical = legal_pages();
     $historical['privacy'] = 'Previously recorded privacy policy.';
+    $historical['terms'] = 'Previously recorded terms without a resource confirmation.';
     $historicalJson = json_encode($historical);
     insert('legal_versions', ['version'=>$legacy, 'pages'=>$historicalJson, 'created_at'=>now()]);
     set_setting('terms_version', $legacy);
     $override = 'Synthetic existing operator privacy override.';
     set_setting('page_privacy', $override);
     $notice = google_privacy_notice();
+    $resourceNotice = contributor_resource_notice();
+    $termsOverride = 'Synthetic existing operator terms override.';
+    set_setting('page_terms', $termsOverride);
 
     $version = terms_version();
     policy_check($version !== $legacy, 'Existing installations get a new effective version for the disclosure');
@@ -35,6 +39,22 @@ try {
     policy_check(str_contains($html, $version), 'Rendered version identifies the effective disclosure');
     policy_check(one('SELECT version FROM legal_versions WHERE version=?', [$version]) === null, 'Rendering remains read-only');
 
+    $path = '/legal/terms'; $title = 'Terms'; $body = $termsOverride;
+    ob_start(); require ROOT.'/views/legal.php'; $termsHtml = ob_get_clean();
+    $visibleTerms = html_entity_decode(strip_tags($termsHtml), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    policy_check(str_contains($visibleTerms, $termsOverride), 'Custom Terms remain visible');
+    policy_check(str_contains($visibleTerms, $resourceNotice['body']), 'Custom Terms cannot omit the mandatory resource responsibility notice');
+    policy_check(str_contains($termsHtml, 'id="contributor-resources"'), 'The resource terms have a stable guidance link');
+    $path = '/about'; $title = 'Participation'; $body = 'Synthetic custom participation guidance.';
+    ob_start(); require ROOT.'/views/legal.php'; $aboutHtml = ob_get_clean();
+    policy_check(str_contains(html_entity_decode(strip_tags($aboutHtml), ENT_QUOTES | ENT_HTML5, 'UTF-8'), CONTRIBUTOR_RESOURCE_CONFIRMATION), 'Custom participation guidance retains the confirmation rule');
+    ob_start(); terms(true); $checkbox = ob_get_clean();
+    policy_check(str_contains(html_entity_decode(strip_tags($checkbox), ENT_QUOTES | ENT_HTML5, 'UTF-8'), CONTRIBUTOR_RESOURCE_CONFIRMATION), 'Manual contributor checkbox explicitly covers resources, provider rules and publication rights');
+    policy_check(str_contains($checkbox, 'required') && !str_contains($checkbox, ' checked'), 'The confirmation is required and never preselected');
+    $withoutResources = legal_pages();
+    $withoutResources['terms'] = $termsOverride;
+    policy_check(legal_policy_version($withoutResources, $legacy) !== $version, 'Adding the resource rule changes the effective policy even with custom Terms');
+
     $acceptedVersion = terms_version(record: true);
     $recordedJson = one('SELECT pages FROM legal_versions WHERE version=?', [$acceptedVersion])['pages'];
     $recorded = json_decode($recordedJson, true);
@@ -43,6 +63,8 @@ try {
     policy_check(str_contains($recorded['privacy'], $notice['body']), 'Accepted snapshot includes the exact displayed Analytics notice');
     policy_check(str_contains($visible, $notice['body']) && str_contains($recorded['privacy'], $notice['body']), 'Rendered and retained disclosures match');
     policy_check($recorded === legal_pages(), 'Accepted snapshot contains the complete effective bundle');
+    policy_check(str_contains($recorded['terms'], $termsOverride) && str_contains($recorded['terms'], $resourceNotice['body']), 'Acceptance retains both custom Terms and the full resource-use notice');
+    policy_check(!str_contains($historical['terms'], CONTRIBUTOR_RESOURCE_CONFIRMATION), 'Historical acceptance does not claim a new confirmation');
 
     $changedNotice = legal_pages();
     $changedNotice['privacy'] .= "\nSynthetic revised Analytics disclosure.";

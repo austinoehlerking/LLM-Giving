@@ -4,8 +4,10 @@ export async function legalQa({page,base,runPhp,check,visibleActions,password}){
  const shot=async name=>{await page.screenshot({path:path.join(out,name+'.png')});shots.push(name+'.png');};
  for(const size of [{width:1366,height:768},{width:390,height:844},{width:375,height:667}]){
   await page.setViewportSize(size);await page.goto(base+'/legal/terms');await shot('terms-'+size.width);await visibleActions(page,'.legal .button','Policy contact '+size.width);
+  const resources=page.locator('#contributor-resources').locator('..');check('Terms clearly allocate resource responsibility '+size.width,(await resources.innerText()).includes('Having access alone does not establish permission')&&(await resources.innerText()).includes('does not access your AI account or audit, monitor, police or verify'));await resources.scrollIntoViewIfNeeded();await shot('resource-terms-'+size.width);
   check('Operator details '+size.width,(await page.locator('article').innerText()).includes('United States'));check('Contact address '+size.width,await page.getByRole('link',{name:'info@llm.giving',exact:true}).getAttribute('href')==='mailto:info@llm.giving');
  }
+ await page.goto(base+'/about');check('Participation guidance links the resource confirmation to Terms',await page.locator('#contribute-with-permission').count()===1&&await page.getByRole('link',{name:'Read the resource-use terms'}).getAttribute('href')==='/legal/terms#contributor-resources');await page.locator('#contribute-with-permission').scrollIntoViewIfNeeded();await shot('participation-resources');
  for(const name of ['privacy','licensing','moderation','copyright']){await page.setViewportSize({width:1366,height:768});await page.goto(base+'/legal/'+name);await shot(name);check(name+' current policy version',(await page.locator('article').innerText()).includes('Policy version: policy-'));}
  for(const size of [{width:1366,height:768},{width:390,height:844},{width:375,height:667}]){
   await page.setViewportSize(size);await page.goto(base+'/legal/licensing');await shot('published-source-'+size.width);await visibleActions(page,'.legal .button','Public source access '+size.width);
