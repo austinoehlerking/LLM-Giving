@@ -1,9 +1,11 @@
 // Repo-owned local HTTP end-to-end fallback. Uses real routes, CSRF and separate sessions.
 import {unpack} from './unpack-calculation.mjs';
+import {qaLoopbackPort} from './lib/qa-ports.mjs';
 import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {spawnSync} from 'node:child_process';import {createHash,randomBytes} from 'node:crypto';import {root,env,spawnPhp,runPhp,ready} from './runtime.mjs';
 const preparation=spawnSync(process.execPath,['tests/calculation-model.mjs'],{env,encoding:'utf8',windowsHide:true});assert.equal(preparation.status,0,preparation.stdout+preparation.stderr);
-const base='http://127.0.0.1:8089',out=path.join(root,'storage/qa/calculations');fs.mkdirSync(out,{recursive:true});
-const server=spawnPhp(['-S','127.0.0.1:8089','-t','public','public/router.php'],{APP_URL:base,RATE_LIMIT_NAMESPACE:'calculation-pilot-'+randomBytes(8).toString('hex')});
+const fixturePort=qaLoopbackPort('QA_CALCULATION_PORT',8089),address='127.0.0.1:'+fixturePort;
+const base='http://'+address,out=path.join(root,'storage/qa/calculations');fs.mkdirSync(out,{recursive:true});
+const server=spawnPhp(['-S',address,'-t','public','public/router.php'],{APP_URL:base,RATE_LIMIT_NAMESPACE:'calculation-pilot-'+randomBytes(8).toString('hex')});
 const checks=[];const check=(label,ok)=>{assert.ok(ok,label);checks.push(label);};const hash=text=>createHash('sha256').update(text,'utf8').digest('hex');
 class Session{
  jar=new Map();
