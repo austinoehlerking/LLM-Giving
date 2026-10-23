@@ -21,9 +21,12 @@ try{
  const sequential=actor();results=await race([{...a,actor:sequential,op:'claim'},{...b,actor:sequential,op:'claim'}]);singleWinner(results);
  const held=results[0].status===200?a:b;await race([{...held,actor:sequential,op:'release'}]);
  const old=actor();await race([{...a,actor:old,op:'claim'}]);
- results=await race([{...a,actor:old,at:at+3600,op:'submit'},{...a,actor:actor(),at:at+3600,op:'claim'}]);assert.equal(results[0].status,409);assert.equal(results[1].status,200);assert.equal(state(a).results.length,0);checks+=3;
+ results=await race([{...a,actor:old,at:at+3600,op:'submit_held'},{...a,actor:actor(),at:at+3600,op:'claim_held'}]);assert.equal(results[0].status,409);assert.equal(results[1].status,200);assert.equal(state(a).results.length,0);checks+=3;
  const holder=results[1].result.actor_hash;
  results=await race([{...a,actor:holder,at:at+3601,op:'renew'},{...a,actor:holder,at:at+3601,op:'submit'}]);
  assert.equal(results[1].status,200);assert.ok([200,409].includes(results[0].status));assert.equal(state(a).results.length,1);assert.equal(state(a).leases.filter(r=>!r.ended_at).length,0);checks+=4;
+ const withdrawing=actor();await race([{...b,actor:withdrawing,op:'claim'}]);
+ results=await race([{...b,actor:withdrawing,at:at+1,op:'renew_held'},{...b,actor:actor(),at:at+1,op:'withdraw_held'}]);
+ assert.equal(results[0].status,404);assert.equal(results[1].status,200);assert.equal(state(b).leases.filter(r=>!r.ended_at).length,0);assert.equal(state(b).results.length,0);checks+=4;
  console.log(checks+' concurrent reservation assertions passed.');fs.writeFileSync(path.join(output,'report.json'),JSON.stringify({checks,history},null,2));
 }finally{runPhp(['tests/reservation-concurrency.php','cleanup',...fixtures.map(f=>f.rid)]);}
