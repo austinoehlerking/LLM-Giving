@@ -20,7 +20,9 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
    await p.setViewportSize(size);if(reload)await p.goto(reload);
    const file=path.join(out,label+'-'+size.width+'x'+size.height+'.png');
    await p.screenshot({path:file,fullPage:false,mask:[p.locator('#volunteer-private-link'),p.locator('#session-task-handoff')]});screenshots.push(file);report.screenshots.push(file);
-   try{await visibleActions(p,selector,label+' '+size.width);}catch(error){failures.push(error.message);}
+   try{await visibleActions(p,selector,label+' '+size.width);
+    if(label==='separate-worker')check('Assigned worker packet entry begins in first viewport '+size.width,await p.locator('textarea[name=payload]').evaluate(el=>{const r=el.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&Math.min(r.bottom,innerHeight)-r.top>=44;}));
+   }catch(error){failures.push(error.message);}
   }
   await inspect(label);
   if(failures.length)throw Error(failures.join('; '));

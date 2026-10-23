@@ -34,6 +34,6 @@ if($action==='create') {
             'task'=>$assignment['task_id']??null,'research'=>$assignment['research_id']??null,'lease_expiry'=>$lease['expires_at']??null,
             'deadline'=>$session['expires_at'],'outcomes'=>array_column(all('SELECT outcome FROM volunteer_assignments WHERE session_id=? ORDER BY created_at,id',[$session['id']]),'outcome'),
             'lineage_preserved'=>!(bool)one('SELECT a.id FROM volunteer_assignments a JOIN browser_returns b ON b.id=a.return_id WHERE a.session_id=? AND b.actor_hash<>? LIMIT 1',[$session['id'],$session['actor_hash']]),
-            'recorded'=>(int)one('SELECT COUNT(*) n FROM workflow_submissions WHERE actor_hash=?',[$session['actor_hash']])['n']]);
+            'recorded'=>(int)one('SELECT COUNT(*) n FROM volunteer_assignments a JOIN browser_returns b ON b.id=a.return_id JOIN workflow_submissions s ON s.id=b.result_id AND s.research_id=a.research_id WHERE a.session_id=?',[$session['id']])['n']]);
     } else throw new RuntimeException('Unknown volunteer browser fixture action.');
 }
