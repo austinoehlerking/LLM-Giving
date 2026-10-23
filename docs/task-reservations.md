@@ -1,6 +1,6 @@
 # Shared task reservations
 
-Core implementation integration pin (local only): `dd023cb77ee6ee71f7e550efab2a55e4a103ce80`. Use the final task handoff for completed validation and any subsequent fixes.
+Core implementation integration pin (local only): `f5d381fafda5e16fd904ae764865162a9c24c677`. Use the final task handoff for completed validation and any subsequent fixes.
 
 ## Scope and rollout
 
@@ -35,7 +35,7 @@ Parent serialization makes different-actor claims atomic. Actor serialization al
 
 Do not call claim/renew/release from a transaction that first locked a parent without its actor mutex. The orchestrator should call the shared top-level operation directly, or follow this ordering for a combined operation. Existing browser authorization and recording acquire the original volunteer mutex before their parent transaction.
 
-Lifecycle paths that already hold a parent lock may invalidate its leases **without** acquiring actor locks. They never wait for an actor, so they do not reverse the order. Restart, clarification, corrections, pause/withdrawal, removal and quarantine cancel affected leases. Restoration does not revive cancelled leases. Dependency/result/snapshot and transitive fork-source visibility are also checked on every admission. Each lease pins a private hash of loss-of-availability history IDs across its full source ancestry. A source withdrawal followed by restoration changes this fence permanently, including when a child claim races the uncommitted withdrawal. The old child lease cannot revive; a fresh claim must pass current checks. The hash contains no public capability.
+Lifecycle paths that already hold a parent lock may invalidate its leases **without** acquiring actor locks. They never wait for an actor, so they do not reverse the order. Restart, clarification, corrections, pause/withdrawal, removal and quarantine cancel affected leases. Restoration does not revive cancelled leases. Dependency/result/snapshot and transitive fork-source visibility are also checked on every admission. Each lease pins a private hash of withdrawal history IDs across its full source ancestry. Pausing or completing a source's own tasks leaves its public background available and does not cancel independent child work. A source withdrawal followed by restoration changes this fence permanently, including when a child claim races the uncommitted withdrawal. The old child lease cannot revive; a fresh claim must pass current checks. The hash contains no public capability.
 
 Keep transactions short; no AI work, remote calls, browser execution or waiting for volunteers inside locks. Rate-limit connections do not hold a counter lock while waiting for application locks.
 
