@@ -55,6 +55,7 @@ function vs_create(array $post): array {
         'source'=>'Volunteer session authorization form (self-attested)',
         'disclosure_scope'=>'Through session authorization; each worker separately reports later scientific input.',
         'permission'=>'Eligible task selection, research, browser submission, platform validation repair and continuation only within the chosen scope, assignment limit and session deadline. One active task at a time. No purchases, installation, unrelated work or broader account access is authorized.',
+        'resource_confirmation'=>CONTRIBUTOR_RESOURCE_CONFIRMATION,
         'authorized_resources'=>'Volunteer confirmed own or explicitly authorized resources, provider rules and permission for public publication.'];
     $id = uid();
     $secret = bin2hex(random_bytes(32));

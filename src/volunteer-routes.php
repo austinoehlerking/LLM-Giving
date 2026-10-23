@@ -81,6 +81,7 @@ function vs_assignment_page(array $session,array $assignment,string $method): vo
     $grant=vs_assignment_grant($session,$assignment);
     $r=research($assignment['research_id']); $task=wf_task($r['id'],$assignment['task_id']);
     $input=''; $error=''; $repair=''; $checked=false;
+    $jsonCheck=$method==='POST' && ($_POST['operation']??'')==='check' && str_contains($_SERVER['HTTP_ACCEPT']??'','application/json');
     if ($method==='POST') {
         $input=is_string($_POST['payload']??null)?$_POST['payload']:'';
         try {
@@ -96,10 +97,21 @@ function vs_assignment_page(array $session,array $assignment,string $method): vo
                 $result=vs_record($session['id'],$assignment['id'],$packet,$operation==='check');
                 if ($operation==='submit') redirect(ar_receipt_url($r,$grant,$result));
                 $checked=true;
+                if ($jsonCheck) {
+                    $analysis=$packet; $analysis['human_disclosure']=$grant['consent']['human_disclosure'];
+                    header('Content-Type: application/json'); header('Cache-Control: no-store');
+                    echo json_encode(['ok'=>true,'message'=>'Packet checks passed. Nothing has been submitted. Submit the unchanged packet and inspect its recorded receipt.','influence_review'=>wf_influence($analysis)['review_status']==='needed']);
+                    return;
+                }
             } else fail(422,'Choose check, submit or explicit reacquisition.');
         } catch (HttpError $caught) {
             http_response_code($caught->status); $error=$caught->getMessage();
             if ($caught->status===422) $repair=wf_repair_prompt($r,$task,$error,true,'/volunteer/'.$session['id'].'/assignments/'.$assignment['id']);
+            if ($jsonCheck) {
+                header('Content-Type: application/json'); header('Cache-Control: no-store');
+                echo json_encode(['ok'=>false,'message'=>$error,'repair_prompt'=>$repair]);
+                return;
+            }
         }
     }
     $session=vs_read($session['id']); $assignment=vs_assignment($session,$assignment['id']);

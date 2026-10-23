@@ -15,12 +15,12 @@ function vq_project(bool $plan=true,bool $tool=false): array {
     if ($plan) { $task=wf_tasks($created['id'])[0]; wf_test_submit($created['id'],$task['id'],wf_test_payload($created['id'],$task),hash('sha256',uid())); }
     return research($created['id']);
 }
-function vq_session(array $r,int $limit=3,int $minutes=60,bool $software=false,?string $actor=null): array {
+function vq_session(array $r,int $limit=3,int $minutes=60,bool $software=false,?string $actor=null,string $disclosure='none'): array {
     global $sessions;
     $_SESSION['workflow_actor']=$actor??bin2hex(random_bytes(32));
     putenv('RATE_LIMIT_NAMESPACE=volunteer-queue-'.uid());
     $created=vs_create(['scope_kind'=>'research','research_id'=>$r['id'],'assignment_limit'=>$limit,'minutes'=>$minutes,'model'=>'gpt-6-astra','reasoning'=>'max','tool'=>'Codex',
-        'authorize'=>1,'terms'=>1,'authorized_resources'=>1,'tool_terms'=>$software?1:0,'policy_version'=>terms_version(),'human_level'=>'none']);
+        'authorize'=>1,'terms'=>1,'authorized_resources'=>1,'tool_terms'=>$software?1:0,'policy_version'=>terms_version(),'human_level'=>$disclosure,'human_details'=>$disclosure==='none'?'':'Synthetic scientific steering explicitly declared by the volunteer.']);
     $sessions[]=$created['id'];return $created;
 }
 function vq_packet(array $session,array $assignment,string $outcome='completed'): array {
@@ -102,6 +102,38 @@ try {
     $review=array_values(array_filter(wf_tasks($reviewProject['id']),fn($t)=>$t['kind']==='review'))[0];
     vqd(fn()=>vs_task_eligible(vs_read($reviewId),research($reviewProject['id']),$review),422,'Session workers cannot review their own research even when someone else synthesized it');
     vqd(fn()=>vs_claim_next($reviewId),409,'Queue does not turn the session into an independent reviewer');
+    $handoverProject=vq_project();$handover=vq_session($handoverProject);$handoverId=$handover['id'];$handAssignment=vs_claim_next($handoverId);$handSession=vs_read($handoverId);$handGrant=vs_assignment_grant($handSession,$handAssignment);$handPacket=vq_packet($handSession,$handAssignment);
+    $_SESSION['workflow_actor']=bin2hex(random_bytes(32));$_SESSION['browser_returns'][$handGrant['id']]=$handGrant['secret_hash'];
+    vqc(wf_actor()!==$handSession['actor_hash'],'The returning worker uses a separate anonymous browser actor');
+    $handResult=ar_record($handoverProject,$handGrant,$handPacket,false);
+    vqc(one('SELECT actor_hash FROM workflow_submissions WHERE id=?',[$handResult])['actor_hash']===$handSession['actor_hash'],'Direct authorized browser return preserves original volunteer lineage');
+    vqc(vs_assignment(vs_read($handoverId),$handAssignment['id'])['ended_at']!==null,'Browser-return hook records the session assignment outcome atomically');
+    $stoppedProject=vq_project();$stopped=vq_session($stoppedProject);$stopId=$stopped['id'];$stopAssignment=vs_claim_next($stopId);$stopSession=vs_read($stopId);$stopGrant=vs_assignment_grant($stopSession,$stopAssignment);$stopPacket=vq_packet($stopSession,$stopAssignment,'progress');
+    $_SESSION['browser_returns'][$stopGrant['id']]=$stopGrant['secret_hash'];vs_stop($stopId);
+    vqd(fn()=>ar_record($stoppedProject,$stopGrant,$stopPacket,false),409,'A separate worker cannot bypass Stop through its private browser-return capability');
+    $_POST=['operation'=>'claim','task_revision'=>(string)$stopAssignment['task_revision']];
+    vqd(fn()=>wr_http($stoppedProject,$stopAssignment['task_id'],'POST',$stopGrant),409,'A stopped worker capability cannot create a replacement reservation');$_POST=[];
+    vqc(!wr_live($stoppedProject['id'],$stopAssignment['task_id']),'Denied stopped-worker pickup leaves no new lease');
+    $policyProject=vq_project();$policySession=vq_session($policyProject);$policyId=$policySession['id'];$policyAssignment=vs_claim_next($policyId);$policyGrant=vs_assignment_grant(vs_read($policyId),$policyAssignment);
+    $oldPolicy=one('SELECT value FROM settings WHERE name=?',['terms_version']);
+    try {
+        set_setting('terms_version','volunteer-policy-change-'.uid());
+        vqc(vs_state(vs_read($policyId))==='terms_changed','A real effective legal-version change invalidates an ongoing session');
+        vqc(!wr_live($policyProject['id'],$policyAssignment['task_id']),'Changed terms free session-bound logical availability');
+        vqd(fn()=>ar_validate($policyProject,$policyGrant),409,'Changed terms revoke a worker return capability');
+    } finally { if($oldPolicy)set_setting('terms_version',$oldPolicy['value']);else query('DELETE FROM settings WHERE name=?',['terms_version']); }
+    vs_stop($policyId);
+    $heldProject=vq_project(false);$held=vq_session($heldProject,3,60,false,null,'influenced');$heldId=$held['id'];$heldAssignment=vs_claim_next($heldId);$heldPacket=vq_packet(vs_read($heldId),$heldAssignment,'progress');
+    $heldResult=vs_record($heldId,$heldAssignment['id'],$heldPacket,false);
+    vqc(one('SELECT admission FROM workflow_submissions WHERE id=?',[$heldResult])['admission']==='quarantined' && !wr_live($heldProject['id'],$heldAssignment['task_id']),'Quarantined recording ends the reservation without advancing scientific work');
+    vqc(vs_public_assignment(vs_read($heldId),vs_assignment(vs_read($heldId),$heldAssignment['id']))['outcome']==='Quarantined — awaiting review','Dashboard distinguishes pending quarantine from accepted work');
+    wf_review_influence($heldProject['id'],$heldResult,'Synthetic moderation rejection to exercise current session receipts.','reject');
+    vqc(vs_public_assignment(vs_read($heldId),vs_assignment(vs_read($heldId),$heldAssignment['id']))['outcome']==='Rejected','Dashboard follows the current rejection while retaining original assignment history');
+    vqc((int)vs_read($heldId)['assignments_used']===1,'Quarantine or rejection never refunds the consumed assignment');
+    $privateProject=vq_project(false);$privateSession=vq_session($privateProject);$privateId=$privateSession['id'];$privateAssignment=vs_claim_next($privateId);
+    change_status($privateProject['id'],'Withdrawn','Synthetic visibility revocation.','requester');
+    vqc(!vs_public_assignment(vs_read($privateId),$privateAssignment)['available'],'Private dashboard does not expose a withdrawn parent through aggregation');
+    vs_stop($privateId);
     $checksFile=storage('qa/volunteer-draft/queue-tests.json');file_put_contents($checksFile,json_encode(['pass'=>true,'count'=>count($checks),'checks'=>$checks],JSON_PRETTY_PRINT));
     echo count($checks)." volunteer queue and lifecycle checks passed.\n";
 } finally {

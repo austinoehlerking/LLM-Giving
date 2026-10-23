@@ -64,6 +64,7 @@ function ar_read(array $r,string $id,bool $requireSession=true): array {
     return $g;
 }
 function ar_validate(array $r,array $g): void {
+    if (!empty($g['scope']['volunteer_session_id'])) vs_validate_grant($r,$g);
     if($g['task_id']){
         $t=wf_task($r['id'],$g['task_id']);
         ar_ready($r,$t,$g['actor_hash']);
@@ -76,9 +77,14 @@ function ar_validate(array $r,array $g): void {
 function ar_record(array $r,array $grant,array $d,bool $checkOnly): string {
     return tx(function()use($r,$grant,$d,$checkOnly){
         wr_actor_lock($grant['actor_hash']);
+        if (!empty($grant['scope']['volunteer_session_id'])) {
+            $currentGrant=ar_read($r,$grant['id']);
+            if (!$currentGrant['result_id']) vs_before_record($currentGrant);
+        }
         one('SELECT id FROM research WHERE id=? FOR UPDATE',[$r['id']]);
         $r=research($r['id']);
         $g=ar_read($r,$grant['id']);
+        if (!empty($g['scope']['volunteer_session_id'])) vs_private_packet(vs_read($g['scope']['volunteer_session_id'],false),$g,$d);
         $encoded=json_encode($d,JSON_THROW_ON_ERROR);
         preg_match_all('/[a-f0-9]{64}/i',$encoded,$possibleSecrets);
         foreach($possibleSecrets[0] as $candidate)if(hash_equals($g['secret_hash'],hash('sha256',$candidate)))fail(422,'Remove the private return credential from the research packet; it is authorization, not evidence.');
@@ -108,6 +114,7 @@ function ar_record(array $r,array $grant,array $d,bool $checkOnly): string {
         }
         if(!$checkOnly){
             query('UPDATE browser_returns SET result_id=?,payload_hash=? WHERE id=?',[$id,$hash,$g['id']]);
+            vs_return_recorded($g,$id);
             $_SESSION['contribution_receipts'][$id]=true;
         }
         return $id;
