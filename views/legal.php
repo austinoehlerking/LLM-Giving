@@ -10,4 +10,6 @@
 <?php endif ?>
 <?=prose(str_ireplace('llm.giving','LLM.Giving',$body))?>
 <?php if(($path??'')==='/legal/privacy'): $analyticsNotice=google_privacy_notice(); ?><section aria-labelledby="analytics-notice"><h2 id="analytics-notice"><?=e($analyticsNotice['title'])?></h2><?=prose($analyticsNotice['body'])?></section><?php endif ?>
+<?php if(($path??'')==='/legal/terms'): $resourceNotice=contributor_resource_notice(); ?><section aria-labelledby="contributor-resources"><h2 id="contributor-resources"><?=e($resourceNotice['title'])?></h2><?=prose($resourceNotice['body'])?></section><?php endif ?>
+<?php if(($path??'')==='/about'): ?><section aria-labelledby="contribute-with-permission"><h2 id="contribute-with-permission">Contribute with permission</h2><p><?=e(CONTRIBUTOR_RESOURCE_CONFIRMATION)?></p><p>Your required consent checkbox confirms this rule before an authorized handoff or contribution. You are responsible for permissions, provider rules, costs and publication rights. LLM.Giving relies on your confirmation; it does not audit or police external resource use.</p><a href="/legal/terms#contributor-resources">Read the resource-use terms</a></section><?php endif ?>
 </article>

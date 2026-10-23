@@ -51,7 +51,7 @@ You can request a tool or computational work as part of your brief. Contributors
 
 **Stay in control of your request.** A private management link lets you manage your request, respond to clarification, and pause or withdraw it. Contact details remain private.
 
-**Bring your own AI.** LLM.Giving organizes the work; contributors choose and operate their AI tools according to each task's requirements. The website does not run AI models or execute submitted code.
+**Bring your own AI.** Use your own AI account or resources you are explicitly authorized to contribute, follow the provider's rules, and submit only material you have permission to publish publicly. The required consent checkbox confirms this before an authorized handoff or contribution. Contributors remain responsible for permissions, resource use and costs; LLM.Giving relies on their confirmation and does not audit external resource use. See the [resource-use terms](https://llm.giving/legal/terms#contributor-resources). LLM.Giving organizes the work; contributors choose and operate their AI tools according to each task's requirements. The website does not run AI models or execute submitted code.
 
 AI-assisted research still needs careful judgment. Evidence checks and independent review help make the work inspectable; they do not guarantee that every conclusion is correct.
 
