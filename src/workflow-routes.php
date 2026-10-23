@@ -1,6 +1,7 @@
 <?php
 function wf_route(array $r,string $suffix,string $method,?array $grant=null): bool {
     $rid=$r['id'];$base='/research/'.$r['slug'];
+    if(!$grant&&mp_route($r,$suffix,$method))return true;
     if(!$grant&&ar_route($r,$suffix,$method))return true;
     if(rs_route($r,$suffix,$method)||ra_route($r,$suffix,$method)||rc_route($r,$suffix,$method)||rt_route($r,$suffix,$method))return true;
     if(preg_match('~^tasks/([a-f0-9]{32})/reservation$~D',$suffix,$reservationMatch)){wr_http($r,$reservationMatch[1],$method);return true;}
@@ -30,8 +31,15 @@ function wf_route(array $r,string $suffix,string $method,?array $grant=null): bo
     if(preg_match('~^tasks/([a-f0-9]{32})(/prompt.md)?$~',$suffix,$m)){
         $t=wf_task($rid,$m[1]);if($t['visibility']!=='public')fail(404,'Task not found.');
         if(!empty($m[2])){wf_send_handoff(wf_issue_handoff($rid,$t['id']));return true;}
-        $error='';$input='';$checked=false;$repair='';
-        if($method==='POST'){
+        $error='';$input='';$checked=false;$repair='';$reservationMessage='';$reservationHandoff='';
+        if($method==='POST'&&str_starts_with($_POST['operation']??'','reservation-')){
+            $input=text_field($_POST,'payload',0,200000);
+            try{
+                $result=mp_control($r,$t,substr($_POST['operation'],12),mp_revision($_POST),$grant);
+                $reservationMessage=$result['message'];$reservationHandoff=$result['handoff']??'';
+            }catch(HttpError $e){http_response_code($e->status);$error=$e->getMessage();$result=['message'=>$error];}
+            if(mp_json()){mp_response($r,$t,$grant,'workflow-result',$result,!$error);return true;}
+        }elseif($method==='POST'){
             $checkOnly=($_POST['operation']??'')==='check';
             $jsonCheck=$checkOnly&&str_contains($_SERVER['HTTP_ACCEPT']??'','application/json');
             throttle($checkOnly?'workflow-check':'workflow-result',$checkOnly?60:(int)setting('submission_limit','12'));
@@ -64,7 +72,7 @@ function wf_route(array $r,string $suffix,string $method,?array $grant=null): bo
             }
         }
         $s=wf_snapshot($rid);
-        render('workflow-task',['title'=>$t['title'],'r'=>$r,'task'=>$t,'snapshot'=>$s,'error'=>$error,'input'=>$input,'checked'=>$checked,'repair'=>$repair,'grant'=>$grant]);return true;
+        render('workflow-task',['title'=>$t['title'],'r'=>$r,'task'=>$t,'snapshot'=>$s,'error'=>$error,'input'=>$input,'checked'=>$checked,'repair'=>$repair,'grant'=>$grant,'reservationMessage'=>$reservationMessage,'reservationHandoff'=>$reservationHandoff]);return true;
     }
     return false;
 }

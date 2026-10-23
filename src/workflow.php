@@ -14,6 +14,7 @@ require_once __DIR__.'/workflow-handoffs.php';
 require_once __DIR__.'/workflow-context.php';
 require_once __DIR__.'/workflow-engine.php';
 require_once __DIR__.'/workflow-policy.php';
+require_once __DIR__.'/manual-pickup.php';
 
 function wf_restart(string $rid,string $reason,string $actor='administrator'): void {
     tx(function()use($rid,$reason,$actor){

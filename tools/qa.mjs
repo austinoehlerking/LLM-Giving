@@ -5,6 +5,7 @@ import {forkQa} from '../tests/fork-browser.mjs';
 import {receiptQa} from '../tests/receipt-browser.mjs';
 import {saveManagementLink} from '../tests/receipt-actions.mjs';
 import {browserReturnQa} from '../tests/browser-return-browser.mjs';
+import {manualPickupQa} from '../tests/manual-pickup-browser.mjs';
 import {authorizedHandoff} from '../tests/browser-authorization.mjs';
 import {qaReports} from './lib/qa-modes.mjs';
 import {requestSetupQa} from '../tests/request-setup-browser.mjs';
@@ -72,6 +73,7 @@ try{
   await ctx.route('https://**google-analytics.com/**',route=>route.abort());
  }
  const page=await ctx.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ if(mode==='pickups')await manualPickupQa({page,ctx,base,runPhp,check,visibleActions});
  const sample=JSON.parse(runPhp(['tests/qa-state.php','preview']));
  for(const size of [{width:1366,height:768},{width:390,height:844},{width:375,height:667},{width:768,height:1024}]){
   await page.setViewportSize(size);await goto(page,'/');await shot(page,'home-'+size.width+'x'+size.height);await visibleActions(page,'.hero .primary-actions > *','Home '+size.width);
@@ -101,6 +103,9 @@ try{
  else if(mode==='reservations'){await reservationQa({page,ctx,base,runPhp,check,visibleActions});}
  else if(mode==='forks') {
   await forkQa({page,ctx,base,runPhp,check,visibleActions,report});
+ }
+ else if(mode==='pickups') {
+  check('Manual pickup browser scenarios completed');
  }
  else if(mode==='returns') {
   await browserReturnQa({page,ctx,base,runPhp,check,visibleActions});

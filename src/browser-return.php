@@ -117,13 +117,13 @@ function ar_receipt_url(array $r,array $g,string $id): string {
     return '/research/'.$r['slug'].($g['task_id']?'/results/':'/contributions/').$id.($g['task_id']?'':'/receipt');
 }
 function ar_route(array $r,string $suffix,string $method): bool {
-    if(preg_match('~^authorize(?:/([a-f0-9]{32}))?$~D',$suffix,$m)){
-        $tid=$m[1]??null;
-        if($tid)ar_ready($r,wf_task($r['id'],$tid));
+    if(preg_match('~^authorize(?:/([a-f0-9]{32}|pickup))?$~D',$suffix,$m)){
+        $tid=$m[1]??null;$studyPickup=$tid==='pickup';
+        if($tid&&!$studyPickup)ar_ready($r,wf_task($r['id'],$tid));
         $error='';
         if($method==='POST'){
             try{
-                $issued=ar_issue($r,$tid,$_POST);
+                $issued=mp_issued($r,$studyPickup?mp_authorized_pickup($r,$_POST):ar_issue($r,$tid,$_POST));
                 render('browser-handoff',['title'=>'Authorized AI handoff','r'=>$r,'issued'=>$issued]);
                 return true;
             }
@@ -168,8 +168,11 @@ function ar_route(array $r,string $suffix,string $method): bool {
             }
             redirect(ar_receipt_url($r,$g,$g['result_id']));
         }
+        if($g['task_id']){
+            if($method!=='POST')ar_validate($r,$g);
+            return wf_route($r,'tasks/'.$g['task_id'],$method,$g);
+        }
         ar_validate($r,$g);
-        if($g['task_id'])return wf_route($r,'tasks/'.$g['task_id'],$method,$g);
         $error='';
         $checked=false;
         $input='';

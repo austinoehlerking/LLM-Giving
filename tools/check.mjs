@@ -22,6 +22,7 @@ process.stdout.write(runPhp(['tests/discovery.php']));
 process.stdout.write(runPhp(['tests/blog.php']));
 process.stdout.write(runPhp(['tests/workflow.php']));
 process.stdout.write(runPhp(['tests/task-reservations.php']));
+process.stdout.write(runPhp(['tests/manual-pickup.php']));
 const reservations=spawnSync(process.execPath,['tests/reservation-concurrency.mjs'],{encoding:'utf8'});
 if(reservations.status!==0)throw new Error(reservations.stdout+reservations.stderr);
 process.stdout.write(reservations.stdout);
