@@ -122,7 +122,7 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
   await page.goto(base+'/volunteer/'+late.id);await page.getByRole('button',{name:'Stop session',exact:true}).click();
   const native=await browser.newContext({javaScriptEnabled:false,viewport:sizes[0],reducedMotion:'reduce'});contexts.push(native);const np=await native.newPage();await np.goto(base+'/volunteer');await capture(np,'native-setup','.volunteer-start .primary-actions > *',base+'/volunteer');
   await configure(np,fixtures[2],1);const nc=await authorize(np);await np.getByRole('link',{name:'Open private dashboard',exact:true}).click();const nh=await pick(np);
-  check('Native no-JavaScript pickup supplies the complete manual-copy handoff',nh.includes('Private return link: ')&&await np.getByRole('button',{name:'Copy complete handoff',exact:true}).count()===1&&!await np.getByRole('button',{name:'Copy complete handoff',exact:true}).isVisible());
+  check('Native no-JavaScript pickup supplies the complete manual-copy handoff',nh.includes('Private return link: ')&&await np.locator('[data-session-copy]').count()===1&&await np.locator('[data-session-copy]').isHidden());
   await np.getByRole('link',{name:'Open result form',exact:true}).click();await checkPacket(np,packet(nc.id));await np.getByRole('button',{name:'Submit task result',exact:true}).click();await np.getByRole('heading',{name:'Submission accepted',exact:true}).waitFor();
   check('Native forms complete an authorized last assignment without JavaScript',state(nc.id).recorded===1&&state(nc.id).used===1);
   await page.goto(base+'/volunteer');await page.setViewportSize(sizes[2]);
