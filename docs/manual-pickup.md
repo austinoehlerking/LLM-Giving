@@ -1,6 +1,6 @@
 # Manual pickup reservation integration
 
-This UI layer reuses src/task-reservations.php and its [shared contract](task-reservations.md). The core was pinned from dd023cb and replayed onto current main a75197d, preserving the newly merged consent terms. It adds no second reservation service.
+This UI layer reuses src/task-reservations.php and its [shared contract](task-reservations.md). The foundation is reconciled to corrected dependency 44ed2c255a206beeb1a957c589cdcd51741b05b2 (fix b308fde6f0ad029df1057bc7ee3efee3c35494dc) and includes current main df5ab6528041d61b9e01045bce6922a7097df3ad, preserving consent and source links. It adds no second reservation service.
 
 ## Updated pickup surfaces
 
@@ -29,7 +29,17 @@ Complete readonly handoff text is available without JavaScript. Clipboard contro
 
 Private supplements never enter public archives, research packets, context, citations or activity exports. Native private handoff controls return the submitted private text only to their authorized private POST response, with bounded validation and escaped rendering; they do not persist it. Public availability contains no reservation generation or actor credentials.
 
-mp_control accepts a trusted server-loaded grant: task_id, scope.revision, actor_hash, current consent and requester requirements are revalidated. No packet/POST ownership or session-mode flag is trusted. Dev 5 owns mode-aware ar_instructions and wf_repair_prompt; those helpers remain unchanged by this layer. The existing guidance paragraphs expose data-pickup-help for the separate guide task once its route exists. No dead guide link is published.
+mp_control treats a preloaded grant only as a holder/lookup hint. Inside one actor-before-parent transaction it calls the shared wr_current_grant, compares the requested revision to the returned scope and uses the returned actor for lease operations. The guard current-reads and authenticates the unused grant for the original holder or an established delegated session, including current consent, expiry and requester requirements. Claim and complete handoff preparation remain in the same transaction. Consumed handoffs show Open recorded receipt rather than reacquisition. No packet/POST ownership or session-mode flag is trusted. Dev 5 owns mode-aware ar_instructions and wf_repair_prompt; those helpers remain unchanged by this layer. The existing guidance paragraphs expose data-pickup-help for the separate guide task once its route exists. No dead guide link is published.
+
+## Finalized foundation reconciliation
+
+The earlier 69d7d69 implementation used the shared core replayed as 44d3711. Its 25-suite pass remains historical evidence for that head. This follow-up imports the final core's bounded semantic deltas instead of merging duplicate replay histories:
+
+- Source ancestry fences record Withdrawn events. Pausing or completing a public source's own task workflow does not revoke independent fork work; withdrawal and restoration still invalidate the old lease.
+- Migration 016 omits the actor-to-mutex foreign key, avoiding a different holder's actor lock after the research lock during expiry or lifecycle invalidation. Research/task ownership foreign keys and the actor index remain.
+- The finalized source, migration, shared contract, core unit tests and two concurrency workers are byte-identical to dependency 44ed2c2. The concurrency tests explicitly hold competing locks for expiry and withdrawal, with 14 assertions. Core tests include source pause/resume versus withdrawal.
+
+The CR-RES-1 follow-up adds the owner’s locked current-grant reader and its 44 barrier-race assertions, with the same guard used by the pickup controller. Its ar_read/record changes are integrated narrowly, retaining the pickup/authorization routes. Pickup regressions exercise actual consumed progress, stale claim/renew/release against a legitimate later lease, original-holder controls without exchange and scoped delegated controls. Initial pickup UI, CSRF routes, private authorization, current main consent and source links are preserved. Closed private handoffs now offer their recorded receipt. Overlapping manual QA fixture fixes already have equivalent explicit claims/releases and the prepared-copy flow in this branch, so the dependency's older fixture versions are not copied over them. Reconciliation QA uses a new owned synthetic schema, preserving the earlier database and evidence rather than rerunning migration 016 in place. No production repair is involved.
 
 ## QA
 

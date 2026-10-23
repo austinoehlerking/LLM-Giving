@@ -1,5 +1,5 @@
 <?php
-require __DIR__.'/bootstrap.php';
+require __DIR__.'/bootstrap.php';require __DIR__.'/workflow-fixture.php';
 session_start_safe();$_SESSION['admin']=1;putenv('RATE_LIMIT_NAMESPACE=manual-pickup-'.uid());
 $checks=[];$ids=[];$clock=time();$GLOBALS['wr_test_clock']=function()use(&$clock){return $clock;};
 function pc(bool $ok,string $label):void {global $checks;if(!$ok)throw new RuntimeException($label);$checks[]=$label;}
@@ -42,6 +42,9 @@ try{
  pc($originalActor===$actor&&wr_live($r['id'],$task['id'])['actor_hash']===$actor,'Authorized pickup retains original volunteer actor');
  $public=wf_read_handoff($r['id'],$issued['archive_id'])['body'];
  pc(!str_contains($public,'PRIVATE VOLUNTEER AUTHORIZATION SUPPLEMENT')&&!str_contains($public,'Private return link:'),'Private authorization is not in public archives');
+ mp_control($r,$task,'renew',1,$grant);
+ pc(wr_live($r['id'],$task['id'])['actor_hash']===$originalActor,'Original volunteer can renew a just-issued handoff without a fragment exchange');
+ $_SESSION['browser_returns'][$grant['id']]=$grant['secret_hash'];
  $_SESSION['workflow_actor']=bin2hex(random_bytes(32));
  $clock+=20;mp_control($r,$task,'renew',1,$grant);
  pc(wr_live($r['id'],$task['id'])['actor_hash']===$originalActor,'Authorized separate-browser controls preserve volunteer ownership');
@@ -52,6 +55,23 @@ try{
  pd(fn()=>mp_control($r,$task,'claim',1,$grant),409,'Expired authorized worker cannot displace another holder');
  pc(wr_live($r['id'],$task['id'])['actor_hash']===$other,'Conflicting holder remains unchanged');
  pd(fn()=>mp_control($r,$task,'claim',2,$grant),409,'Control cannot silently replace a signed revision');
+ [$consumedResearch,$consumedTask]=pf();
+ $consumed=mp_issued($consumedResearch,mp_authorized_pickup($consumedResearch,$post))['grant'];
+ $_SESSION['browser_returns'][$consumed['id']]=$consumed['secret_hash'];
+ $packet=wf_test_payload($consumedResearch['id'],$consumedTask,'progress');
+ $packet['task_revision']=$consumed['scope']['revision'];$packet['context_id']=$consumed['scope']['context_id'];$packet['submission_key']=$consumed['scope']['submission_key'];
+ $packet['handoff_code']=wf_handoff_code($consumedTask,wf_read_snapshot($consumedResearch['id'],$packet['context_id']),$packet['submission_key']);
+ $receipt=ar_record($consumedResearch,$consumed,$packet,false);
+ pc($consumed['result_id']===null&&ar_read($consumedResearch,$consumed['id'])['result_id']===$receipt,'A preloaded grant stays stale after actual recorded progress consumes it');
+ pd(fn()=>mp_control($consumedResearch,$consumedTask,'claim',1,$consumed),409,'Consumed stale grant cannot reacquire through pickup controls');
+ pc(wr_live($consumedResearch['id'],$consumedTask['id'])===null,'Rejected consumed-grant claim leaves no new lease');
+ $fresh=mp_issued($consumedResearch,mp_authorized_pickup($consumedResearch,$post))['grant'];$freshLease=wr_live($consumedResearch['id'],$consumedTask['id']);
+ foreach(['renew','release'] as $operation){
+  pd(fn()=>mp_control($consumedResearch,$consumedTask,$operation,1,$consumed),409,'Consumed stale grant cannot '.$operation.' a fresh authorized reservation');
+  pc(wr_live($consumedResearch['id'],$consumedTask['id'])['id']===$freshLease['id']&&wr_live($consumedResearch['id'],$consumedTask['id'])['expires_at']===$freshLease['expires_at'],'Rejected stale '.$operation.' preserves the legitimate generation and expiry');
+ }
+ mp_control($consumedResearch,$consumedTask,'release',1,$fresh);
+ pc(wr_live($consumedResearch['id'],$consumedTask['id'])===null,'Fresh original-owner authorization can still release its own reservation');
  echo count($checks)." manual pickup integration checks passed.\n";
  file_put_contents(storage('qa/manual-pickup-unit.json'),json_encode($checks,JSON_PRETTY_PRINT));
 }finally{foreach($ids as $id)purge_request($id,$id);unset($GLOBALS['wr_test_clock']);}

@@ -67,10 +67,14 @@ export async function manualPickupQa({page,ctx,base,runPhp,check,visibleActions}
   await page.goto(au);await page.getByRole('link',{name:'Copy AI handoff',exact:true}).click();check('Authorization GET does not claim',lease(af).active_count===0);
   await page.locator('[name=authorize]').check();await page.locator('[name=terms]').check();await page.locator('[name=human_level]').selectOption('none');await page.getByRole('button',{name:'Copy authorized handoff',exact:true}).click();
   await initial(page,null,'authorized-handoff','.return-start .primary-actions > *,[data-reservation-panel] button');
-  const text=await page.locator('#authorized-handoff').inputValue(),link=text.match(/Private return link: (http[^\s]+)/)[1],gid=new URL(link).pathname.split('/').pop(),authorizationExpiry=lease(af).expires;
+  const text=await page.locator('#authorized-handoff').inputValue(),link=text.match(/Private return link: (http[^\s]+)/)[1],gid=new URL(link).pathname.split('/').pop();let authorizationExpiry=lease(af).expires;
   check('Study-level authorization claims before handing off',lease(af).active_count===1&&(await page.locator('[data-reservation-status]').innerText()).startsWith('Reserved for you until '));
   const publicPath=await page.locator('[data-issued-archive]').getAttribute('href'),publicText=await(await page.request.get(base+publicPath)).text();
   check('Authorization credentials stay out of public handoff archives',!publicText.includes(new URL(link).hash.slice(1))&&!publicText.includes('PRIVATE VOLUNTEER AUTHORIZATION SUPPLEMENT'));
+  runPhp(['tests/manual-pickup-state.php','shorten',af.id]);const ownerShortened=lease(af).expires;await clickOperation(page,'Renew reservation');
+  check('Original volunteer can renew before any private return exchange',lease(af).expires>ownerShortened);
+  await clickOperation(page,'Release task');check('Original volunteer can release its issued reservation',lease(af).active_count===0);
+  await clickOperation(page,'Reacquire reservation');check('Original volunteer reacquires without losing private handoff',(await page.locator('#authorized-handoff').inputValue())===text&&lease(af).active_count===1);authorizationExpiry=lease(af).expires;
   await page.getByRole('button',{name:'Copy AI handoff',exact:true}).click();check('Authorized recopy retains original lease expiry',lease(af).expires===authorizationExpiry);
   agent=await ctx.browser().newContext({viewport:sizes[0]});const ap=await agent.newPage();await ap.goto(link);await ap.waitForURL('**/return/'+gid+'/submit');
   check('Separate browser exchange preserves existing reservation and shows holder status',lease(af).expires===authorizationExpiry&&(await ap.locator('[data-reservation-status]').innerText()).startsWith('Reserved for you until '));
@@ -81,6 +85,9 @@ export async function manualPickupQa({page,ctx,base,runPhp,check,visibleActions}
   const authorizedPacket=JSON.parse(runPhp(['tests/browser-return-state.php','payload',af.id,gid]));await ap.locator('[name=payload]').fill(JSON.stringify(authorizedPacket));await ap.getByRole('button',{name:'Submit task result',exact:true}).click();await ap.getByRole('heading',{name:'Submission accepted',exact:true}).waitFor();
   check('Separate AI browser records with original volunteer actor',JSON.parse(runPhp(['tests/manual-pickup-state.php','actor-retained',af.id])).retained);
   check('AI browser delivery label stays distinct from prompt copying',(await ap.locator('main').innerText()).includes('AI browser submission')&&lease(af).active_count===0);
+  const consumedRelease=await clickOperation(page,'Release task');check('Consumed authorization cannot mutate through the original handoff page',consumedRelease.status()===409&&lease(af).active_count===0);
+  check('Closed grant shows its receipt instead of reacquisition',await page.getByRole('link',{name:'Open recorded receipt',exact:true}).isVisible()&&await page.getByRole('button',{name:'Reacquire reservation',exact:true}).count()===0);
+  await page.getByRole('link',{name:'Open recorded receipt',exact:true}).click();check('Original holder reaches the actual recorded result',new URL(page.url()).pathname===new URL(ap.url()).pathname);
   const large=make(),lu=base+'/research/'+large.slug+'/tasks/'+large.task;runPhp(['tests/manual-pickup-state.php','oversize',large.id]);await op.goto(lu);const failed=await op.request.post(lu+'/pickup',{form:{csrf:await csrf(op),task_revision:'1'}});
   check('Oversized handoff pickup fails without an unexplained reservation',failed.status()===413&&lease(large).active_count===0&&(await failed.text()).includes('No new pickup succeeded'));
   await page.setViewportSize(sizes[0]);await page.goto(nt);await page.evaluate(()=>{const sizes=[...document.querySelectorAll('body,body *')].filter(e=>e instanceof HTMLElement).map(e=>[e,parseFloat(getComputedStyle(e).fontSize)]);for(const[e,size]of sizes)e.style.fontSize=(size*2)+'px';});

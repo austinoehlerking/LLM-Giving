@@ -59,25 +59,28 @@ function mp_authorized_pickup(array $r,array $post): array {
     });
 }
 function mp_control(array $r,array $task,string $operation,int $revision,?array $grant=null): array {
+    if(!in_array($operation,['status','claim','renew','release'],true))fail(422,'Choose claim, renew or release.');
+    if($operation==='status'&&!$grant)return ['message'=>'Availability refreshed. Entered work and signed identifiers are unchanged.'];
     $actor=$grant['actor_hash']??wf_actor();
-    if($grant){
-        if($grant['result_id'])fail(409,'This assignment already has a recorded receipt.');
-        if($grant['task_id']!==$task['id']||$revision!==$grant['scope']['revision'])fail(409,'Preserve the authorized task and exact signed revision.');
-        ar_validate($r,$grant);
-    }
-    if($operation==='status')return ['message'=>'Availability refreshed. Entered work and signed identifiers are unchanged.'];
-    if($operation==='renew'){
-        wr_renew($r['id'],$task['id'],$revision,$actor);
-        return ['message'=>'Reservation renewed for 60 minutes from server time.'];
-    }
-    if($operation==='release'){
-        wr_release($r['id'],$task['id'],$actor);
-        return ['message'=>'Task released. Your entered work is preserved; reacquire an eligible reservation before submitting.'];
-    }
-    if($operation!=='claim')fail(422,'Choose claim, renew or release.');
-    return tx(function()use($r,$task,$revision,$actor,$grant){
-        wr_actor_lock($actor,true);
-        one('SELECT id FROM research WHERE id=? FOR UPDATE',[$r['id']]);
+    return tx(function()use($r,$task,$operation,$revision,$actor,$grant){
+        wr_actor_lock($actor,$operation==='claim');
+        one('SELECT id FROM research WHERE id=? FOR UPDATE',[$r['id']])??fail(404,'Research not found.');
+        $r=research($r['id']);
+        if($grant){
+            // A preloaded grant is only a lookup/holder hint; the shared guard rereads it under locks.
+            $grant=wr_current_grant($r,$task['id'],$grant);
+            $actor=$grant['actor_hash'];
+            if($revision!==$grant['scope']['revision'])fail(409,'Preserve the authorized task and exact signed revision.');
+        }
+        if($operation==='status')return ['message'=>'Availability refreshed. Entered work and signed identifiers are unchanged.'];
+        if($operation==='renew'){
+            wr_renew($r['id'],$task['id'],$revision,$actor);
+            return ['message'=>'Reservation renewed for 60 minutes from server time.'];
+        }
+        if($operation==='release'){
+            wr_release($r['id'],$task['id'],$actor);
+            return ['message'=>'Task released. Your entered work is preserved; reacquire an eligible reservation before submitting.'];
+        }
         wr_claim($r['id'],$task['id'],$revision,$actor);
         $archive=$grant&&!empty($grant['scope']['archive_id'])?wf_read_handoff($r['id'],$grant['scope']['archive_id']):wf_issue_handoff($r['id'],$task['id']);
         return ['message'=>'Task reserved. Entered work and signed identifiers were not replaced. Check current requirements before submitting.','handoff'=>$archive['body']];
