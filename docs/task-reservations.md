@@ -1,5 +1,7 @@
 # Shared task reservations
 
+Core implementation integration pin (local only): `dd023cb77ee6ee71f7e550efab2a55e4a103ce80`. Use the final task handoff for completed validation and any subsequent fixes.
+
 ## Scope and rollout
 
 `src/task-reservations.php` is the single lease service for manual AI handoff pickup and the volunteer orchestrator. This change owns persistence, lifecycle, HTTP integration seams and result enforcement. Public pickup/renew/release controls belong to the next task. Do not implement another lease table or let an orchestrator submit around `wf_submit`.
