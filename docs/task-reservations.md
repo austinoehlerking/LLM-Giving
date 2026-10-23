@@ -1,12 +1,14 @@
 # Shared task reservations
 
-Core implementation integration pin (local only): `f5d381fafda5e16fd904ae764865162a9c24c677`. Use the final task handoff for completed validation and any subsequent fixes.
+Core implementation integration pin (local only): `169581456a137f69c8d2771dc05fdb0b52a5987c`. Use the final task handoff for completed validation and any subsequent fixes.
 
 ## Scope and rollout
 
 `src/task-reservations.php` is the single lease service for manual AI handoff pickup and the volunteer orchestrator. This change owns persistence, lifecycle, HTTP integration seams and result enforcement. Public pickup/renew/release controls belong to the next task. Do not implement another lease table or let an orchestrator submit around `wf_submit`.
 
 Migration **016_task_reservations.sql** is additive. It creates private `reservation_actors` mutex rows and `task_reservations` generations, with same-research task foreign keys and live-task/live-actor indexes. No historical handoff, consent, snapshot, task or result is rewritten. Logical backup discovers both tables automatically. Parent purge cascades lease generations; an actor mutex contains only the existing anonymous actor hash and may outlive a purged project. No account, runtime AI call or scheduled cleanup is introduced.
+
+Earlier local integration pins briefly included an actor foreign key in migration 016. A disposable development database that already applied that pre-release form will not rerun the filename: recreate only that owned synthetic schema or explicitly remove its actor-hash FK before testing this pin. Do not alter migration records to force a rerun, and do not apply development repairs to production. The final fresh migration retains only the research/task ownership FKs.
 
 ## Trusted identity and operations
 
@@ -30,6 +32,8 @@ Claim and renewal attempts have separate fixed-hour budgets: **60 per anonymous 
 2. Lock the target `research` row with `FOR UPDATE`.
 3. Reload current public research, workflow project/task, round/revision, dependencies and reviewer eligibility.
 4. Read/change reservation generations and, if submitting, insert the result and apply its outcome in this same transaction.
+
+Reservation generations deliberately have **no actor-to-mutex foreign key**. InnoDB may acquire a shared parent-FK lock even when updating other columns. Retiring an expired holder's generation or invalidating a lease must never request that other actor mutex after acquiring the research lock; doing so deadlocks against the old holder waiting for research. Task/research composite foreign keys remain enforced. Actor mutex rows remain durable and must not be pruned while the service is running.
 
 Parent serialization makes different-actor claims atomic. Actor serialization also spans different research parents, preventing one holder from acquiring simultaneous tasks. At most one unexpired current Ready/public task generation can be held by an actor in this initial sequential release. Release or finish it before taking another.
 
@@ -75,7 +79,7 @@ Until the next task supplies the public pickup controls, manual-return integrati
 ## Verification
 
 - `tests/task-reservations.php`: controllable clock; ownership, exact boundaries, renew/release, stale revision/supersession/withdrawal, current dependencies/reviewer eligibility, progress/quarantine, recoverable errors, model/consent separation, original actor handover, immutable scope/consent, receipt recovery and durable rate budgets.
-- `tests/reservation-concurrency.mjs`: independent PHP/PDO workers released through a filesystem barrier; competing holders, one actor across two parents, exact-expiry claim versus stale submission, and renewal versus recording.
+- `tests/reservation-concurrency.mjs`: independent PHP/PDO workers released through a filesystem barrier; competing holders, one actor across two parents, exact-expiry claim versus stale submission, renewal versus recording, and lifecycle withdrawal versus renewal. The expiry and withdrawal regressions hold both sides of the contested locks before opening the barrier, rather than relying on scheduler luck.
 - `node tools/qa.mjs reservations`: real anonymous browser sessions, CSRF and private-grant checks, shared operations, expired-packet repair, recorded receipt recovery, original handoff archive, required first viewports and enlarged text.
 - Existing server fixtures explicitly pick up before recording; check-only fixture helpers release their temporary pickup afterward. New admission tests bypass that helper to test the actual missing/expired reservation rejection.
 - `node tools/check.mjs` includes focused reservation and concurrency checks. `node tools/qa-all.mjs` includes the reservation suite and existing browser regressions.

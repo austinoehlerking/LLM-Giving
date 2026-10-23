@@ -10,16 +10,24 @@ if($action==='create'){
 }elseif($action==='worker'){
     [$rid,$tid,$actor,$at,$operation,$gate,$ready]=array_slice($argv,2);
     $GLOBALS['wr_test_clock']=fn()=>(int)$at;putenv('RATE_LIMIT_NAMESPACE=reservation-race-'.basename($gate));
+    $held=str_ends_with($operation,'_held');
+    if($held){
+        db()->beginTransaction();
+        if($operation!=='withdraw_held')wr_actor_lock($actor,true);
+        if(in_array($operation,['claim_held','withdraw_held'],true))one('SELECT id FROM research WHERE id=? FOR UPDATE',[$rid]);
+    }
     file_put_contents($ready,'ready');
     $deadline=microtime(true)+15;while(!is_file($gate)){if(microtime(true)>$deadline)throw new RuntimeException('Race gate timeout.');usleep(10000);}
     try{
         $result=match($operation){
-            'claim'=>wr_claim($rid,$tid,1,$actor),
-            'renew'=>wr_renew($rid,$tid,1,$actor),
+            'claim','claim_held'=>wr_claim($rid,$tid,1,$actor),
+            'renew','renew_held'=>wr_renew($rid,$tid,1,$actor),
             'release'=>wr_release($rid,$tid,$actor),
-            'submit'=>wf_submit($rid,$tid,wf_test_payload($rid,wf_task($rid,$tid),'progress'),$actor),
+            'withdraw_held'=>change_status($rid,'Withdrawn','Synthetic concurrent withdrawal.','administrator'),
+            'submit','submit_held'=>wf_submit($rid,$tid,wf_test_payload($rid,wf_task($rid,$tid),'progress'),$actor),
             default=>throw new RuntimeException('Unknown worker action.')
         };
+        if($held)db()->commit();
         echo json_encode(['status'=>200,'result'=>$result]);
-    }catch(HttpError $e){echo json_encode(['status'=>$e->status,'message'=>$e->getMessage()]);}
+    }catch(HttpError $e){if($held&&db()->inTransaction())db()->rollBack();echo json_encode(['status'=>$e->status,'message'=>$e->getMessage()]);}
 }
