@@ -134,20 +134,40 @@ function wr_availability(string $rid,string $tid): array {
     $live=wr_live($rid,$tid);
     return ['status'=>$live?'reserved':'available','expires_at_utc'=>$live['expires_at']??null,'task_revision'=>(int)$t['revision']];
 }
+/** Call only after the holder (and any session) mutex and research lock, in that order. */
+function wr_current_grant(array $r,string $tid,array $hint): array {
+    if(!db()->inTransaction())throw new LogicException('Scoped grant validation requires holder and research locks.');
+    $r=one('SELECT * FROM research WHERE id=? FOR UPDATE',[$r['id']])??fail(404,'Research not found.');
+    if($r['moderation']!=='Approved'||$r['status']==='Withdrawn')fail(404,'Research not found.');
+    $current=ar_read($r,$hint['id'],forUpdate:true,allowHolder:true);
+    if(!hash_equals($current['actor_hash'],$hint['actor_hash'])||$current['task_id']!==$tid||$current['scope']['kind']!=='task')fail(403,'This private authorization does not match the reservation holder and task.');
+    if($current['result_id'])fail(409,'This authorization already has a recorded receipt.');
+    ar_validate($r,$current);
+    return $current;
+}
 /** CSRF is enforced by the common router. No packet-supplied actor is accepted. */
 function wr_http(array $r,string $tid,string $method,?array $grant=null): void {
     if($method!=='POST')fail(405,'Reservation changes require POST.');
     $actor=$grant['actor_hash']??wf_actor();
-    if($grant){if($grant['result_id'])fail(409,'This authorization already has a recorded receipt.');ar_validate($r,$grant);}
     $operation=text_field($_POST,'operation',1,12);
+    if(!in_array($operation,['claim','renew','release'],true))fail(422,'Choose claim, renew or release.');
     $revisionText=text_field($_POST,'task_revision',1,10);
     if(!preg_match('/^[1-9][0-9]{0,9}$/D',$revisionText))fail(422,'Supply the exact positive task revision.');
     $revision=(int)$revisionText;
-    if($grant&&$revision!==$grant['scope']['revision'])fail(409,'This authorized assignment changed. Obtain a fresh handoff.');
-    if($operation==='claim')wr_claim($r['id'],$tid,$revision,$actor);
-    elseif($operation==='renew')wr_renew($r['id'],$tid,$revision,$actor);
-    elseif($operation==='release')wr_release($r['id'],$tid,$actor);
-    else fail(422,'Choose claim, renew or release.');
+    $availability=tx(function()use($r,$tid,$grant,$actor,$operation,$revision){
+        wr_actor_lock($actor,$operation==='claim');
+        one('SELECT id FROM research WHERE id=? FOR UPDATE',[$r['id']])??fail(404,'Research not found.');
+        $r=research($r['id']);
+        if($grant){
+            // The pre-lock array is only a mutex/lookup hint, never current authorization.
+            $current=wr_current_grant($r,$tid,$grant);
+            if($revision!==$current['scope']['revision'])fail(409,'This authorized assignment changed. Obtain a fresh handoff.');
+        }
+        if($operation==='claim')wr_claim($r['id'],$tid,$revision,$actor);
+        elseif($operation==='renew')wr_renew($r['id'],$tid,$revision,$actor);
+        else wr_release($r['id'],$tid,$actor);
+        return $operation==='release'?['status'=>'released','expires_at_utc'=>null]:wr_availability($r['id'],$tid);
+    });
     header('Content-Type: application/json');header('Cache-Control: no-store');
-    echo json_encode($operation==='release'?['status'=>'released','expires_at_utc'=>null]:wr_availability($r['id'],$tid),JSON_THROW_ON_ERROR);
+    echo json_encode($availability,JSON_THROW_ON_ERROR);
 }
