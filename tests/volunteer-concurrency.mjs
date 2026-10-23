@@ -40,6 +40,10 @@ try {
  r=await race([{session:s[6],operation:'record'},{session:s[6],operation:'stop'}]);
  record('Stop versus recording has a real recorded-or-not-recorded outcome',r[1].status===200&&[200,409].includes(r[0].status)&&state(s[6]).results===(r[0].status===200?1:0));
  record('Stop versus recording leaves no active task and retains its consumed allowance',state(s[6]).live===0&&state(s[6]).used===1&&state(s[6]).stopped);
+ runPhp(['tests/volunteer-concurrency.php','claim',s[7]]);runPhp(['tests/volunteer-concurrency.php','expire-task',s[7]]);
+ r=await race([{session:s[7],operation:'stop'},{session:s[8],operation:'claim'}]);
+ record('Expired holder Stop and another session pickup both succeed without lock inversion',r.every(x=>x.status===200));
+ record('Stopping an expired holder never releases the new holder reservation',state(s[7]).stopped&&state(s[7]).used===1&&state(s[7]).live===0&&state(s[8]).used===1&&state(s[8]).live===1);
  fs.writeFileSync(path.join(output,'report.json'),JSON.stringify({pass:true,checks,results,scope:'Independent local PHP/PDO workers, synthetic workflow evidence; no scientific or AI-execution claim.'},null,2));
  console.log(checks+' concurrent volunteer session checks passed.');
 } finally {runPhp(['tests/volunteer-concurrency.php','cleanup'],JSON.stringify(fixtures));}

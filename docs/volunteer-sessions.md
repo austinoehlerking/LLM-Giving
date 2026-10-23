@@ -44,12 +44,51 @@ vs_assignment_action(sessionId, assignmentId, operation) accepts renew, release,
 
 vs_stop(sessionId) sets a terminal stop and releases the holder's current lease through wr_release(). Expiry/policy changes free logical availability through the shared projection without a precisely scheduled cleanup job. Renewing a task never extends session authorization. Stopping the website session cannot guarantee external AI execution stops; the user must also stop that tool.
 
-## Routes and UI
+## HTTP contract
 
-Public entry /volunteer has a compact setup followed by actual authorization. /volunteer/orchestrator.txt is reference-only guidance. The private dashboard is /volunteer/{id}; /volunteer/{id}/open exchanges its fragment through an explicit CSRF-protected POST. Dashboard actions Pick up next task, Copy task handoff, Renew reservation, Release task, Reacquire this assignment and Stop session all use explicit POST operations. Ordinary views never pick up or renew. The dashboard shows remaining assignments/time, its deadline, current reservation and actual recorded outcomes with receipt links.
+All mutation routes require the normal CSRF token and same-origin session cookie. IDs are random 32-hex identities; identity alone grants no private permission. No request accepts an actor or consent from a worker packet.
 
-/volunteer/{id}/assignments/{assignmentId} supplies the controller result form. Each separate worker uses its scoped /research/{slug}/return/{grantId}/submit form instead of receiving general session authority. Check packet records nothing. Native and JavaScript forms preserve entered work and signed identifiers on validation, expiry or conflict; the controller can explicitly reacquire an eligible unreserved revision without replacing its packet. AJAX checks use current server state to reveal that action.
+| Route | Method / action | Effect |
+| --- | --- | --- |
+| /volunteer | GET | Public compact setup. Optional scope prefill is configuration only. |
+| /volunteer/orchestrator.txt | GET | Reusable reference instructions only; no private supplement, consent or pickup. |
+| /volunteer | POST operation=configure | Validate scope, limits and worker capabilities; show unchecked authorization. No session yet. |
+| /volunteer | POST operation=authorize | Require authorize, terms, authorized_resources, current policy_version, independent human_level and applicable scientific disclosure. Optional tool_terms is separate. Create bounded session and show its private link once. |
+| /volunteer/{id}/open | GET | Generic fragment exchange/manual-entry form. Never authorizes from a public prompt. |
+| /volunteer/{id}/open | POST session_secret | Exchange the 64-hex fragment capability into a regenerated browser session; redirect to the private dashboard. |
+| /volunteer/{id} | GET | Private dashboard, time/allowance, current work and honest outcomes/receipts. No pickup or renewal. |
+| /volunteer/{id} | POST operation=claim | Atomically select and reserve one eligible task; prepare the full handoff before committing; return the private handoff page. Existing current work is an unchanged recopy. |
+| /volunteer/{id} | POST operation=handoff, assignment_id | Recopy the existing complete private handoff, without renewal or new allowance. |
+| /volunteer/{id} | POST operation=renew/release/reacquire, assignment_id | Explicit shared-service action for this bound assignment. Reacquire never changes its signed IDs. |
+| /volunteer/{id} | POST operation=stop | Terminal revocation and release. Repeated Stop is safe. |
+| /volunteer/{id}/assignments/{assignmentId} | GET | Private packet form; an already-recorded assignment redirects to its original receipt. |
+| /volunteer/{id}/assignments/{assignmentId} | POST operation=check/submit, payload | Check or record against stored authorization, scope, reservation, original actor and ordinary server evidence/model rules. Check does not consume or renew. |
+| /volunteer/{id}/assignments/{assignmentId} | POST operation=reacquire, payload | Explicitly reacquire an eligible unreserved original revision while preserving the entered packet. |
 
-Pickup prepares the complete private handoff inside the assignment transaction and returns prepared_handoff for private delivery. Never serialize that field into public data, archives or scientific metadata. Copy enhancement reports success only after clipboard completion; native manual copying remains available when JavaScript is disabled.
+The assignment worker uses the existing private /research/{slug}/return/{grantId} fragment exchange and its /submit form. It can use only that assignment, not the controller dashboard or the rest of the allowance. A controller transferred through the session link retains the bounded scope, absolute deadline and original actor, even in another anonymous browser. GET views, archived reads and packet checks never create consent, claim or renew.
 
-Run node tools/check.mjs and node tools/qa.mjs volunteers. Server concurrency tests cover competing pickup and Stop versus pickup/recording. The browser suite uses deterministic synthetic packets and is not scientific or genuine AI execution evidence. Its receipt counter is session-scoped; the native context uses reduced motion after a documented Edge smooth-scroll stabilization failure. The separate AI-authored synthetic walkthrough and orchestrator checks are described in the [orchestrator contract](volunteer-orchestrator.md). Inspect all three first viewports and enlarged text before accepting visual QA.
+Check requests accepting application/json return ok/message and, on validation error, repair_prompt. The boolean session_reacquire is computed from live eligibility, revision and availability; it does not authorize a mutation. Failed checks and submission conflicts retain the complete entered packet. An uncertain recorded retry recovers the original receipt before current Stop/expiry checks; changed duplicate packets still fail.
+
+## Persistence, privacy and integration
+
+Migration 018 creates private volunteer_sessions and volunteer_assignments. Migration 019 binds each assignment to its exact shared reservation generation. Assignment counters are monotonic and do not depend on retained child rows; parent purge cannot refund allowance. Existing stored evidence, archives and single-assignment consent remain unchanged. The initial release cannot change session scope/configuration or expand its limits after authorization: start a fresh authorized session instead.
+
+vs_claim_next returns the assignment with a transient prepared_handoff string for the controller's immediate private response. This value must never be exported as public assignment metadata. Both new pickup and current-task recopy prepare it inside the root transaction. Failure rolls back the claim, assignment and count; claim/archive abuse budgets remain consumed as designed.
+
+Private session and per-return capabilities stay in fragments and exchanged server sessions, with hashes in private database rows. The purpose key under storage/private/volunteer-return.key must be persisted and backed up privately with other application keys. No raw session credential is reconstructed or stored. Private session routes and session-issued returns are excluded from analytics. Private links/credentials are rejected from submitted research packets before engine attempt logging. Do not paste them into public context, citations, research files, screenshots or external logs.
+
+Dashboard reads recheck public parent, child admission, task/snapshot availability and current result admission. Accepted, quarantined and rejected receipts are distinct; not-submitted work is explicit. Removed/withdrawn/private evidence yields an unavailable entry with no content/deep links. Receipts remain available only through their existing visibility rules after session Stop/expiry.
+
+The shared service projects a session-bound lease as unavailable immediately at session expiry, Stop or changed terms without GET writes or a cleanup timer. A later claimant can replace the old generation. Stop serializes the ownership read under the parent lock and never releases a newer holder's generation. Its physical lease timestamps remain shared-service data; the public effective expiry is capped at the session deadline.
+
+## Verification and limits
+
+- tests/volunteer-sessions.php covers authorization, bounds, legal versions, private exchange, exact deadline, capability/model rules and software consent.
+- tests/volunteer-queue.php exercises actual shared leases, queue scope/dependencies, full preparation rollback, unchanged recopy, independent review, fixed browser-return lineage, stop/expiry, quarantine/rejection, private parent visibility and receipt retry.
+- tests/volunteer-scope.php exercises actual category, exact-question and unscoped pickup; unrelated/private work and empty-scope fallback are rejected.
+- tests/volunteer-concurrency.mjs runs independent PHP/PDO processes for same-session pickup, competing sessions, one actor across parents, Stop versus pickup/recording, and expired-holder Stop versus a new holder.
+- node tools/qa.mjs volunteers exercises actual consent and controller/worker browsers, two accepted dependent tasks with one authorization, unchanged copy/renew, clipboard denial, conflicts/reacquisition with full packet retention, expiry, Stop, receipt recovery and no-JavaScript submission. Synthetic packets establish application behavior, not real AI execution or scientific accuracy.
+- QA_INSPECT_FIRST=1 pauses that browser mode after each three-size screenshot batch. Use an interactive terminal; inspect viewport-only screenshots at 1366x768, 390x844 and 375x667 before continuing. The mode also captures and asserts 200% font reflow. Evidence stays under ignored storage/qa/volunteers.
+- Run node tools/dev.mjs setup, node tools/check.mjs and the complete node tools/qa-all.mjs sequentially against a dedicated local database. The shared changes require existing reservations, pickups, returns, handoffs and broader regression modes too.
+
+An anonymous actor is browser/capability lineage, not a verified physical person; the service cannot prove that separate anonymous identities are different humans. Claimed model configuration is self-reported and still checked against each actual packet. Stop blocks website claims/renewals/submission but cannot stop external AI execution; the participant must stop their tool. No session permission authorizes unrelated work, purchases, installation or broader account use. The quick-start guide is a separate integration. The implemented public/private orchestrator instructions and genuine synthetic walkthrough are described in the [orchestrator contract](volunteer-orchestrator.md).

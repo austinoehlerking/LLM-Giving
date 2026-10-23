@@ -46,10 +46,12 @@ function vs_create(array $post): array {
     if (empty($post['authorize']) || empty($post['terms']) || empty($post['authorized_resources'])) {
         fail(422, 'Confirm session authorization, public-content terms and authorized resource use.');
     }
-    if (text_field($post, 'policy_version', 1, 64) !== terms_version()) fail(409, 'The terms changed. Read the current terms and authorize again.');
+    // Compare against the exact recorded version; never attribute acceptance to a later policy read.
+    $policyVersion = terms_version(record:true);
+    if (text_field($post, 'policy_version', 1, 64) !== $policyVersion) fail(409, 'The terms changed. Read the current terms and authorize again.');
     $declaration = ar_disclosure($post);
     $software = !empty($post['tool_terms']);
-    $consent = ['terms_version'=>terms_version(record:true), 'research_license'=>RESEARCH_LICENSE,
+    $consent = ['terms_version'=>$policyVersion, 'research_license'=>RESEARCH_LICENSE,
         'tool_terms_version'=>$software ? RT_TERMS : null, 'software_license'=>$software ? RT_LICENSE : null,
         'human_disclosure'=>$declaration, 'captured_at_utc'=>gmdate('Y-m-d H:i:s', $started),
         'source'=>'Volunteer session authorization form (self-attested)',

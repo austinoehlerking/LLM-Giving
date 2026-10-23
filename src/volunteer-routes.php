@@ -80,6 +80,7 @@ function vs_record(string $id,string $assignmentId,array $packet,bool $checkOnly
 function vs_assignment_page(array $session,array $assignment,string $method): void {
     $grant=vs_assignment_grant($session,$assignment);
     $r=research($assignment['research_id']); $task=wf_task($r['id'],$assignment['task_id']);
+    if ($method==='GET' && $grant['result_id']) redirect(ar_receipt_url($r,$grant,$grant['result_id']));
     $input=''; $error=''; $repair=''; $checked=false;
     $jsonCheck=$method==='POST' && ($_POST['operation']??'')==='check' && str_contains($_SERVER['HTTP_ACCEPT']??'','application/json');
     if ($method==='POST') {

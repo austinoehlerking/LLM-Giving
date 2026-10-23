@@ -10,9 +10,9 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
  const state=id=>JSON.parse(runPhp(['tests/volunteer-state.php','state',id]));
  const packet=id=>JSON.parse(runPhp(['tests/volunteer-state.php','packet',id]));
  async function inspect(label) {
-  if(env.QA_INSPECT_FIRST!=='1')return;
+  if(env.QA_INSPECT_FIRST!=='1'&&!(env.QA_INSPECT_FIRST||'').split(',').includes(label))return;
   console.log('INSPECT FIRST VIEWPORTS: '+label+' — '+screenshots.slice(-3).join(' | '));
-  await new Promise(resolve=>process.stdin.once('data',resolve));
+  await new Promise(resolve=>{process.stdin.resume();process.stdin.once('data',()=>{process.stdin.pause();resolve();});});
  }
  async function capture(p,label,selector,reload=null) {
   const failures=[];
@@ -21,7 +21,7 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
    const file=path.join(out,label+'-'+size.width+'x'+size.height+'.png');
    await p.screenshot({path:file,fullPage:false,mask:[p.locator('#volunteer-private-link'),p.locator('#session-task-handoff')]});screenshots.push(file);report.screenshots.push(file);
    try{await visibleActions(p,selector,label+' '+size.width);
-    if(label==='separate-worker')check('Assigned worker packet entry begins in first viewport '+size.width,await p.locator('textarea[name=payload]').evaluate(el=>{const r=el.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&Math.min(r.bottom,innerHeight)-r.top>=44;}));
+    if(label==='separate-worker')check('Assigned worker packet entry is fully visible '+size.width,await p.locator('textarea[name=payload]').evaluate(el=>{const r=el.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight&&r.height>=44&&document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)===el;}));
    }catch(error){failures.push(error.message);}
   }
   await inspect(label);
@@ -67,6 +67,7 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
   check('Private authorization response contains no analytics loader',await page.locator('[data-google-analytics]').count()===0);
   await page.getByRole('link',{name:'Open private dashboard',exact:true}).click();await capture(page,'dashboard-empty','[data-session-actions] button');
   check('Reading all dashboard sizes never picks up work',state(first.id).used===0);
+  check('Dashboard reports remaining minutes and assignments',await page.locator('.session-meta').innerText().then(text=>text.includes('min remaining')&&text.includes('assignments remaining')));
   const outsider=await browser.newContext({viewport:sizes[0]});contexts.push(outsider);const op=await outsider.newPage();
   check('An unrelated anonymous browser cannot view a private session',(await op.request.get(base+'/volunteer/'+first.id)).status()===403);
   const csrf=await page.locator('[name=csrf]').first().inputValue();
@@ -94,10 +95,11 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
   check('Validation failure preserves entered work and the reservation',await page.locator('[name=payload]').inputValue()===JSON.stringify(bad)&&state(first.id).used===1);
   await checkPacket(page,good);await page.getByRole('button',{name:'Submit task result',exact:true}).click();await page.getByRole('heading',{name:'Submission accepted',exact:true}).waitFor();
   check('First task has a real accepted receipt',state(first.id).recorded===1&&state(first.id).outcomes[0]==='accepted');
+  const firstReceipt=page.url(),firstAssignment=initial.current;await page.goto(base+'/volunteer/'+first.id+'/assignments/'+firstAssignment);check('Reopening a completed assignment recovers its receipt',page.url()===firstReceipt);
   await page.goto(base+'/volunteer/'+first.id);handoff=await pick(page);const secondState=state(first.id),secondPacket=packet(first.id),secondReturn=handoff.match(/Private return link: (http[^\s]+)/)[1];secrets.push(new URL(secondReturn).hash.slice(1));
   check('Second pickup uses the same authorization and respects dependencies',secondState.used===2&&secondState.task!==initial.task&&secondState.state==='limit_reached');
   const worker=await browser.newContext({viewport:sizes[0]});contexts.push(worker);const wp=await worker.newPage();await wp.goto(secondReturn);await wp.waitForURL('**/return/*/submit');
-  await capture(wp,'separate-worker','.workflow-heading .primary-actions > *');
+  await capture(wp,'separate-worker','.workflow-heading .primary-actions > *,#workflow-result .primary-actions button:visible,#workflow-result textarea[name=payload]');
   check('Private worker exchange removes the secret from browser history',new URL(wp.url()).hash==='');
   check('An assignment worker has no general session-dashboard permission',(await wp.request.get(base+'/volunteer/'+first.id)).status()===403);
   await checkPacket(wp,secondPacket);await wp.getByRole('button',{name:'Submit task result',exact:true}).click();await wp.getByRole('heading',{name:'Submission accepted',exact:true}).waitFor();

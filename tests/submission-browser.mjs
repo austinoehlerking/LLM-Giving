@@ -138,7 +138,7 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
  await np.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).press('Enter');await np.locator('#management-link').waitFor();check('No-JS bottom submit records a pending request',await np.getByRole('heading',{name:'Research request submitted',exact:true}).isVisible());await nojs.close();
  const after=JSON.parse(runPhp(['tools/local-research-state.php','inspect'])).research.find(r=>r.id===rid);
  check('Synthetic pending request unchanged by inspection',JSON.stringify(before)===JSON.stringify(after));
- check('No browser errors in updated workflow',errors.length===0);
+ check('No browser errors in updated workflow: '+JSON.stringify(errors.map(text=>text.replace(/#[a-f0-9]{64}/gi,'#[REDACTED]'))),errors.length===0);
  fs.writeFileSync(path.join(out,'index.html'),'<!doctype html><meta charset="utf-8"><title>LLM.Giving — submission UX updates</title><style>body{font:16px system-ui;background:#141e28;color:#eaf0f5;max-width:1100px;margin:24px auto;padding:20px}a{color:#c1ee9c}img{max-width:100%;border:1px solid #42574c}figure{margin:32px 0}</style><h1>Submission UX updates</h1><p>Synthetic research brief in the form and preview. Receipt and admin screenshots use the disposable [QA] record; inspection leaves it unchanged. Pink blocks conceal private management links.</p>'+shots.map(s=>'<figure><figcaption>'+s+'</figcaption><a href="'+s+'"><img loading="lazy" src="'+s+'"></a></figure>').join(''));
  console.log('Submission UX: '+shots.length+' fresh screenshots. Synthetic pending request unchanged.');
 }

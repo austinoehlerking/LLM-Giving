@@ -7,9 +7,9 @@ function vrc_session(string $rid,?string $actor=null): string {
     return vs_create(['scope_kind'=>'research','research_id'=>$rid,'assignment_limit'=>3,'minutes'=>60,'model'=>'gpt-6-astra','reasoning'=>'max','tool'=>'Codex','authorize'=>1,'terms'=>1,'authorized_resources'=>1,'policy_version'=>terms_version(),'human_level'=>'none'])['id'];
 }
 if($action==='create') {
-    $projects=[];for($i=0;$i<6;$i++){$c=create_research(['title'=>'[QA] Volunteer race '.uid(),'question'=>'Synthetic race test for bounded volunteer sessions; no scientific research is claimed.','category_id'=>1,'terms'=>1]);moderate('request',$c['id'],'Approved','Disposable session race fixture.');$projects[]=$c['id'];}
+    $projects=[];for($i=0;$i<7;$i++){$c=create_research(['title'=>'[QA] Volunteer race '.uid(),'question'=>'Synthetic race test for bounded volunteer sessions; no scientific research is claimed.','category_id'=>1,'terms'=>1]);moderate('request',$c['id'],'Approved','Disposable session race fixture.');$projects[]=$c['id'];}
     $sameActor=bin2hex(random_bytes(32));
-    $sessions=[vrc_session($projects[0]),vrc_session($projects[1]),vrc_session($projects[1]),vrc_session($projects[2],$sameActor),vrc_session($projects[3],$sameActor),vrc_session($projects[4]),vrc_session($projects[5])];
+    $sessions=[vrc_session($projects[0]),vrc_session($projects[1]),vrc_session($projects[1]),vrc_session($projects[2],$sameActor),vrc_session($projects[3],$sameActor),vrc_session($projects[4]),vrc_session($projects[5]),vrc_session($projects[6]),vrc_session($projects[6])];
     echo json_encode(['projects'=>$projects,'sessions'=>$sessions]);
 } elseif($action==='worker') {
     $spec=json_decode(stream_get_contents(STDIN),true,16,JSON_THROW_ON_ERROR);
@@ -32,6 +32,8 @@ if($action==='create') {
     } catch(HttpError $error) {echo json_encode(['status'=>$error->status]);}
 } elseif($action==='claim') {
     $session=vs_read($argv[2],false);$_SESSION['volunteer_sessions'][$session['id']]=$session['secret_hash'];echo json_encode(vs_claim_next($session['id'])['id']);
+} elseif($action==='expire-task') {
+    $s=vs_read($argv[2],false);query('UPDATE task_reservations SET expires_at=? WHERE actor_hash=? AND ended_at IS NULL',[wr_stamp(wr_time()-1),$s['actor_hash']]);
 } elseif($action==='state') {
     $s=vs_read($argv[2],false);
     echo json_encode(['used'=>(int)$s['assignments_used'],'stopped'=>(bool)$s['stopped_at'],'assignments'=>(int)one('SELECT COUNT(*) n FROM volunteer_assignments WHERE session_id=?',[$s['id']])['n'],
