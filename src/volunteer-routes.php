@@ -106,7 +106,7 @@ function vs_assignment_page(array $session,array $assignment,string $method): vo
             } else fail(422,'Choose check, submit or explicit reacquisition.');
         } catch (HttpError $caught) {
             http_response_code($caught->status); $error=$caught->getMessage();
-            if ($caught->status===422) $repair=wf_repair_prompt($r,$task,$error,true,'/volunteer/'.$session['id'].'/assignments/'.$assignment['id']);
+            if ($caught->status===422) $repair=wf_repair_prompt($r,$task,$error,true,'/volunteer/'.$session['id'].'/assignments/'.$assignment['id'],true);
             if ($jsonCheck) {
                 header('Content-Type: application/json'); header('Cache-Control: no-store');
                 echo json_encode(['ok'=>false,'message'=>$error,'repair_prompt'=>$repair]);

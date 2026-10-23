@@ -34,6 +34,7 @@ try {
     $a=vs_claim_next($id);$session=vs_read($id);$lease=wr_live($r['id'],$a['task_id']);$expiry=$lease['expires_at'];
     vqc((int)$session['assignments_used']===1 && $lease['actor_hash']===$session['actor_hash'],'Pickup atomically counts one assignment and reserves for the original volunteer');
     $text=vs_handoff($id,$a['id']);$again=vs_claim_next($id);
+    vqc(str_contains($text,'PRIVATE SESSION WORKER PROCEDURE') && str_contains($text,'AUTHORIZED VOLUNTEER SESSION RETURN MODE'),'Validated session delivery includes mode-aware worker return guidance');
     vqc($again['id']===$a['id'] && (int)vs_read($id)['assignments_used']===1,'Concurrent-style repeated pickup reuses the current assignment');
     $GLOBALS['vqq_now']+=5;vqc(vs_handoff($id,$a['id'])===$text && wr_live($r['id'],$a['task_id'])['expires_at']===$expiry,'Recopy retains complete handoff, return credential and original expiry');
     $g=vs_assignment_grant($session,$a);$archive=wf_read_handoff($r['id'],$g['scope']['archive_id']);

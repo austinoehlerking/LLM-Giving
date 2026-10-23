@@ -1,3 +1,4 @@
+(()=>{
 'use strict';
 const setup=document.querySelector('[data-volunteer-setup]');
 if(setup){
@@ -20,3 +21,5 @@ if(exchange && location.hash){
  const secret=location.hash.slice(1);history.replaceState(null,'',location.pathname);
  exchange.elements.session_secret.value=secret;exchange.requestSubmit();
 }
+
+})();

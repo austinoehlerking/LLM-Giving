@@ -53,5 +53,5 @@ function vo_return_instructions(string $singleAssignment): string {
 
 /** Append only to private delivery after shared session validation; never alter an archived task body. */
 function vo_assignment_instructions(): string {
-    return "\nPRIVATE SESSION WORKER PROCEDURE — not part of the public task archive.\n".ar_instructions(true)."\n";
+    return "\nPRIVATE SESSION WORKER PROCEDURE — not part of the public task archive.\nFor this validated session assignment, the following procedure supersedes only the archived one-assignment continuation and fresh-authorization wording. All scientific requirements and signed identifiers remain unchanged. The assigned worker still stops after its assignment; only the authorized controller may continue.\n".ar_instructions(true)."\n";
 }
