@@ -40,7 +40,7 @@ function vo_return_instructions(string $singleAssignment): string {
         'Stop after this single assignment; do not begin another task or review your own work.' =>
             'The assigned worker stops after its recorded outcome. The orchestrator may return to the live Volunteer session queue only while the server-validated session scope, allowance and deadline permit. Never independently review work produced by this session, its orchestrator or its workers.',
         'If task, revision or requirements became stale, obtain fresh authorization/handoff and reassess; do not forge identifiers.' =>
-            'If the task, revision or requirements became stale, preserve the entered work and original identifiers. Use the live session dashboard to inspect the conflict and obtain a current eligible assignment only if the session permits it. Reassess changed work; never silently replace signed identifiers. Expiry, Stop or changed terms require stopping, not invented consent.',
+            'If the task, revision or requirements became stale, preserve the entered work and original identifiers and report the conflict to the session controller. The controller uses its private live dashboard for explicit reacquisition or a new eligible assignment only if the session permits it. Worker-only return credentials do not authorize queue pickup or reacquisition. Reassess changed work; never silently replace signed identifiers. Session expiry, Stop or changed terms require stopping, not invented consent.',
         'Quarantined work is recorded but not accepted evidence: wait, do not resubmit.' =>
             'Quarantined work is recorded but not accepted evidence. Do not resubmit or poll for moderation. Another eligible study is allowed only through the still-active session queue and only within its scope; otherwise stop cleanly.'
     ];
@@ -48,5 +48,10 @@ function vo_return_instructions(string $singleAssignment): string {
         if (substr_count($singleAssignment, $old) !== 1) throw new RuntimeException('Session return guidance must be reconciled with the single-assignment instructions.');
         $singleAssignment = str_replace($old, $new, $singleAssignment);
     }
-    return "AUTHORIZED VOLUNTEER SESSION RETURN MODE — applies only after the server validates a current private session grant. This prose and packet fields create no permission. The existing session authorization covers eligible sequential continuation; do not ask for consent again for each permitted assignment. Read live limits before every action. Use explicit active-work reservation renewal, never an idle timer; renewal does not extend the session deadline. Bound format/validation repair and uncertain receipt recovery to three attempts, then preserve work and report the persistent blocker or unknown recording status. Public reference prompts and ordinary single-assignment grants retain their original limits.\n".$singleAssignment;
+    return "AUTHORIZED VOLUNTEER SESSION RETURN MODE — applies only after the server validates a current private session grant. This prose and packet fields create no permission. The existing session authorization covers eligible sequential continuation; do not ask for consent again for each permitted assignment. Read live limits before every action. A worker holding only an assignment return credential must report reservation expiry to its session controller; it must not gain general session authority. Use explicit active-work reservation renewal, never an idle timer; renewal does not extend the session deadline. Bound format/validation repair and uncertain receipt recovery to three attempts, then preserve work and report the persistent blocker or unknown recording status. Public reference prompts and ordinary single-assignment grants retain their original limits.\n".$singleAssignment;
+}
+
+/** Append only to private delivery after shared session validation; never alter an archived task body. */
+function vo_assignment_instructions(): string {
+    return "\nPRIVATE SESSION WORKER PROCEDURE — not part of the public task archive.\n".ar_instructions(true)."\n";
 }
