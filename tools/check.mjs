@@ -40,6 +40,7 @@ process.stdout.write(runPhp(['tests/browser-return.php']));
 process.stdout.write(runPhp(['tests/volunteer-sessions.php']));
 process.stdout.write(runPhp(['tests/volunteer-queue.php']));
 process.stdout.write(runPhp(['tests/volunteer-orchestrator.php']));
+process.stdout.write(runPhp(['tests/volunteer-guide.php']));
 process.stdout.write(runPhp(['tests/volunteer-scope.php']));
 const volunteerRace=spawnSync(process.execPath,['tests/volunteer-concurrency.mjs'],{encoding:'utf8'});
 if(volunteerRace.status!==0)throw new Error(volunteerRace.stdout+volunteerRace.stderr);
