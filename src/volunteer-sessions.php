@@ -4,7 +4,7 @@ function vs_now(): int {
     if (PHP_SAPI === 'cli' && in_array(env('APP_ENV'), ['local','test','testing'], true) && isset($GLOBALS['vs_test_now'])) {
         return (int)$GLOBALS['vs_test_now'];
     }
-    return time();
+    return function_exists('wr_time') ? wr_time() : time();
 }
 function vs_integer(array $post, string $key, int $default, int $min, int $max): int {
     $value = $post[$key] ?? $default;
@@ -42,6 +42,7 @@ function vs_configuration(array $post): array {
 function vs_create(array $post): array {
     throttle('volunteer-session-start', 10);
     $configuration = vs_configuration($post);
+    $started = vs_now();
     if (empty($post['authorize']) || empty($post['terms']) || empty($post['authorized_resources'])) {
         fail(422, 'Confirm session authorization, public-content terms and authorized resource use.');
     }
@@ -50,7 +51,7 @@ function vs_create(array $post): array {
     $software = !empty($post['tool_terms']);
     $consent = ['terms_version'=>terms_version(record:true), 'research_license'=>RESEARCH_LICENSE,
         'tool_terms_version'=>$software ? RT_TERMS : null, 'software_license'=>$software ? RT_LICENSE : null,
-        'human_disclosure'=>$declaration, 'captured_at_utc'=>gmdate('Y-m-d H:i:s', vs_now()),
+        'human_disclosure'=>$declaration, 'captured_at_utc'=>gmdate('Y-m-d H:i:s', $started),
         'source'=>'Volunteer session authorization form (self-attested)',
         'disclosure_scope'=>'Through session authorization; each worker separately reports later scientific input.',
         'permission'=>'Eligible task selection, research, browser submission, platform validation repair and continuation only within the chosen scope, assignment limit and session deadline. One active task at a time. No purchases, installation, unrelated work or broader account access is authorized.',
@@ -61,7 +62,7 @@ function vs_create(array $post): array {
         'scope_kind'=>$configuration['scope_kind'], 'scope_id'=>$configuration['scope_id'],
         'assignment_limit'=>$configuration['assignment_limit'], 'assignments_used'=>0,
         'capabilities'=>json_encode($configuration['capabilities'], JSON_THROW_ON_ERROR), 'consent'=>json_encode($consent, JSON_THROW_ON_ERROR),
-        'created_at'=>gmdate('Y-m-d H:i:s', vs_now()), 'expires_at'=>gmdate('Y-m-d H:i:s', vs_now()+$configuration['minutes']*60)];
+        'created_at'=>gmdate('Y-m-d H:i:s', $started), 'expires_at'=>gmdate('Y-m-d H:i:s', $started+$configuration['minutes']*60)];
     insert('volunteer_sessions', $row);
     $_SESSION['volunteer_sessions'][$id] = $row['secret_hash'];
     return ['id'=>$id, 'link'=>rtrim(env('APP_URL'), '/').'/volunteer/'.$id.'/open#'.$secret];
