@@ -52,10 +52,12 @@ function ar_issue(array $r,?string $tid,array $post): array {
         return ['id'=>$id,'archive_id'=>$scope['archive_id']??null,'handoff'=>$body.$supplement];
     });
 }
-function ar_read(array $r,string $id,bool $requireSession=true): array {
+function ar_read(array $r,string $id,bool $requireSession=true,bool $forUpdate=false,bool $allowHolder=false): array {
     research($r['id']);
-    $g=one('SELECT * FROM browser_returns WHERE id=? AND research_id=?',[$id,$r['id']])??fail(404,'Return authorization not found.');
-    if($requireSession&&(!isset($_SESSION['browser_returns'][$id])||!hash_equals($g['secret_hash'],$_SESSION['browser_returns'][$id])))fail(403,'Open the private return link supplied by the volunteer. A public handoff does not authorize submission.');
+    if($forUpdate&&!db()->inTransaction())throw new LogicException('Current grant locks require a research transaction.');
+    $g=one('SELECT * FROM browser_returns WHERE id=? AND research_id=?'.($forUpdate?' FOR UPDATE':''),[$id,$r['id']])??fail(404,'Return authorization not found.');
+    $scoped=isset($_SESSION['browser_returns'][$id])&&hash_equals($g['secret_hash'],$_SESSION['browser_returns'][$id]);
+    if($requireSession&&!$scoped&&(!$allowHolder||!hash_equals($g['actor_hash'],wf_actor())))fail(403,'Open the private return link supplied by the volunteer. A public handoff does not authorize submission.');
     if($g['task_id']&&wf_task($r['id'],$g['task_id'])['visibility']!=='public')fail(404,'Assignment not found.');
     $g['scope']=json_decode($g['scope'],true);
     $g['consent']=json_decode($g['consent'],true);
@@ -78,7 +80,7 @@ function ar_record(array $r,array $grant,array $d,bool $checkOnly): string {
         wr_actor_lock($grant['actor_hash']);
         one('SELECT id FROM research WHERE id=? FOR UPDATE',[$r['id']]);
         $r=research($r['id']);
-        $g=ar_read($r,$grant['id']);
+        $g=ar_read($r,$grant['id'],true,true);
         $encoded=json_encode($d,JSON_THROW_ON_ERROR);
         preg_match_all('/[a-f0-9]{64}/i',$encoded,$possibleSecrets);
         foreach($possibleSecrets[0] as $candidate)if(hash_equals($g['secret_hash'],hash('sha256',$candidate)))fail(422,'Remove the private return credential from the research packet; it is authorization, not evidence.');
