@@ -1,3 +1,4 @@
+import {reservationPickup} from './reservation-browser-support.mjs';
 import {authorizedHandoff} from './browser-authorization.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,7 +19,7 @@ export async function workflowQa({page,ctx,base,runPhp,check,visibleActions,pass
  async function shot(p,name,fullPage=false){await p.screenshot({path:path.join(out,name+'.png'),fullPage});shots.push(name+'.png');}
  async function disclose(p,level='none'){if(await p.locator('[name=human_level]').count()){await p.locator('[name=human_level]').selectOption(level);if(level==='influenced')await p.locator('[name=human_details]').fill('Synthetic QA disclosure: a human suggested additional research context.');}}
  async function submit(p,t,d){
-  await p.goto(url+'/tasks/'+t.id);await p.locator('[name=payload]').fill(JSON.stringify(d,null,2));await disclose(p);await p.locator('[name=terms]').check();
+  await p.goto(url+'/tasks/'+t.id);await reservationPickup(p,t.revision);await p.locator('[name=payload]').fill(JSON.stringify(d,null,2));await disclose(p);await p.locator('[name=terms]').check();
   await p.getByRole('button',{name:'Submit task result',exact:true}).click();
   await p.getByRole('heading',{name:d.human_interaction?.level==='influenced'?'Packet quarantined — awaiting admin':'Submission accepted',exact:true}).waitFor();check('Conclusion precedes collapsed acceptance evidence',await p.locator('.result-conclusion').evaluate(e=>!!(e.compareDocumentPosition(document.querySelector('.acceptance-checks')||document.querySelector('.research-disclosure'))&Node.DOCUMENT_POSITION_FOLLOWING)));return new URL(p.url()).pathname.split('/').pop();
  }

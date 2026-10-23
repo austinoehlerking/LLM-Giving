@@ -103,6 +103,7 @@ function wf_apply_result(array $row,array $t): void {
 function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnly=false,string $method='unknown',?array $consent=null): string {
     research($rid);$hash=hash('sha256',json_encode($d,JSON_THROW_ON_ERROR));
     try{return tx(function()use($rid,$tid,$d,$actor,$hash,$checkOnly,$method,$consent){
+        wr_actor_lock($actor);
         $r=one('SELECT * FROM research WHERE id=? FOR UPDATE',[$rid])??fail(404,'Research not found.');
         if($r['moderation']!=='Approved'||$r['status']==='Withdrawn')fail(404,'Research not found.');
         $nonce=text_field($d,'submission_key',32,32);if(!ctype_xdigit($nonce))fail(422,'Submission key must be 32 hexadecimal characters.');
@@ -159,10 +160,13 @@ function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnl
         $meta['verification']=['task_signature'=>'valid','conversation_integrity'=>'self-reported','issued_handoff'=>$issued];
         $row['metadata']=json_encode($meta+$assessment);
         $row['admission']=$influence['review_status']==='needed'?'quarantined':'accepted';
+        $reservation=wr_require($rid,$tid,(int)$t['revision'],$actor);
         if($checkOnly)return '';
 
         insert('workflow_submissions',$row);
+        wr_finish($reservation,$row['id']);
         if($row['admission']==='quarantined'){
+            wr_invalidate($rid);
             query("UPDATE workflow_tasks SET state='Awaiting Admin' WHERE id=?",[$tid]);
             touch_context($rid);
             audit_event($rid,'Packet quarantined','Additional human input or uncertainty requires an admin decision. No task outcome has been applied.','submission',$row['id'],'Received','Quarantined','Wait for an administrator to approve or reject this packet.','contributor',$row['display_name']?:'Anonymous volunteer',['submission_method'=>$method]);

@@ -23,7 +23,7 @@ try{
   $schema=json_decode(explode("\n\nUNTRUSTED TASK DATA",explode("REQUIRED OUTPUT JSON\n",$archive['body'])[1])[0],true);
   $d=wf_test_payload($r,$task);foreach(['submission_key','handoff_code','task_revision','context_id'] as $k)$d[$k]=$schema[$k];
   $d['human_interaction']=['level'=>$ai,'details'=>$ai==='none'?'':$details];$d['human_disclosure']=['level'=>$human,'details'=>$human==='none'?'':$details];
-  $id=wf_submit($r,$task['id'],$d,str_repeat('a',64));$row=one('SELECT * FROM workflow_submissions WHERE id=?',[$id]);$meta=json_decode($row['metadata'],true);
+  $id=wf_test_submit($r,$task['id'],$d,str_repeat('a',64));$row=one('SELECT * FROM workflow_submissions WHERE id=?',[$id]);$meta=json_decode($row['metadata'],true);
   hc($row['admission']==='quarantined'&&count(wf_tasks($r))===1,'Disclosed initial alteration quarantines without advancement: '.$details);
   hc($meta['verification']['task_signature']==='valid'&&$meta['verification']['conversation_integrity']==='self-reported'&&$meta['verification']['issued_handoff']['id']===$archive['id'],'Signature and issued archive do not imply conversation integrity');
   $background=wf_issue_handoff($r);hc($background['task_id']===null&&str_contains($background['body'],'NO READY TASK'),'Held background handoff archived');
