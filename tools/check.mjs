@@ -29,6 +29,7 @@ process.stdout.write(runPhp(['tests/artifacts.php']));
 process.stdout.write(runPhp(['tests/quarantine.php']));
 process.stdout.write(runPhp(['tests/handoffs.php']));
 process.stdout.write(runPhp(['tests/browser-return.php']));
+process.stdout.write(runPhp(['tests/volunteer-sessions.php']));
 process.stdout.write(runPhp(['tests/citation.php']));
 process.stdout.write(runPhp(['tests/requirements.php']));
 process.stdout.write(runPhp(['tests/forks.php']));
