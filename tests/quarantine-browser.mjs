@@ -1,3 +1,4 @@
+import {reservationPickup} from './reservation-browser-support.mjs';
 import {authorizedHandoff} from './browser-authorization.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -13,7 +14,7 @@ export async function quarantineQa({page,ctx,base,runPhp,check,visibleActions,pa
  const viewports=async(p,u,name,selector)=>{for(const s of sizes){await p.setViewportSize(s);await p.goto(u);await shot(p,name+'-'+s.width);await visibleActions(p,selector,name+' '+s.width);}await p.setViewportSize(sizes[0]);};
  const packet=t=>{const d=JSON.parse(runPhp(['tests/workflow-browser-state.php','payload',fixture.id,t.id]));d.human_interaction={level:'influenced',details:'Synthetic quarantine QA: human asked for a preferred no-effect conclusion. This fixture is not scientific evidence.'};return d;};
  const submit=async(t,d)=>{
-  await page.goto(url+'/tasks/'+t.id);await page.locator('[name=payload]').fill(JSON.stringify(d,null,2));await page.locator('[name=human_level]').selectOption('influenced');await page.locator('[name=human_details]').fill('Synthetic QA: requested a preferred conclusion after the original handoff.');
+  await page.goto(url+'/tasks/'+t.id);await reservationPickup(page,t.revision);await page.locator('[name=payload]').fill(JSON.stringify(d,null,2));await page.locator('[name=human_level]').selectOption('influenced');await page.locator('[name=human_details]').fill('Synthetic QA: requested a preferred conclusion after the original handoff.');
   await page.getByRole('button',{name:'Check packet',exact:true}).click();await page.locator('[data-workflow-error]').filter({hasText:'will be quarantined'}).waitFor();await page.locator('[data-workflow-error]').scrollIntoViewIfNeeded();await shot(page,'preflight-hold-warning');
   await page.locator('[name=terms]').check();await page.getByRole('button',{name:'Submit task result',exact:true}).click();await page.getByRole('heading',{name:'Packet quarantined — awaiting admin',exact:true}).waitFor();return page.url();
  };

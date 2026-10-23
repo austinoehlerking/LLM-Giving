@@ -66,6 +66,10 @@ Submission creation and attachment records share a transaction. Known newly writ
 MariaDB migration DDL commits implicitly; take backups before production changes. Migration filenames are recorded and are never re-run once successful. A failed partially applied initial migration needs diagnosis before retry; do not blindly reset an existing database.
 
 
+## Shared task reservations
+
+The shared reservation service serializes anonymous task pickup for both manual handoffs and the volunteer orchestrator, using server-timed 60-minute leases and actor-before-parent locks. Task recording revalidates a live owned current revision; exact recorded retries retain receipt recovery. Lease ownership never substitutes for consent, moderation, evidence or model policy. Migration 016 is additive; historical handoffs and consent remain unchanged. See [the reservation contract](task-reservations.md) for operations, lock order, transfer, expiry and staged pickup-control integration.
+
 ## Signed AI handoffs
 
 Task schemas include a server-issued HMAC-SHA256 handoff_code bound to research ID, task ID, task revision, immutable context ID and submission_key. New task submissions must preserve all identifiers. The signing key is generated once under storage/private/handoff.key with an exclusive file lock; keep it private and persistent across application workers and deployments. Rotating or losing it invalidates outstanding handoffs. Existing recorded results remain readable. Exact accepted retries retain their existing actor/payload idempotency checks.

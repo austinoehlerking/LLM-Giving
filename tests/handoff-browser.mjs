@@ -1,3 +1,4 @@
+import {reservationPickup} from './reservation-browser-support.mjs';
 import {authorizedHandoff} from './browser-authorization.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -39,7 +40,7 @@ export async function handoffQa({page,ctx,base,runPhp,check,visibleActions,passw
    const packet=JSON.parse(runPhp(['tests/workflow-browser-state.php','payload',f.id,t.id,'progress']));
    for(const k of ['submission_key','handoff_code','task_revision','context_id'])packet[k]=schema[k];
    packet.human_interaction={level:ai,details:ai==='none'?'':details};
-   await page.goto(url+'/tasks/'+t.id);
+   await page.goto(url+'/tasks/'+t.id);await reservationPickup(page,t.revision);
    if(name==='initial-edit'){
     await shot(page,'task-first-viewport');
     check('Initial-prompt edits are explicit on return form',(await page.locator('fieldset').innerText()).includes('BEFORE the first AI message'));

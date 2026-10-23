@@ -14,6 +14,7 @@ import {citationQa} from '../tests/citation-browser.mjs';
 import {artifactQa} from '../tests/artifact-browser.mjs';
 import {calculationQa} from '../tests/calculation-browser.mjs';
 import {libraryQa} from '../tests/library-browser.mjs';
+import {reservationQa} from '../tests/reservation-browser.mjs';
 import {submissionQa} from '../tests/submission-browser.mjs';
 import {workflowQa} from '../tests/workflow-browser.mjs';
 import {quarantineQa} from '../tests/quarantine-browser.mjs';
@@ -97,6 +98,7 @@ try{
  // 200% browser zoom equivalent: reduced CSS viewport plus text scaling checks.
  await page.setViewportSize({width:683,height:384});await goto(page,'/');await page.evaluate(()=>{document.body.style.fontSize='200%';});await shot(page,'home-enlarged-text');check('Enlarged text reflow without horizontal clipping',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  if(mode==='viewport'){check('No browser script exceptions',errors.length===0);console.log('Initial viewport screenshots and '+report.checks.length+' checks captured. Inspect screenshots before full workflow QA.');}
+ else if(mode==='reservations'){await reservationQa({page,ctx,base,runPhp,check,visibleActions});}
  else if(mode==='forks') {
   await forkQa({page,ctx,base,runPhp,check,visibleActions,report});
  }

@@ -161,6 +161,7 @@ function change_status(string $rid,string $status,string $reason,string $actor):
     tx(function() use($rid,$status,$reason,$actor) {
         $r=one('SELECT status FROM research WHERE id=? FOR UPDATE',[$rid]) ?? fail(404,'Research not found.');
         query('UPDATE research SET status=? WHERE id=?',[$status,$rid]);
+        if(in_array($status,['Needs Clarification','Blocked','Paused','Withdrawn','Archived — Inactive','Solved','Review Complete'],true))wr_invalidate($rid);
         insert('status_history',['research_id'=>$rid,'old_status'=>$r['status'],'new_status'=>$status,'actor'=>$actor,'reason'=>$reason,'created_at'=>now()]);
         touch_context($rid);
         audit_event($rid,'Status updated',$reason,'research',$rid,$r['status'],$status,'',$actor,ucfirst($actor));
@@ -256,7 +257,7 @@ function moderate(string $type,string $id,string $state,string $reason,string $e
         query("UPDATE $table SET moderation=?,moderation_reason=? WHERE id=?",[$state,$reason,$id]);
         touch_context($rid,$state==='Approved');
         audit_event($rid,'Moderation decision',$reason,$type,$id,$row['moderation'],$state,'','administrator','Administrator',[],'private');
-        if($state!=='Approved')query('UPDATE workflow_snapshots SET public_allowed=0 WHERE research_id=?',[$rid]);
+        if($state!=='Approved'){query('UPDATE workflow_snapshots SET public_allowed=0 WHERE research_id=?',[$rid]);wr_invalidate($rid);}
         if($type==='request' && $state==='Approved')wf_start($rid);
         if($type==='contribution' && $state==='Approved' && $row['kind']!=='Independent review') {
             $r=research($rid,false);

@@ -43,11 +43,11 @@ try{
  $task=wf_tasks($rid)[0];$old=wf_test_payload($rid,$task);$snapshot=one('SELECT * FROM workflow_snapshots WHERE id=?',[$old['context_id']]);
  rq_update($rid,ai_input(['claude-fable-5-1'],['high','ultracode'],['high']));
  ai_ok(one('SELECT package_json FROM workflow_snapshots WHERE id=?',[$old['context_id']])['package_json']===$snapshot['package_json'],'Historical snapshot bytes unchanged');
- ai_deny(fn()=>wf_submit($rid,$task['id'],$old,str_repeat('a',64)),'Changed choices invalidate old handoff',409);
+ ai_deny(fn()=>wf_test_submit($rid,$task['id'],$old,str_repeat('a',64)),'Changed choices invalidate old handoff',409);
  $packet=wf_test_payload($rid,$task);$packet['metadata']['model']='claude-fable-5-1';$packet['metadata']['provider']='Anthropic';$packet['metadata']['tool']='Claude Code';$packet['metadata']['workflow_mode']='ultracode';
- $packet['metadata']['reasoning']='xhigh';ai_deny(fn()=>wf_submit($rid,$task['id'],$packet,str_repeat('a',64)),'Ultracode xhigh cannot bypass platform Max planning');
- $packet['metadata']['reasoning']='ultracode';ai_deny(fn()=>wf_submit($rid,$task['id'],$packet,str_repeat('a',64)),'Ultracode is never a numeric effort');
- $packet['metadata']['reasoning']='max';$result=wf_submit($rid,$task['id'],$packet,str_repeat('a',64));
+ $packet['metadata']['reasoning']='xhigh';ai_deny(fn()=>wf_test_submit($rid,$task['id'],$packet,str_repeat('a',64)),'Ultracode xhigh cannot bypass platform Max planning');
+ $packet['metadata']['reasoning']='ultracode';ai_deny(fn()=>wf_test_submit($rid,$task['id'],$packet,str_repeat('a',64)),'Ultracode is never a numeric effort');
+ $packet['metadata']['reasoning']='max';$result=wf_test_submit($rid,$task['id'],$packet,str_repeat('a',64));
  $stored=json_decode(one('SELECT metadata FROM workflow_submissions WHERE id=?',[$result])['metadata'],true);
  ai_ok($stored['reasoning']==='max'&&$stored['workflow_mode']==='ultracode','Actual effort and mode persisted separately');
  ai_deny(fn()=>rq_update($rid,ai_input()),'New requirement format locks after first result',409);

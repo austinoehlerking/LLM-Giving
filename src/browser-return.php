@@ -17,23 +17,19 @@ function ar_consent(array $r,array $post): array {
     return ['terms_version'=>terms_version(record:true),'research_license'=>RESEARCH_LICENSE,'tool_terms_version'=>rt_is_tool($r)?RT_TERMS:null,'software_license'=>rt_is_tool($r)?RT_LICENSE:null,'human_disclosure'=>ar_disclosure($post),'captured_at_utc'=>now(),'source'=>'Volunteer authorization form (self-attested)','resource_confirmation'=>CONTRIBUTOR_RESOURCE_CONFIRMATION,'disclosure_scope'=>'Through authorization; the AI separately reports later input.','permission'=>'One assigned result, including browser navigation and platform validation repair; no further tasks or self-review.'];
 }
 function ar_ready(array $r,array $t,?string $actor=null): void {
-    $p=wf_project($r['id']);
-    if(!$p||$t['visibility']!=='public'||$t['round_no']!=$p['round_no']||$t['state']!=='Ready'||wf_quarantine($r['id'])||in_array($r['status'],['Needs Clarification','Blocked','Paused','Archived — Inactive','Solved','Review Complete'],true))fail(409,'This assignment is not ready. Read the current workflow before authorizing new work.');
-    if($t['kind']==='review'){
-        $synthesis=wf_task($r['id'],json_decode($t['dependencies'],true)[0]);
-        $original=one('SELECT actor_hash FROM workflow_submissions WHERE id=? AND research_id=?',[$synthesis['accepted_id'],$r['id']]);
-        if($original&&hash_equals($original['actor_hash'],$actor??wf_actor()))fail(422,'Choose a different contributor for independent review. This authorization preserves your contributor browser identity.');
-    }
+    wr_eligible($r['id'],$t['id'],(int)$t['revision'],$actor??wf_actor());
 }
 function ar_issue(array $r,?string $tid,array $post): array {
     throttle('browser-authorization',20);
     return tx(function()use($r,$tid,$post){
+        wr_actor_lock(wf_actor(),true);
         one('SELECT id FROM research WHERE id=? FOR UPDATE',[$r['id']]);
         $r=research($r['id']);
         $consent=ar_consent($r,$post);
         if($tid){
             $t=wf_task($r['id'],$tid);
             ar_ready($r,$t);
+            wr_claim($r['id'],$tid,(int)$t['revision'],wf_actor());
             $archive=wf_issue_handoff($r['id'],$tid);
             $scope=['kind'=>'task','revision'=>(int)$t['revision'],'context_id'=>$archive['snapshot_id'],'submission_key'=>$archive['nonce'],'archive_id'=>$archive['id']];
             $body=$archive['body'];
@@ -52,7 +48,7 @@ function ar_issue(array $r,?string $tid,array $post): array {
         $id=uid();
         insert('browser_returns',['id'=>$id,'research_id'=>$r['id'],'task_id'=>$tid,'secret_hash'=>hash('sha256',$secret),'actor_hash'=>wf_actor(),'scope'=>json_encode($scope),'consent'=>json_encode($consent),'created_at'=>now(),'expires_at'=>gmdate('Y-m-d H:i:s',time()+86400)]);
         $link=rtrim(env('APP_URL'),'/').'/research/'.$r['slug'].'/return/'.$id.'#'.$secret;
-        $supplement="\n\nPRIVATE VOLUNTEER AUTHORIZATION SUPPLEMENT — not part of the public handoff archive.\nThe volunteer authorized exactly this assignment, accepted the displayed public-content terms".(rt_is_tool($r)?' and separate software terms':'')." and supplied an independent declaration through the authorization time. These are self-attestations, not verified identity or conversation integrity. The volunteer also confirmed: ".$consent['resource_confirmation']." LLM.Giving relies on that confirmation and does not audit external resource permissions. This handoff grants no access to other accounts or resources, installation or spending authority. Browser submission and platform formatting repair alone are operational permission, not scientific influence. Preserve and report any later substantive human input or uncertainty. Do not ask the AI to invent a human declaration or check new consent boxes.\nPrivate return link: ".$link."\nOpen only this trusted site link using your browser tools when ready to return the assigned work. It carries the captured consent into your separate anonymous browser session. Never include the link, its fragment secret or authorization identifiers in the research packet, public output, sources, screenshots shared publicly or final answer. It expires after 24 hours and can record one result. If used already, inspect its recorded receipt before retrying. If expired, stale or consent changed, report NOT SUBMITTED and request fresh authorization; do not forge identifiers or consent. Stop after the recorded outcome.\n";
+        $supplement="\n\nPRIVATE VOLUNTEER AUTHORIZATION SUPPLEMENT — not part of the public handoff archive.\nThe volunteer authorized exactly this assignment, accepted the displayed public-content terms".(rt_is_tool($r)?' and separate software terms':'')." and supplied an independent declaration through the authorization time. These are self-attestations, not verified identity or conversation integrity. The volunteer also confirmed: ".$consent['resource_confirmation']." LLM.Giving relies on that confirmation and does not audit external resource permissions. This handoff grants no access to other accounts or resources, installation or spending authority. Browser submission and platform formatting repair alone are operational permission, not scientific influence. Preserve and report any later substantive human input or uncertainty. Do not ask the AI to invent a human declaration or check new consent boxes.\nPrivate return link: ".$link."\nOpen only this trusted site link using your browser tools when ready to return the assigned work. It carries the captured consent into your separate anonymous browser session. Never include the link, its fragment secret or authorization identifiers in the research packet, public output, sources, screenshots shared publicly or final answer. The return authorization expires after 24 hours and can record one result, but the separate task reservation lasts only 60 server-timed minutes. Only an explicit renewal extends that reservation; opening this link, checking a packet or copying a handoff never renews. For a task assignment use POST to this return URL with /reservation appended before the fragment (CSRF-protected), operation claim, renew or release, and task_revision matching the signed assignment. A lost or expired reservation must be explicitly reacquired against current eligibility before submitting; never displace another holder. Supplementary contributions do not reserve tasks. If used already, inspect its recorded receipt before retrying. If expired, stale or consent changed, report NOT SUBMITTED and request fresh authorization; do not forge identifiers or consent. Stop after the recorded outcome.\n";
         return ['id'=>$id,'archive_id'=>$scope['archive_id']??null,'handoff'=>$body.$supplement];
     });
 }
@@ -79,6 +75,7 @@ function ar_validate(array $r,array $g): void {
 }
 function ar_record(array $r,array $grant,array $d,bool $checkOnly): string {
     return tx(function()use($r,$grant,$d,$checkOnly){
+        wr_actor_lock($grant['actor_hash']);
         one('SELECT id FROM research WHERE id=? FOR UPDATE',[$r['id']]);
         $r=research($r['id']);
         $g=ar_read($r,$grant['id']);
@@ -137,6 +134,11 @@ function ar_route(array $r,string $suffix,string $method): bool {
         }
         render('browser-authorize',['title'=>'Authorize AI browser submission','r'=>$r,'tid'=>$tid,'error'=>$error]);
         return true;
+    }
+    if(preg_match('~^return/([a-f0-9]{32})/reservation$~D',$suffix,$m)){
+        $g=ar_read($r,$m[1]);
+        if(!$g['task_id'])fail(422,'Supplementary contributions do not reserve workflow tasks.');
+        wr_http($r,$g['task_id'],$method,$g);return true;
     }
     if(preg_match('~^return/([a-f0-9]{32})(/submit)?$~D',$suffix,$m)){
         $id=$m[1];

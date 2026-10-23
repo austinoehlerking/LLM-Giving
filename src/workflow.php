@@ -7,6 +7,7 @@ require_once __DIR__.'/research-tools.php';
 require_once __DIR__.'/research-artifacts.php';
 require_once __DIR__.'/artifact-render.php';
 require_once __DIR__.'/workflow-packets.php';
+require_once __DIR__.'/task-reservations.php';
 require_once __DIR__.'/browser-return.php';
 require_once __DIR__.'/volunteer-orchestrator.php';
 require_once __DIR__.'/workflow-handoffs.php';
@@ -15,11 +16,15 @@ require_once __DIR__.'/workflow-engine.php';
 require_once __DIR__.'/workflow-policy.php';
 
 function wf_restart(string $rid,string $reason,string $actor='administrator'): void {
-    $p=wf_project($rid);if(!$p)return;
-    query("UPDATE workflow_tasks SET state='Superseded' WHERE research_id=? AND round_no=?",[$rid,$p['round_no']]);
-    query('UPDATE workflow_projects SET round_no=round_no+1,blocker_id=NULL WHERE research_id=?',[$rid]);
-    wf_planning_task($rid,(int)$p['round_no']+1);wf_set_state($rid,'Needs Research Plan',$reason);touch_context($rid);
-    audit_event($rid,'Planning restarted',$reason,'research',$rid,'Earlier round','Needs Research Plan','Reassess the complete history with a new planning run.',$actor,ucfirst($actor));
+    tx(function()use($rid,$reason,$actor){
+        one('SELECT id FROM research WHERE id=? FOR UPDATE',[$rid]);
+        $p=wf_project($rid);if(!$p)return;
+        wr_invalidate($rid);
+        query("UPDATE workflow_tasks SET state='Superseded' WHERE research_id=? AND round_no=?",[$rid,$p['round_no']]);
+        query('UPDATE workflow_projects SET round_no=round_no+1,blocker_id=NULL WHERE research_id=?',[$rid]);
+        wf_planning_task($rid,(int)$p['round_no']+1);wf_set_state($rid,'Needs Research Plan',$reason);touch_context($rid);
+        audit_event($rid,'Planning restarted',$reason,'research',$rid,'Earlier round','Needs Research Plan','Reassess the complete history with a new planning run.',$actor,ucfirst($actor));
+    });
 }
 function wf_remove_result(string $rid,string $id,string $reason): void {
     require_admin();
@@ -68,6 +73,7 @@ function wf_set_state(string $rid,string $state,string $reason): void {
     $r=research($rid,false);
     if($r['status']===$state)return;
     query('UPDATE research SET status=? WHERE id=?',[$state,$rid]);
+    if(in_array($state,['Needs Clarification','Blocked','Review Complete'],true))wr_invalidate($rid);
     insert('status_history',['research_id'=>$rid,'old_status'=>$r['status'],'new_status'=>$state,'actor'=>'workflow','reason'=>$reason,'created_at'=>now()]);
     audit_event($rid,'Project state changed',$reason,'research',$rid,$r['status'],$state);
 }
@@ -102,6 +108,7 @@ function wf_resolve(string $rid,string $body,string $reason,string $actor,int $e
         if(!in_array($r['status'],['Needs Clarification','Blocked'],true))fail(409,'There is no active clarification or blocker.');
         if($r['moderation']!=='Approved')fail(409,'Topic publication approval is required.');
         $id=uid();insert('workflow_clarifications',['id'=>$id,'research_id'=>$rid,'blocker_id'=>$p['blocker_id'],'actor'=>$actor,'body'=>$body,'reason'=>$reason,'created_at'=>now()]);
+        wr_invalidate($rid);
         query("UPDATE workflow_tasks SET state='Superseded' WHERE research_id=? AND round_no=?",[$rid,$p['round_no']]);
         query('UPDATE workflow_projects SET round_no=round_no+1,blocker_id=NULL WHERE research_id=?',[$rid]);
         wf_planning_task($rid,(int)$p['round_no']+1);wf_set_state($rid,'Needs Research Plan',$reason);touch_context($rid);
@@ -118,7 +125,7 @@ function wf_handoff_next(array $r): ?array {
 function wf_handoff_text(string $rid,?array &$issuance=null): string {
  return tx(function()use($rid,&$issuance){
   one('SELECT id FROM research WHERE id=? FOR UPDATE',[$rid]);$r=research($rid);$next=wf_handoff_next($r);$base=env('APP_URL').'/research/'.$r['slug'];
-  $intro="AI RESEARCH HANDOFF — LLM.Giving\nPaste this entire handoff into your AI. This is a context handoff, not a reservation; check task availability before submitting.\n\n";
+  $intro="AI RESEARCH HANDOFF — LLM.Giving\nPaste this entire handoff into your AI. This public context copy does not reserve a task or extend a reservation. Explicitly acquire the current task revision before working; a live 60-minute reservation is required to record a new result. Only an explicit renewal extends it.\n\n";
   if($next)return $intro.wf_agent_guide($r)."\n\nNEXT READY TASK PROMPT — COMPLETE INSTRUCTIONS, OUTPUT JSON AND FULL CONTEXT\n".wf_prompt($rid,$next['id'],$issuance);
   $snapshot=wf_snapshot($rid);
   $issuance=['task_id'=>null,'snapshot_id'=>$snapshot['id'],'nonce'=>null];

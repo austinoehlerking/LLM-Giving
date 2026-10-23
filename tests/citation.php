@@ -6,8 +6,8 @@ try{
  foreach(['contributions','workflow_submissions'] as $table)cite_check((int)one("SELECT COUNT(*) n FROM ".$table." WHERE license<>'CC-BY-4.0'")['n']===0,'All existing '.$table.' use CC BY 4.0');
  $made=create_research(['title'=>'[QA] Citation and licensing','question'=>'Synthetic license and citation workflow; no scientific finding.','category_id'=>1,'terms'=>1]);$rid=$made['id'];moderate('request',$rid,'Approved','Local citation test.');
  $task=wf_tasks($rid)[0];$d=wf_test_payload($rid,$task);$d['license']='CC0';$d['display_name']='Test contributor';
- $bad=$d;$bad['terms']=0;try{wf_submit($rid,$task['id'],$bad,str_repeat('f',64));throw new RuntimeException('Missing agreement accepted');}catch(HttpError $e){cite_check($e->status===422,'New license still requires human terms acceptance');}
- $id=wf_submit($rid,$task['id'],$d,str_repeat('f',64));$row=one('SELECT * FROM workflow_submissions WHERE id=?',[$id]);$meta=json_decode($row['metadata'],true);
+ $bad=$d;$bad['terms']=0;try{wf_test_submit($rid,$task['id'],$bad,str_repeat('f',64));throw new RuntimeException('Missing agreement accepted');}catch(HttpError $e){cite_check($e->status===422,'New license still requires human terms acceptance');}
+ $id=wf_test_submit($rid,$task['id'],$d,str_repeat('f',64));$row=one('SELECT * FROM workflow_submissions WHERE id=?',[$id]);$meta=json_decode($row['metadata'],true);
  cite_check($row['license']===RESEARCH_LICENSE&&$meta['contribution_license']===RESEARCH_LICENSE&&$meta['terms_version']===terms_version(),'New task stores server-owned license and actual policy version');
  $cid=create_contribution($rid,rs_test_supplement(['kind'=>'Original research','summary'=>'Synthetic license test','body'=>'Synthetic license test only, not scientific findings.','terms'=>1,'license'=>'CC0']));
  cite_check(one('SELECT license FROM contributions WHERE id=?',[$cid])['license']===RESEARCH_LICENSE,'Supplementary contributions cannot override CC BY 4.0');

@@ -51,7 +51,7 @@ function wf_acceptance(array $t,array $d,array $row): array {
 function wf_correct_tasks(string $rid,array $issues,string $reviewId): void {
  $tasks=wf_tasks($rid);$affected=array_fill_keys(array_column($issues,'task_id'),true);
  do{$changed=false;foreach($tasks as $t)if(!isset($affected[$t['id']])&&array_intersect(json_decode($t['dependencies'],true),array_keys($affected))){$affected[$t['id']]=true;$changed=true;}}while($changed);
- foreach($tasks as $t)if(isset($affected[$t['id']])){query("UPDATE workflow_tasks SET state='Waiting',revision=revision+1,accepted_id=NULL WHERE id=?",[$t['id']]);audit_event($rid,'Task correction required','Independent review requires this task or its evidence dependencies to be revised.','task',$t['id'],$t['state'],'Waiting','Read the targeted correction and submit a new evidence-backed result.','system','LLM.Giving',['review_result_id'=>$reviewId,'previous_result_id'=>$t['accepted_id'],'corrections'=>$issues]);}
+ foreach($tasks as $t)if(isset($affected[$t['id']])){wr_invalidate($rid,$t['id']);query("UPDATE workflow_tasks SET state='Waiting',revision=revision+1,accepted_id=NULL WHERE id=?",[$t['id']]);audit_event($rid,'Task correction required','Independent review requires this task or its evidence dependencies to be revised.','task',$t['id'],$t['state'],'Waiting','Read the targeted correction and submit a new evidence-backed result.','system','LLM.Giving',['review_result_id'=>$reviewId,'previous_result_id'=>$t['accepted_id'],'corrections'=>$issues]);}
 }
 function wf_findings(string $rid): ?array {
  research($rid);foreach(wf_tasks($rid) as $t)if($t['kind']==='synthesis'&&$t['state']==='Completed'&&$t['visibility']==='public'){
