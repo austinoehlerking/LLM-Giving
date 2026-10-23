@@ -1,3 +1,4 @@
+import {reservationPickup} from './reservation-browser-support.mjs';
 import fs from 'node:fs';import path from 'node:path';import {spawnSync} from 'node:child_process';import assert from 'node:assert/strict';import {root,env} from '../tools/runtime.mjs';
 export async function calculationQa({page,ctx,base,runPhp,check,visibleActions}){
  const executed=spawnSync(process.execPath,['tools/calculation-pilot.mjs'],{env,encoding:'utf8',windowsHide:true});assert.equal(executed.status,0,executed.stdout+executed.stderr);
@@ -15,7 +16,7 @@ export async function calculationQa({page,ctx,base,runPhp,check,visibleActions})
  await page.getByRole('button',{name:'Back to editing',exact:true}).click();await page.getByRole('button',{name:'Copy AI prompt to assist setup',exact:true}).click();const setupPrompt=await page.locator('#request-setup-prompt').inputValue();check('Generated setup prompt excludes hidden software and removed fields',!setupPrompt.includes('PySCF')&&!setupPrompt.includes('"software_licensing"')&&!setupPrompt.includes('"computing_resources"')&&!setupPrompt.includes('"computational_models"'));
  await page.locator('[name=external_tools]').selectOption('free');check('Concrete dependency restores software input',await page.locator('[name=required_software]').isVisible()&&await page.locator('[name=required_software]').inputValue()==='PySCF');
  const taskId=report.urls.checkpoint.split('/').pop();const prefix=report.urls.checkpoint.split('/tasks/')[0];const data=await(await page.request.get(base+prefix+'/context.json')).json();const progress=data.workflow.submissions.find(s=>s.task_id===taskId&&s.outcome==='progress');const packet=JSON.parse(runPhp(['tests/calculation-state.php','complete',data.research.id,taskId,progress.id]));
- await page.goto(base+report.urls.checkpoint);check('Resume UI exposes saved checkpoint and next action',await page.getByRole('heading',{name:'Resume interrupted work',exact:true}).isVisible());
+ await page.goto(base+report.urls.checkpoint);await reservationPickup(page,packet.task_revision);check('Resume UI exposes saved checkpoint and next action',await page.getByRole('heading',{name:'Resume interrupted work',exact:true}).isVisible());
  // Exercise a delayed fetch with stale clipboard contents, then wait for the UI's completed copy.
  const promptRoute='**/tasks/'+taskId+'/prompt.md';await page.route(promptRoute,async route=>{await new Promise(resolve=>setTimeout(resolve,250));await route.continue();});
  await page.evaluate(()=>navigator.clipboard.writeText('QA stale clipboard sentinel'));

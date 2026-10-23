@@ -25,7 +25,7 @@ function ra_test_visuals(array $packet): array {
 }
 function ra_test_create(): array {
     $_SESSION['admin']=1;$category=(int)one('SELECT id FROM categories LIMIT 1')['id'];$r=create_research(['title'=>'[Artifact QA] Visual artifact evidence and controls','question'=>'Exercise native visual research artifacts with synthetic data, source references, limitations and corrections.','category_id'=>$category,'terms'=>1]);
-    moderate('request',$r['id'],'Approved','Disposable local visual research artifact QA fixture.');$plan=wf_tasks($r['id'])[0];wf_submit($r['id'],$plan['id'],wf_test_payload($r['id'],$plan),str_repeat('a',64));
-    $task=array_values(array_filter(wf_tasks($r['id']),fn($task)=>$task['kind']==='research'&&$task['state']==='Ready'))[0];$packet=ra_test_visuals(wf_test_payload($r['id'],$task));$resultId=wf_submit($r['id'],$task['id'],$packet,str_repeat('a',64));
+    moderate('request',$r['id'],'Approved','Disposable local visual research artifact QA fixture.');$plan=wf_tasks($r['id'])[0];wf_test_submit($r['id'],$plan['id'],wf_test_payload($r['id'],$plan),str_repeat('a',64));
+    $task=array_values(array_filter(wf_tasks($r['id']),fn($task)=>$task['kind']==='research'&&$task['state']==='Ready'))[0];$packet=ra_test_visuals(wf_test_payload($r['id'],$task));$resultId=wf_test_submit($r['id'],$task['id'],$packet,str_repeat('a',64));
     return ['id'=>$r['id'],'slug'=>research($r['id'])['slug'],'task_id'=>$task['id'],'result_id'=>$resultId,'artifact_ids'=>array_column($packet['evidence']['artifacts'],'id')];
 }

@@ -11,7 +11,7 @@ elseif($action==='related'){
     insert('research_links',['research_id'=>$anchor['id'],'related_id'=>$rid,'reason'=>'Synthetic independent related-research discovery QA.']);echo $anchor['id'];
 }
 elseif($action==='unrevoke'){query('UPDATE workflow_snapshots SET public_allowed=1 WHERE id IN (SELECT snapshot_id FROM research_forks WHERE parent_id=?)',[$rid]);}
-elseif($action==='plan'){$t=wf_tasks($rid)[0];$id=wf_submit($rid,$t['id'],wf_test_payload($rid,$t),str_repeat('d',64));echo $id;}
+elseif($action==='plan'){$t=wf_tasks($rid)[0];$id=wf_test_submit($rid,$t['id'],wf_test_payload($rid,$t),str_repeat('d',64));echo $id;}
 elseif($action==='withdraw'){change_status($rid,'Withdrawn','Local source visibility QA.','requester');}
 elseif($action==='restore'){change_status($rid,'Open for Research','Local source restoration QA.','administrator');}
 elseif($action==='revoke'){query('UPDATE workflow_snapshots SET public_allowed=0 WHERE id IN (SELECT snapshot_id FROM research_forks WHERE parent_id=?)',[$rid]);}

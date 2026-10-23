@@ -1,3 +1,4 @@
+import {reservationPickup} from './reservation-browser-support.mjs';
 import {saveManagementLink} from './receipt-actions.mjs';
 import {authorizedHandoff} from './browser-authorization.mjs';
 import fs from 'node:fs';import path from 'node:path';import {root} from '../tools/runtime.mjs';
@@ -48,7 +49,7 @@ export async function requirementsQa({page,ctx,base,runPhp,check,visibleActions,
  const url=base+'/research/'+data.research.slug;await page.goto(url);const text=await authorizedHandoff(page);check('Handoff resolves exact effort and mode without substitution',text.includes('max exactly')&&text.includes('workflow_mode=ultracode')&&text.includes('never substitutes'));
  const schema=JSON.parse(text.split('REQUIRED OUTPUT JSON\n')[1].split('\n\nUNTRUSTED TASK DATA')[0]),task=data.workflow.tasks.find(t=>t.kind==='planning');
  const packet=JSON.parse(runPhp(['tests/workflow-browser-state.php','payload',rid,task.id,'progress']));for(const k of ['submission_key','handoff_code','task_revision','context_id'])packet[k]=schema[k];packet.human_interaction={level:'none',details:''};packet.metadata.model='claude-fable-5-1';packet.metadata.provider='Anthropic';packet.metadata.tool='Claude Code';packet.metadata.reasoning='max';
- await page.goto(url+'/tasks/'+task.id);await page.locator('[name=human_level]').selectOption('none');
+ await page.goto(url+'/tasks/'+task.id);await reservationPickup(page,task.revision);await page.locator('[name=human_level]').selectOption('none');
  await page.locator('[name=payload]').fill(JSON.stringify(packet));await page.getByRole('button',{name:'Check packet',exact:true}).click();await page.locator('[data-workflow-error]').filter({hasText:'Requester AI requirement not met'}).waitFor();check('Actual form rejects missing mode',true);
  packet.metadata.workflow_mode='ultracode';packet.metadata.reasoning='xhigh';await page.locator('[name=payload]').fill(JSON.stringify(packet));await page.getByRole('button',{name:'Check packet',exact:true}).click();await page.locator('[data-workflow-error]').filter({hasText:'Planning requires'}).waitFor();check('Mode cannot bypass planning effort in real form',true);
  packet.metadata.reasoning='max';await page.locator('[name=payload]').fill(JSON.stringify(packet));await page.getByRole('button',{name:'Check packet',exact:true}).click();await page.locator('[data-workflow-error]').filter({hasText:'Packet checks passed'}).waitFor();await page.locator('[name=terms]').check();await page.getByRole('button',{name:'Submit task result',exact:true}).click();await page.getByRole('heading',{name:'Submission accepted',exact:true}).waitFor();await shot('qualifying-mode-result');check('Qualifying Fable Max Ultracode packet accepted',true);

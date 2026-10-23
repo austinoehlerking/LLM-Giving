@@ -26,12 +26,12 @@ function rs_test_packet(string $rid,array $task,string $outcome='completed'): ar
 }
 function rs_test_create(): array {
     $_SESSION['admin']=1;$created=create_research(['title'=>'[Resources QA] Source-to-result trace','question'=>'Synthetic local resource trace and visibility verification only; no scientific investigation.','category_id'=>1,'terms'=>1]);$rid=$created['id'];moderate('request',$rid,'Approved','Disposable local resource contract fixture.');
-    $plan=wf_tasks($rid)[0];wf_submit($rid,$plan['id'],wf_test_payload($rid,$plan),str_repeat('a',64));
-    $tasks=array_values(array_filter(wf_tasks($rid),fn($t)=>$t['kind']==='research'));$a=$tasks[0];$id=wf_submit($rid,$a['id'],rs_test_packet($rid,$a),str_repeat('a',64));$b=wf_task($rid,$tasks[1]['id']);
+    $plan=wf_tasks($rid)[0];wf_test_submit($rid,$plan['id'],wf_test_payload($rid,$plan),str_repeat('a',64));
+    $tasks=array_values(array_filter(wf_tasks($rid),fn($t)=>$t['kind']==='research'));$a=$tasks[0];$id=wf_test_submit($rid,$a['id'],rs_test_packet($rid,$a),str_repeat('a',64));$b=wf_task($rid,$tasks[1]['id']);
     $progress=rs_test_packet($rid,$b,'progress');$content='Useful synthetic intermediate notes: mass=2 kg, multiply by 1000 g/kg. No failed approaches were attempted.';
     $progress['evidence']['supporting_materials']['files']=[['id'=>'notes','name'=>'continuation.txt','category'=>'intermediate_results','content'=>$content,'sha256'=>hash('sha256',$content),'rights'=>'Original synthetic QA notes; redistribution permitted under the research contribution terms.']];
     foreach($progress['evidence']['supporting_materials']['items'] as &$item)if($item['category']==='intermediate_results'){$item['status']='supplied';$item['refs']=['supporting.files/notes'];$item['details']='Retained useful intermediate notes for continuation; no undocumented execution is claimed.';}unset($item);
-    $progressId=wf_submit($rid,$b['id'],$progress,str_repeat('a',64));
+    $progressId=wf_test_submit($rid,$b['id'],$progress,str_repeat('a',64));
     $supplement=rs_test_supplement(['kind'=>'Original research','summary'=>'Synthetic supplementary source registry','body'=>'This synthetic supplementary record preserves a background source without claiming a scientific observation.','terms'=>1]);$supplement['evidence']['sources'][0]=rs_test_source('fixture');$supplement['evidence']['claims'][0]['links'][0]['source_id']='fixture';
     $cid=create_contribution($rid,$supplement);moderate('contribution',$cid,'Approved','Synthetic resource supplementary fixture.','Synthetic fixture explicitly has no AI provider run.');
     return ['id'=>$rid,'slug'=>research($rid)['slug'],'result_id'=>$id,'task_id'=>$a['id'],'progress_id'=>$progressId,'ready_task_id'=>$b['id'],'contribution_id'=>$cid,'snapshot_id'=>one('SELECT snapshot_id FROM workflow_submissions WHERE id=?',[$id])['snapshot_id']];
@@ -39,6 +39,6 @@ function rs_test_create(): array {
 
 function rs_test_artifact_progress(string $rid,array $task): array {
     $packet=ra_test_visuals(wf_test_payload($rid,$task,'progress'));
-    $id=wf_submit($rid,$task['id'],$packet,str_repeat('a',64));
+    $id=wf_test_submit($rid,$task['id'],$packet,str_repeat('a',64));
     return ['result_id'=>$id,'snapshot_id'=>one('SELECT snapshot_id FROM workflow_submissions WHERE id=?',[$id])['snapshot_id'],'artifact_ids'=>array_column($packet['evidence']['artifacts'],'id')];
 }

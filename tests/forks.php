@@ -52,7 +52,7 @@ try{
     try{query("UPDATE research_forks SET context_version=context_version+1 WHERE research_id=?",[$child]);throw new RuntimeException('Fork provenance update accepted');}catch(PDOException $e){fork_ok($e->getCode()==='45000','Database independently rejects provenance mutation');}
     fork_ok(str_contains(wf_handoff_text($child),'Inherited background evidence'),'Handoff supplies attributed background with non-result warning');
     $snap=wf_snapshot($child);$archive=wf_issue_handoff($child);
-    $childTask=wf_tasks($child)[0];$packet=wf_test_payload($child,$childTask);$childResult=wf_submit($child,$childTask['id'],$packet,str_repeat('c',64));
+    $childTask=wf_tasks($child)[0];$packet=wf_test_payload($child,$childTask);$childResult=wf_test_submit($child,$childTask['id'],$packet,str_repeat('c',64));
     fork_ok((bool)$childResult,'Fork accepts own independent planning result');
     $chainDraft=rf_prepare($child);$grand=rf_create($child,rf_test_child_data($chainDraft));$grandId=$grand['id'];$ids[]=$grandId;moderate('request',$grandId,'Approved','Fork chain fixture.');
     fork_ok(context_data($grandId)['fork']['background']['inherited_background']['snapshot_id']===$draft['fork']['snapshot_id'],'Fork chain preserves exact ancestor snapshot');

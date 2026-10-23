@@ -4,7 +4,7 @@ $action=$argv[1]??'';
 if($action==='create'){echo json_encode(rs_test_create());exit;}
 $rid=$argv[2]??'';if(!one("SELECT id FROM research WHERE id=? AND title LIKE '[Resources QA]%'",[$rid]))exit(2);
 if($action==='cleanup'){purge_request($rid,$rid);exit;}
-if($action==='complete'){$task=wf_task($rid,$argv[3]);$d=rs_test_packet($rid,$task);$d['evidence']['calculation_checkpoint']['resume_from_result_id']=$argv[4];echo json_encode(['id'=>wf_submit($rid,$task['id'],$d,str_repeat('a',64))]);exit;}
+if($action==='complete'){$task=wf_task($rid,$argv[3]);$d=rs_test_packet($rid,$task);$d['evidence']['calculation_checkpoint']['resume_from_result_id']=$argv[4];echo json_encode(['id'=>wf_test_submit($rid,$task['id'],$d,str_repeat('a',64))]);exit;}
 if($action==='artifact-progress'){echo json_encode(rs_test_artifact_progress($rid,wf_task($rid,$argv[3])));exit;}
 if($action==='packet'){echo json_encode(wf_test_payload($rid,wf_task($rid,$argv[3])));exit;}
 if($action==='catalogue'){echo json_encode(rs_catalogue($rid));exit;}
