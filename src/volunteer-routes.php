@@ -100,7 +100,7 @@ function vs_assignment_page(array $session,array $assignment,string $method): vo
                 if ($jsonCheck) {
                     $analysis=$packet; $analysis['human_disclosure']=$grant['consent']['human_disclosure'];
                     header('Content-Type: application/json'); header('Cache-Control: no-store');
-                    echo json_encode(['ok'=>true,'message'=>'Packet checks passed. Nothing has been submitted. Submit the unchanged packet and inspect its recorded receipt.','influence_review'=>wf_influence($analysis)['review_status']==='needed']);
+                    echo json_encode(['ok'=>true,'message'=>'Packet checks passed. Nothing has been submitted. Submit the unchanged packet and inspect its recorded receipt.','influence_review'=>wf_influence($analysis)['review_status']==='needed','session_reacquire'=>false]);
                     return;
                 }
             } else fail(422,'Choose check, submit or explicit reacquisition.');
@@ -109,7 +109,8 @@ function vs_assignment_page(array $session,array $assignment,string $method): vo
             if ($caught->status===422) $repair=wf_repair_prompt($r,$task,$error,true,'/volunteer/'.$session['id'].'/assignments/'.$assignment['id'],true);
             if ($jsonCheck) {
                 header('Content-Type: application/json'); header('Cache-Control: no-store');
-                echo json_encode(['ok'=>false,'message'=>$error,'repair_prompt'=>$repair]);
+                $currentItem=vs_public_assignment(vs_read($session['id']),vs_assignment(vs_read($session['id']),$assignment['id']));
+                echo json_encode(['ok'=>false,'message'=>$error,'repair_prompt'=>$repair,'session_reacquire'=>$currentItem['reacquire']]);
                 return;
             }
         }
@@ -176,7 +177,7 @@ function vs_route(string $path,string $method): bool {
             if ($operation==='stop') vs_stop($id);
             elseif ($operation==='claim') {
                 $assignment=vs_claim_next($id);
-                $handoff=vs_handoff($id,$assignment['id']);
+                $handoff=$assignment['prepared_handoff'];
                 $session=vs_read($id); $item=vs_public_assignment($session,$assignment);
                 render('volunteer-handoff',['title'=>'Reserved task handoff','session'=>$session,'assignment'=>$assignment,'handoff'=>$handoff,'reservationText'=>$item['reservation_text']]);
                 return true;

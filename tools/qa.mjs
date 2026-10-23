@@ -16,6 +16,7 @@ import {citationQa} from '../tests/citation-browser.mjs';
 import {artifactQa} from '../tests/artifact-browser.mjs';
 import {calculationQa} from '../tests/calculation-browser.mjs';
 import {libraryQa} from '../tests/library-browser.mjs';
+import {volunteerQa} from '../tests/volunteer-browser.mjs';
 import {reservationQa} from '../tests/reservation-browser.mjs';
 import {submissionQa} from '../tests/submission-browser.mjs';
 import {workflowQa} from '../tests/workflow-browser.mjs';
@@ -75,6 +76,7 @@ try{
  }
  const page=await ctx.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
  if(mode==='pickups')await manualPickupQa({page,ctx,base,runPhp,check,visibleActions});
+ if(mode!=='volunteers') {
  const sample=JSON.parse(runPhp(['tests/qa-state.php','preview']));
  for(const size of [{width:1366,height:768},{width:390,height:844},{width:375,height:667},{width:768,height:1024}]){
   await page.setViewportSize(size);await goto(page,'/');await shot(page,'home-'+size.width+'x'+size.height);await visibleActions(page,'.hero .primary-actions > *','Home '+size.width);
@@ -100,7 +102,9 @@ try{
  check('200% all-font page reflows without horizontal clipping',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  // 200% browser zoom equivalent: reduced CSS viewport plus text scaling checks.
  await page.setViewportSize({width:683,height:384});await goto(page,'/');await page.evaluate(()=>{document.body.style.fontSize='200%';});await shot(page,'home-enlarged-text');check('Enlarged text reflow without horizontal clipping',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
- if(mode==='viewport'){check('No browser script exceptions',errors.length===0);console.log('Initial viewport screenshots and '+report.checks.length+' checks captured. Inspect screenshots before full workflow QA.');}
+ }
+ if(mode==='volunteers'){await volunteerQa({page,ctx,base,runPhp,check,visibleActions,report});}
+ else if(mode==='viewport'){check('No browser script exceptions',errors.length===0);console.log('Initial viewport screenshots and '+report.checks.length+' checks captured. Inspect screenshots before full workflow QA.');}
  else if(mode==='reservations'){await reservationQa({page,ctx,base,runPhp,check,visibleActions});}
  else if(mode==='forks') {
   await forkQa({page,ctx,base,runPhp,check,visibleActions,report});

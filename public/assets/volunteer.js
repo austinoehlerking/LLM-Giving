@@ -1,5 +1,6 @@
-(()=>{
+(() => {
 'use strict';
+document.querySelectorAll('[data-session-copy]').forEach(button=>{button.hidden=false;});
 const setup=document.querySelector('[data-volunteer-setup]');
 if(setup){
  const scope=setup.elements.scope_kind;
@@ -21,5 +22,4 @@ if(exchange && location.hash){
  const secret=location.hash.slice(1);history.replaceState(null,'',location.pathname);
  exchange.elements.session_secret.value=secret;exchange.requestSubmit();
 }
-
 })();

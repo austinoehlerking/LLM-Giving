@@ -66,7 +66,9 @@ function vs_issue_assignment(array $session,array $r,array $task,array $reservat
         'reservation_id'=>$reservation['id'],'created_at'=>wr_stamp()];
     insert('volunteer_assignments',$assignment);
     query('UPDATE volunteer_sessions SET assignments_used=assignments_used+1 WHERE id=?',[$session['id']]);
-    return vs_assignment($session,$id);
+    $issued=vs_assignment($session,$id);
+    $issued['prepared_handoff']=vs_handoff($session['id'],$id);
+    return $issued;
 }
 function vs_claim_next(string $id): array {
     return vs_locked($id,function(array $session) {
@@ -75,6 +77,7 @@ function vs_claim_next(string $id): array {
             $grant=vs_assignment_grant($session,$current);
             if (!$grant['result_id']) {
                 vs_validate_grant(research($current['research_id']),$grant);
+                $current['prepared_handoff']=vs_handoff($session['id'],$current['id']);
                 return $current; // Recopy never consumes another assignment or renews.
             }
             vs_return_recorded($grant,$grant['result_id']);
@@ -146,6 +149,8 @@ function vs_reservation_projection(array $reservation): ?array {
 function vs_release_current(array $session,string $reason): void {
     foreach (all('SELECT * FROM volunteer_assignments WHERE session_id=? AND ended_at IS NULL ORDER BY research_id,id',[$session['id']]) as $assignment) {
         if ($assignment['research_id'] && $assignment['task_id'] && $assignment['reservation_id']) {
+            // Serialize the ownership read with another actor's late reacquisition.
+            one('SELECT id FROM research WHERE id=? FOR UPDATE',[$assignment['research_id']]);
             $latest=one('SELECT id,actor_hash FROM task_reservations WHERE research_id=? AND task_id=? AND ended_at IS NULL ORDER BY created_at DESC,id DESC LIMIT 1',[$assignment['research_id'],$assignment['task_id']]);
             if ($latest && $latest['id']===$assignment['reservation_id'] && hash_equals($latest['actor_hash'],$session['actor_hash'])) wr_release($assignment['research_id'],$assignment['task_id'],$session['actor_hash']);
         }

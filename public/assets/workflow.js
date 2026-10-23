@@ -13,6 +13,8 @@ document.querySelectorAll('[data-workflow-form]').forEach(form=>{
    const data=await response.json();if(version!==requestVersion){message.textContent='The packet or disclosure changed during the check. Check it again.';return;}
    message.textContent=(data.ok?'':'Not accepted — nothing advanced. ')+data.message+(data.influence_review?' This packet will be quarantined until an admin approves it. Research will not advance.':'');
    message.classList.toggle('warning',!data.ok);
+   const reacquire=form.querySelector('[data-session-reacquire]');
+   if(reacquire)reacquire.hidden=!data.session_reacquire;
    if(!data.ok){repair.value=data.repair_prompt||'';panel.hidden=!repair.value;}
   }catch(error){message.textContent=error.message;}finally{button.disabled=false;}
  });
