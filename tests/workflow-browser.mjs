@@ -68,7 +68,7 @@ export async function workflowQa({page,ctx,base,runPhp,check,visibleActions,pass
   await ap.getByLabel('Short reason for this update').fill('Narrowed the scope so missing data does not prevent useful research.');
   await ap.getByRole('button',{name:'Respond and resume planning'}).click();
   check('Admin can resolve blocker',(await data()).research.status==='Needs Research Plan');
-  plan=await task('planning');const planned=payload(plan);await page.goto(url+'/tasks/'+plan.id);await page.locator('[name=payload]').fill(JSON.stringify(planned,null,2));await disclose(page);await page.getByRole('button',{name:'Check packet',exact:true}).click();await page.locator('[data-workflow-error]').filter({hasText:'Packet checks passed'}).waitFor();
+  plan=await task('planning');const planned=payload(plan);await page.goto(url+'/tasks/'+plan.id);await reservationPickup(page,plan.revision);await page.locator('[name=payload]').fill(JSON.stringify(planned,null,2));await disclose(page);await page.getByRole('button',{name:'Check packet',exact:true}).click();await page.locator('[data-workflow-error]').filter({hasText:'Packet checks passed'}).waitFor();
   check('Preview does not submit',await page.locator('[data-workflow-error]').textContent().then(t=>t.includes('Nothing has been submitted')));
   await page.locator('[data-workflow-error]').scrollIntoViewIfNeeded();await shot(page,'08-plan-preview');
   await submit(page,plan,planned);await page.goto(url+'/work');await shot(page,'09-autonomous-tasks',true);
