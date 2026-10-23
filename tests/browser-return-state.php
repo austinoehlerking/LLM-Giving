@@ -11,4 +11,6 @@ if($action==='create'){
  if(!one("SELECT id FROM research WHERE id=? AND title LIKE '[QA]%'",[$rid]))exit(2);
  $row=one('SELECT moderation,submission_method,human_influence FROM contributions WHERE id=? AND research_id=?',[$id,$rid]);
  if(!$row)exit(2);echo json_encode($row);
+}elseif($action==='attempts'){
+ $rid=$argv[2];if(!one("SELECT id FROM research WHERE id=? AND title LIKE '[QA]%'",[$rid]))exit(2);echo one('SELECT COUNT(*) n FROM workflow_attempts WHERE research_id=?',[$rid])['n'];
 }elseif($action==='count'){echo one('SELECT COUNT(*) n FROM workflow_submissions WHERE research_id=?',[$argv[2]])['n'];}
