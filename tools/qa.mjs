@@ -6,6 +6,7 @@ import {receiptQa} from '../tests/receipt-browser.mjs';
 import {saveManagementLink} from '../tests/receipt-actions.mjs';
 import {browserReturnQa} from '../tests/browser-return-browser.mjs';
 import {manualPickupQa} from '../tests/manual-pickup-browser.mjs';
+import {orchestratorQa} from '../tests/orchestrator-browser.mjs';
 import {authorizedHandoff} from '../tests/browser-authorization.mjs';
 import {qaReports} from './lib/qa-modes.mjs';
 import {requestSetupQa} from '../tests/request-setup-browser.mjs';
@@ -106,6 +107,9 @@ try{
  }
  else if(mode==='pickups') {
   check('Manual pickup browser scenarios completed');
+ }
+ else if(mode==='orchestrator') {
+  await orchestratorQa({page,ctx,base,check,visibleActions});
  }
  else if(mode==='returns') {
   await browserReturnQa({page,ctx,base,runPhp,check,visibleActions});

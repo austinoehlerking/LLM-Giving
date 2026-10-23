@@ -4,8 +4,9 @@ document.querySelectorAll('[data-copy-pickup]').forEach(button=>{button.hidden=f
 document.addEventListener('click',async event=>{
  const button=event.target.closest('[data-copy-pickup]');if(!button)return;
  const text=document.getElementById(button.dataset.copyPickup),message=document.querySelector('[data-pickup-status]');
- try{await navigator.clipboard.writeText(text.value);message.textContent='Copied. Ready to paste. Recopying did not renew the reservation.';const global=document.getElementById('copy-status');if(global)global.textContent='Copied. Ready to paste.';}
- catch{message.textContent='Clipboard access is unavailable. '+(document.querySelector('[data-reservation-status]')?.textContent.trim()||'Check task availability before working.')+' Select and copy the complete handoff below manually. Copying does not acquire or renew a reservation.';text.focus();text.select();}
+ const global=document.getElementById('copy-status');if(global)global.textContent='';
+ try{await navigator.clipboard.writeText(text.value);message.textContent='Copied. Ready to paste. Recopying did not renew the reservation.';if(global)global.textContent='Copied. Ready to paste.';}
+ catch{message.textContent='Clipboard access is unavailable. '+(document.querySelector('[data-reservation-status]')?.textContent.trim()||'Check task availability before working.')+' Select and copy the complete handoff below manually. Copying does not acquire or renew a reservation.';if(global)global.textContent='Clipboard unavailable. Copy the complete handoff manually.';text.focus();text.select();}
 });
 document.addEventListener('submit',async event=>{
  const button=event.submitter;if(!button?.value?.startsWith('reservation-'))return;

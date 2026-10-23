@@ -5,6 +5,7 @@ export const qaReports = Object.freeze({
   viewport: 'viewport-report.json',
   pickups: 'manual-pickup-report.json',
   returns: 'browser-return-report.json',
+  orchestrator: 'orchestrator-browser-report.json',
   full: 'browser-report.json',
   library: 'library-report.json',
   blog: 'blog-report.json',

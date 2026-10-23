@@ -5,8 +5,8 @@ export async function manualPickupQa({page,ctx,base,runPhp,check,visibleActions}
  const make=()=>{const f=JSON.parse(runPhp(['tests/manual-pickup-state.php','create']));fixtures.push(f);return f;};
  const lease=f=>JSON.parse(runPhp(['tests/manual-pickup-state.php','lease',f.id]));
  const shot=async(p,name)=>{const file=path.join(out,name+'.png');await p.screenshot({path:file,fullPage:false});screenshots.push(file);};
- const inspect=async label=>{if(process.env.QA_VIEWPORT_REVIEW==='1'){console.log('INSPECT VIEWPORTS: '+label+' — screenshots in '+out+'. Send continue after inspection.');await new Promise(resolve=>{process.stdin.resume();process.stdin.once('data',()=>{process.stdin.pause();resolve();});});}};
- const initial=async(p,url,name,selector)=>{for(const size of sizes){await p.setViewportSize(size);await p.goto(url);await shot(p,name+'-'+size.width+'x'+size.height);await visibleActions(p,selector,name+' '+size.width);viewports.push({name,...size});}await inspect(name);await p.setViewportSize(sizes[0]);};
+ const inspect=async label=>{if(process.env.QA_VIEWPORT_REVIEW==='1'||(process.env.QA_VIEWPORT_REVIEW||'').split(',').includes(label)){console.log('INSPECT VIEWPORTS: '+label+' — screenshots in '+out+'. Send continue after inspection.');await new Promise(resolve=>{process.stdin.resume();process.stdin.once('data',()=>{process.stdin.pause();resolve();});});}};
+ const initial=async(p,url,name,selector)=>{for(const size of sizes){await p.setViewportSize(size);if(url)await p.goto(url);await shot(p,name+'-'+size.width+'x'+size.height);await visibleActions(p,selector,name+' '+size.width);viewports.push({name,...size});}await inspect(name);await p.setViewportSize(sizes[0]);};
  const csrf=async p=>p.locator('input[name=csrf]').first().inputValue();
  const clickOperation=async(p,label)=>{const waiting=p.waitForResponse(r=>r.request().method()==='POST'&&r.request().postData()?.includes('reservation-'));await p.getByRole('button',{name:label,exact:true}).click();const response=await waiting;await p.locator('[data-reservation-panel]').waitFor();return response;};
  const other=await ctx.browser().newContext({viewport:sizes[0]}),op=await other.newPage();
@@ -18,6 +18,7 @@ export async function manualPickupQa({page,ctx,base,runPhp,check,visibleActions}
   check('GET study and task views do not reserve',lease(f).active_count===0);
   await page.getByRole('button',{name:'Copy task prompt',exact:true}).click();
   await page.getByRole('heading',{name:'Task handoff',exact:true}).waitFor();
+  await initial(page,null,'manual-handoff','.return-start .primary-actions > *,[data-reservation-panel] button');
   const handoff=await page.locator('#pickup-text').inputValue(),schema=JSON.parse(handoff.split('REQUIRED OUTPUT JSON\n')[1].split('\n\nUNTRUSTED TASK DATA')[0]);
   check('Task prompt pickup prepares a complete handoff and one reservation',handoff.includes('UNTRUSTED FULL CONTEXT PACKAGE')&&lease(f).active_count===1);
   const expiry=lease(f).expires;
@@ -27,6 +28,9 @@ export async function manualPickupQa({page,ctx,base,runPhp,check,visibleActions}
   check('Clipboard denial keeps complete manual-copy fallback',(await page.locator('#pickup-text').inputValue())===handoff&&!(await page.locator('[data-pickup-status]').innerText()).includes('Copied.'));
   await shot(page,'clipboard-denied-complete-fallback');
   await page.getByRole('button',{name:'Copy task prompt',exact:true}).click();check('Recopy does not extend expiry',lease(f).expires===expiry);
+  await page.evaluate(()=>{navigator.clipboard.writeText=async()=>{};});await page.getByRole('button',{name:'Copy task prompt',exact:true}).click();
+  await page.evaluate(()=>{navigator.clipboard.writeText=async()=>{throw Error('Synthetic denial after success');};});await page.getByRole('button',{name:'Copy task prompt',exact:true}).click();
+  check('Clipboard failure clears earlier global copy success',!(await page.locator('#copy-status').innerText()).includes('Copied.'));
   const archive=await page.getByRole('link',{name:'Read archived research instructions'}).getAttribute('href');
   await page.request.get(base+archive);await page.request.get(task+'/prompt.md');await page.request.get(url+'/context.json');await page.request.get(url+'/handoff.md');
   check('Raw context and public prompt/archive reads do not renew',lease(f).expires===expiry&&lease(f).active_count===1);
@@ -62,6 +66,7 @@ export async function manualPickupQa({page,ctx,base,runPhp,check,visibleActions}
   const af=make(),au=base+'/research/'+af.slug;
   await page.goto(au);await page.getByRole('link',{name:'Copy AI handoff',exact:true}).click();check('Authorization GET does not claim',lease(af).active_count===0);
   await page.locator('[name=authorize]').check();await page.locator('[name=terms]').check();await page.locator('[name=human_level]').selectOption('none');await page.getByRole('button',{name:'Copy authorized handoff',exact:true}).click();
+  await initial(page,null,'authorized-handoff','.return-start .primary-actions > *,[data-reservation-panel] button');
   const text=await page.locator('#authorized-handoff').inputValue(),link=text.match(/Private return link: (http[^\s]+)/)[1],gid=new URL(link).pathname.split('/').pop(),authorizationExpiry=lease(af).expires;
   check('Study-level authorization claims before handing off',lease(af).active_count===1&&(await page.locator('[data-reservation-status]').innerText()).startsWith('Reserved for you until '));
   const publicPath=await page.locator('[data-issued-archive]').getAttribute('href'),publicText=await(await page.request.get(base+publicPath)).text();

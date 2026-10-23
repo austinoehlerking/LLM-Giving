@@ -123,6 +123,12 @@ function vs_assignment_page(array $session,array $assignment,string $method): vo
         'can'=>$can,'error'=>$error,'repair'=>$repair,'checked'=>$checked,'input'=>$input,'reservationText'=>$item['reservation_text'],'reacquire'=>$item['reacquire']]);
 }
 function vs_route(string $path,string $method): bool {
+    if ($path==='/volunteer/orchestrator.txt') {
+        if ($method!=='GET') fail(405,'Use GET for public reference instructions.');
+        header('Content-Type: text/plain; charset=UTF-8');
+        echo vo_instructions();
+        return true;
+    }
     if ($path==='/volunteer') {
         $draft=vs_form_draft($method==='POST'?$_POST:$_GET); $error='';
         if ($method==='POST') {

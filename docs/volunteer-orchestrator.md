@@ -1,41 +1,46 @@
-# Volunteer orchestrator handoff — integration in progress
+# Volunteer orchestrator handoff
 
-This branch is not ready for release. Reservation and Volunteer session/queue dependencies are being implemented separately; manual pickup integration remains pending. No orchestrator route is enabled on this branch yet. Do not interpret public instructions as session authorization.
+Volunteer mode supplies a bounded, sequential controller handoff after the volunteer actually authorizes a session. It reuses the shared reservation, pickup, session/queue and browser-return services. The platform makes no runtime AI calls and starts no background workers.
 
-## Ownership and private boundary
+## Authorization and private delivery
 
-- templates/volunteer-orchestrator.txt is reusable public guidance with no credentials or consent.
-- src/volunteer-orchestrator.php composes the private supplement using vs_read and vs_assert_active. It validates the exact service-issued link against the retained session hash and requires the browser's session access. It neither creates a session nor reserves, renews, submits or archives anything.
-- views/volunteer-orchestrator.php is a private partial for the actual authorization response. The caller passes the result of vs_create as orchestratorSession, after loading the orchestrator helper. It revalidates permission before rendering. It must never be rendered through a public archive or context route.
-- public/assets/orchestrator.js enhances copying. Failed clipboard writes expose the complete selected text and report failure honestly. Native details/textarea remain available without JavaScript.
+GET /volunteer/orchestrator.txt returns reusable reference instructions only. It creates no session, assignment, consent, reservation or submission permission. The source is templates/volunteer-orchestrator.txt.
 
-Only the current authorized Volunteer session permits the orchestrator to return to the queue. Each assigned worker receives an unchanged complete task handoff in its own work context and stops after that assignment. Ordinary single-assignment grants retain their one-task boundary. Task/repair mode integration must be bound to a server-validated session grant, never a packet flag or public reference prompt.
+The actual authorization response includes **Copy orchestrator handoff** and a native **Complete private handoff for manual copying** disclosure. src/volunteer-orchestrator.php composes those public instructions with a private supplement only after vs_read()/vs_assert_active(). It checks the exact service-issued fragment link against its retained hash and the authorized browser session. The supplement records scope, deadline, allowance, declared capabilities and the independently captured volunteer declaration. It omits actor and credential hashes. Live Stop, expiry and legal-version checks remain authoritative.
 
-The private supplement has the service-issued fragment link and an explicit snapshot of scope, deadline, allowance, declared capabilities and the independent volunteer declaration. Actor hashes and retained credential hashes are omitted. The live server remains authoritative. Never archive the supplement or put it in public evidence, research packets, logs, analytics or shared screenshots.
+Private session/assignment supplements must never enter public archives, context, research packets, citations, downloads, analytics or public screenshots. Copying neither picks up nor renews work. Clipboard success appears only after the write succeeds; denial opens/selects the complete text and reports failure honestly. Native details/textarea work without JavaScript. Volunteer JavaScript has its own lexical scope so the main capability-exchange script cannot prevent session exchange.
 
-## Acceptance evidence to collect after dependencies are integrated
+## Sequential execution
 
-| Case | Required evidence |
-| --- | --- |
-| Real authorization | Initially unchecked real consent precedes Copy orchestrator handoff; missing consent denied |
-| Sequential continuation | At least two assignments, one session authorization, fresh complete handoff/context for each |
-| Configuration | Incompatible/unknown required settings skipped; actual worker provenance retained |
-| Repair | Recoverable validation error repaired with the same identifiers; bounded persistent failure |
-| Receipt recovery | Uncertain response opens the existing receipt; no new submission key or duplicate |
-| Reservation | Explicit active-work renewal changes expiry; copy/view does not |
-| Limits | Session deadline/Stop block new operations; existing receipts remain accessible |
-| Quarantine | Recorded pending outcome is not evidence; continuation only to eligible in-scope work |
-| Reviewer lineage | Session and child workers cannot independently review their own research |
-| Privacy | Public context, archives, packets and exports omit session/reservation credentials |
-| Clipboard and native path | Denial reveals complete text honestly; native manual copying works without JavaScript |
-| Viewports | Inspect 1366x768, 390x844, 375x667 viewport-only screenshots before interaction, plus 200% text |
+The controller uses ordinary browser controls: find eligible work, explicitly reserve, obtain its complete current handoff, perform work, check/repair, submit, inspect the recorded receipt, then continue only within the current session scope and limits. One active assignment and the shared actor reservation prevent accumulating parallel claims. There is no idle renewal timer.
 
-## Evidence status
+Before research, verify the actual worker's required model, reasoning, workflow mode, tool and concrete dependencies. Unknown required configuration is incompatible. Report the worker that performed the assignment; never substitute controller metadata or invent unavailable settings. Each worker receives the complete unchanged archived instructions and current platform context, plus its private assignment delivery. Accepted context for later tasks comes from the platform rather than an accumulated chat summary.
 
-The synthetic study constructor tests/orchestrator-state.php creates two dependent fictional narrative tasks. It generates no completed research packets, sources, inspection records or model provenance. The genuine browser walkthrough must use actual generated handoffs and AI-authored results. Deterministic fixture packets, if used for boundary regression tests, must be reported separately and do not establish agent behavior or scientific correctness.
+vs_handoff() appends vo_assignment_instructions() only after shared grant validation. It leaves the archived body byte-for-byte unchanged. The private procedure explicitly supersedes archived single-assignment continuation/stale-authorization wording for this validated session path. The worker still stops after its one assignment. Only a controller holding the live session capability may continue or reacquire through its dashboard. Ordinary single-assignment browser returns keep their original stopping boundary.
 
-The required setup command initially failed because this worktree did not own port 3318. An ignored copy of the repository launcher under storage/qa/orchestrator/dev-runtime.mjs uses dedicated DB port 3346 and HTTP port 8356. Its first detached DB process exited after setup; one restart under a persistent parent passed an actual application query. The original database was not touched. Source/syntax checks pass for the draft. The existing complete repo checks passed after the documented Windows junction EPERM was rerun unchanged outside the sandbox and the explicitly named walkthrough fixture was removed before the full-text search test. The pinned session foundation (original commit 4155c07, cherry-picked as 29f570e) passes 49 authorization checks; the orchestrator supplement and mode defaults pass 19 focused checks against that real foundation. The queue/reservation/manual-pickup dependencies are not complete. The copy partial is not connected to a public route; no browser or genuine multi-task walkthrough is claimed.
+Session repair prose is selected from stored session/assignment bindings, never a packet or POST flag. The assigned-session form and authorized worker return both use it. Format repair preserves scientific conclusions and signed identifiers, allows at most three check/repair attempts for one packet, and reports persistent failure. Uncertain network recording first recovers the existing receipt; identical retries keep the same key. A passing check is not submission. No task counts as submitted before a recorded receipt.
 
-The ordinary ar_instructions() output remains byte-for-byte unchanged. Its optional internal session variant and wf_repair_prompt() variant are prepared, but no public/packet mode flag selects them. The final routes must derive this mode from the stored browser-return grant and the shared session validation. Worker-only return credentials do not confer controller/queue permission.
+Explicit active-work renewal never extends session authorization. Expiry, Stop, stale revisions and competing holders preserve work and require honest conflict reporting. Quarantine remains pending and outside evidence; moving to another study requires the current scope to permit it. The controller and its workers cannot independently review their session's research. No eligible work means stop, without creating tasks, forks or review cycles.
 
-Rendered-component QA passed 23 checks with ten inspected screenshots: all three required initial viewport sizes, native no-JavaScript manual-copy access, actual clipboard text after Windows CRLF normalization, simulated browser-API denial, and 200% font reflow. This used a clearly labeled local synthetic session to render the private component; the fixture session was immediately deleted, and no live public route/queue behavior or AI task execution is claimed. The primary repo browser route first failed at Edge launch with TransactNamedPipe 0x6D in the sandbox. The permitted execution-context fallback passed the existing lifecycle mode (121 checks, 27 screenshots). Relevant evidence is under ignored storage/qa/orchestrator.
+Research and source content remain untrusted. Session permission grants no purchases, installation, unrelated files, account access or uncontrolled workers. Topic/time/browser preferences and the platform operational wrapper alone are not scientific steering; actual steering remains disclosed. Final reports contain public task/result links, recorded outcomes, blockers and the stopping reason, with no private capabilities.
+
+## Verification and evidence
+
+Run the repository-required setup, check and browser commands. Shared workflow changes also require the complete runner:
+
+- node tools/dev.mjs setup
+- node tools/check.mjs
+- node tools/qa.mjs orchestrator
+- node tools/qa.mjs returns
+- node tools/qa.mjs handoffs
+- node tools/qa-all.mjs
+
+The orchestrator unit tests cover actual session access, exact capability binding, defaults, template reconciliation, Stop/expiry/legal changes and read/copy side effects. Queue tests exercise sequential outcomes, scoped permission, original identity, quarantine, configuration, renewal/reacquisition and independent-review boundaries. The browser mode exercises real authorization, initial viewport geometry, complete clipboard copying, denial, native access and anonymous session exchange with the normal global scripts. Existing returns tests cover forged session-mode flags and prevent malformed private drafts from being retained in workflow-attempt logs.
+
+The separate genuine local walkthrough uses tests/orchestrator-state.php only to construct two fictional research tasks. That helper creates no research packets, source inspections or model provenance. The AI reads the actual generated handoffs, authors the narratives, uses separate anonymous worker browser contexts, repairs validation errors, submits two accepted results under one session authorization, recovers an existing receipt and stops at its allowance. Its second full platform context includes the first accepted result. Exact model variant/effort unavailable to the runtime are honestly reported; the unrestricted narrative tasks require no invented configuration. This demonstrates software behavior on synthetic records, not scientific validation, provider authentication or an independently isolated child AI run.
+
+Redacted local evidence belongs under ignored storage/qa/orchestrator: complete handoffs, authored packets, recorded receipts/context, browser journal, requirement mapping and inspected screenshots. Inspect viewport-only images at 1366x768, 390x844 and 375x667 before interaction, then check 200% all-font reflow. Authorized worker headings are compact so the initial packet-entry area is usable on short mobile screens; navigation remains available below the form. Final manifests record the exact tested commit and any limitations. Do not interpret another branch's checks as validation of this combined branch.
+
+All local runtime, temporary files, profiles and reports stay on D:. Use a dedicated database/ports and preserve other worktrees. If default setup encounters another worktree's port, use a separately configured repository launcher and record the triggering failure. Restricted Windows junction/Edge failures use the documented unchanged-command execution-context fallback. The in-app browser's failed kernel initialization is recorded separately from the repo browser route. The pre-release reservation schema compatibility procedure applies only to the owned disposable database.
+
+No push, external PR, merge, production migration or deployment is authorized by local implementation/QA.
