@@ -1,12 +1,12 @@
-# Volunteer sessions — integration contract (in progress)
+# Volunteer sessions — integration contract
 
-The authorization foundation is local commit 4155c0759f03584224519df64219baffc7016931. The queue implementation is being added on codex/volunteer-sessions. Do not advertise the feature until shared reservations and manual pickup integration are included and its acceptance checks pass. Current main does not yet include these dependencies.
+Volunteer sessions authorize a bounded, sequential donation using the shared reservation, handoff and browser-return services. The website coordinates work; it makes no runtime AI calls and starts no background workers. Session permission never replaces task eligibility, model requirements, legal consent, evidence validation or independent review.
 
 ## Ownership and hooks
 
-Dev 4 owns session persistence/authorization, queue, setup, private dashboard, stop and session validation. Dev 5 owns orchestrator instructions, its private supplement, optional session-mode prose in ar_instructions()/wf_repair_prompt(), and Copy orchestrator handoff. Preserve its src/volunteer-orchestrator.php, templates/volunteer-orchestrator.txt, views/volunteer-orchestrator.php, public/assets/orchestrator.js and associated tests. Dev 1 owns /volunteer/quick-start and the guide text. The session views will provide a small contextual link slot for that guide.
+src/volunteer-sessions.php owns persistence, authorization, scope and capability matching. src/volunteer-queue.php owns queue assignment and shared-service integration. src/volunteer-routes.php and the volunteer views own CSRF-protected forms and private receipts. src/volunteer-orchestrator.php and its template compose the separate public instructions and private delivery; stored grant bindings select session-aware task/repair prose. Session views include a contextual guide link when that separate guide is available.
 
-The authorization-response view will expose $orchestratorSession exactly as returned by vs_create(): id and one-time private fragment link. It will include views/volunteer-orchestrator.php only when that file and vo_handoff() are present. Do not reconstruct a session credential from public data or add duplicate orchestrator instructions to session views.
+The authorization-response view exposes $orchestratorSession exactly as returned by vs_create(): id and one-time private fragment link. It includes views/volunteer-orchestrator.php only when that file and vo_handoff() are present. Do not reconstruct a session credential from public data or add duplicate orchestrator instructions to session views.
 
 ## Permission and limits
 
@@ -44,6 +44,12 @@ vs_assignment_action(sessionId, assignmentId, operation) accepts renew, release,
 
 vs_stop(sessionId) sets a terminal stop and releases the holder's current lease through wr_release(). Expiry/policy changes free logical availability through the shared projection without a precisely scheduled cleanup job. Renewing a task never extends session authorization. Stopping the website session cannot guarantee external AI execution stops; the user must also stop that tool.
 
-## Routes and UI still being finalized
+## Routes and UI
 
-Planned public entry /volunteer; private session /volunteer/{id}; explicit fragment exchange /volunteer/{id}/open. Creation, pickup, renewal, release, reacquisition, worker configuration and Stop are CSRF-protected POST actions. Ordinary views never pick up or renew. The setup will use a compact configuration step followed by real authorization. The private dashboard will link current work, remaining allowance/time, recorded outcomes and receipts. Exact final action names, return form routes, screenshot evidence and full browser results will be documented after dependency integration; these planned routes are not advertised as available yet.
+Public entry /volunteer has a compact setup followed by actual authorization. /volunteer/orchestrator.txt is reference-only guidance. The private dashboard is /volunteer/{id}; /volunteer/{id}/open exchanges its fragment through an explicit CSRF-protected POST. Dashboard actions Pick up next task, Copy task handoff, Renew reservation, Release task, Reacquire this assignment and Stop session all use explicit POST operations. Ordinary views never pick up or renew. The dashboard shows remaining assignments/time, its deadline, current reservation and actual recorded outcomes with receipt links.
+
+/volunteer/{id}/assignments/{assignmentId} supplies the controller result form. Each separate worker uses its scoped /research/{slug}/return/{grantId}/submit form instead of receiving general session authority. Check packet records nothing. Native and JavaScript forms preserve entered work and signed identifiers on validation, expiry or conflict; the controller can explicitly reacquire an eligible unreserved revision without replacing its packet. AJAX checks use current server state to reveal that action.
+
+Pickup prepares the complete private handoff inside the assignment transaction and returns prepared_handoff for private delivery. Never serialize that field into public data, archives or scientific metadata. Copy enhancement reports success only after clipboard completion; native manual copying remains available when JavaScript is disabled.
+
+Run node tools/check.mjs and node tools/qa.mjs volunteers. Server concurrency tests cover competing pickup and Stop versus pickup/recording. The browser suite uses deterministic synthetic packets and is not scientific or genuine AI execution evidence. Its receipt counter is session-scoped; the native context uses reduced motion after a documented Edge smooth-scroll stabilization failure. The separate AI-authored synthetic walkthrough and orchestrator checks are described in the [orchestrator contract](volunteer-orchestrator.md). Inspect all three first viewports and enlarged text before accepting visual QA.
