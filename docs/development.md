@@ -38,6 +38,8 @@ Preserve parent-row locking during state changes. Public context and downloads m
 
 ## Repeatable checks
 
+Follow [the batch workflow](delivery-workflow.md): branch from develop, run focused developer checks, obtain independent review, then merge to develop. Independent QA starts only after the coordinator closes the batch and every member is reviewed/merged or explicitly human-deferred. Run node tools/delivery-gate.mjs start-qa --owner QA from the clean pinned candidate before the batch check plan. The commands below describe available coverage; they are not a requirement to repeat all coverage in every task.
+
 With the local development server/database running:
 
 ```sh
@@ -79,7 +81,7 @@ node tools/edit-files.mjs
 
 Both validate the entire batch before writing, print dry-run/apply metadata, reject path traversal and symbolic links, and check the original file again before replacement. `--dry-run` validates without applying. Use one entry per file per batch. Whole-file creation requires an absent target; `--replace` requires an existing target. Do not use `apply_patch` in this repository.
 
-New code should use readable blocks, explicit validation and small functions with a single responsibility. Follow `.editorconfig`; preserve meaningful content bytes and migration history. Avoid unrelated formatting churn in the existing compact validators. After a change, run the focused tests and the complete suite when shared validation, routing or workflow code changes.
+New code should use readable blocks, explicit validation and small functions with a single responsibility. Follow `.editorconfig`; preserve meaningful content bytes and migration history. Avoid unrelated formatting churn in the existing compact validators. During development, run focused tests. The independent QA owner runs one complete integrated suite after the batch gate when shared application validation, routing or workflow code changes. Workflow tooling and documentation use focused regression checks and evidence review.
 
 ## Historical local experiments
 

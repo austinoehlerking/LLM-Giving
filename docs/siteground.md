@@ -14,6 +14,8 @@ Use a dedicated least-privilege application DB account. Use a separate migration
 
 ## Deployment sequence
 
+Development PRs merge into develop. Only an explicit human deploy command starts release promotion. First follow [the batch release gate](delivery-workflow.md): run node tools/delivery-gate.mjs check-release from the clean QA-approved candidate, verify live main/develop identities, merge that exact candidate into main, and verify the resulting tree equals the QA-approved tree. Stop on drift or conflicts. Deploy only that verified main commit. QA completion alone never authorizes promotion or production access.
+
 1. Back up the database and private uploaded files, config and sources. Verify restoration in an isolated environment.
 2. Validate the PHP version/extensions, schema compatibility, document root, rewrite rules, TLS, permissions and resource limits.
 3. Copy application files and local static assets. Exclude .env, local database data, development email, session files, QA reports and browser profiles.
