@@ -31,6 +31,15 @@ try{
   hc(wf_read_handoff($r,$archive['id'])['body']===$archive['body'],'Rejection does not rewrite issued handoff');
  }
  $direct=wf_issue_handoff($r,$task['id']);hc($direct['task_id']===$task['id']&&str_contains($direct['body'],'REQUIRED OUTPUT JSON'),'Direct task prompt archived');
+ // Check semantic inventory contracts in the trusted part of an actual issued task handoff, independent of line wrapping.
+ $trusted=preg_replace('/\s+/u',' ',explode("\nREQUIRED OUTPUT JSON\n",$direct['body'],2)[0]);
+ hc(str_contains($trusted,'sources item must include evidence.sources in refs whenever evidence.sources has entries')&&str_contains($trusted,'evidence.sources/ID is not a substitute for the full registry'),'Issued task guidance requires the full source registry, not only individual source refs');
+ hc(str_contains($trusted,'methods item must include methodology in refs'),'Issued task guidance requires the retained methodology reference');
+ hc(str_contains($trusted,'Every supplied item requires a nonempty refs list of valid retained references'),'Issued task guidance requires nonempty valid refs for supplied material');
+ hc(str_contains($trusted,'Every not_applicable item requires refs=[] and truthful details explaining why the category does not apply'),'Issued task guidance forbids refs on inapplicable material and requires an applicability explanation');
+ hc(str_contains($trusted,'For terminal completed, inconclusive or verified outcomes, every required category must be supplied or restricted and include all required refs')&&str_contains($trusted,'required materials cannot be declared not_applicable'),'Issued task guidance requires all applicable references and an eligible status before terminal completion');
+ hc(str_contains($trusted,'No item may remain missing or oversized in a terminal outcome')&&str_contains($trusted,'Check all status/ref constraints before claiming terminal completion'),'Issued task guidance preserves incomplete work as progress instead of unsupported completion');
+ hc(str_contains($trusted,'Restricted items must include methodology and sources in refs plus usable access_instructions'),'Issued task guidance preserves restricted-material attribution and reproducibility requirements');
  // Age only disposable fixture rows by delete/reinsert; immutable production updates stay prohibited.
  $oldUnused=$first;$oldUnused['created_at']=gmdate('Y-m-d H:i:s',time()-31*86400);
  query('DELETE FROM workflow_handoffs WHERE id=?',[$first['id']]);insert('workflow_handoffs',$oldUnused);
