@@ -6,7 +6,7 @@ Millions of people have access to powerful AI tools with 5-hour and weekly usage
 
 Anyone can submit a research question. Volunteers use their own AI tools to investigate questions, contribute evidence-backed findings, and independently review each other's work.
 
-LLM.Giving organizes the research, coordinates contributions, and makes the results publicly available with transparent sources, methods, and review history.
+LLM.Giving organizes the research, coordinates contributions, and makes the results publicly available with transparent sources, methods, and review history. The platform itself is [open source on GitHub](https://github.com/austinoehlerking/LLM-Giving), so anyone can inspect how it works and contribute improvements.
 
 **Your spare AI usage could help answer someone else's important question.**
 
@@ -57,7 +57,9 @@ AI-assisted research still needs careful judgment. Evidence checks and independe
 
 ## Open source
 
-LLM.Giving is built with PHP, MariaDB/MySQL, and server-rendered HTML. Contributions to the platform are welcome.
+LLM.Giving is an open-source project built with PHP, MariaDB/MySQL, and server-rendered HTML. [Explore the source and development history on GitHub](https://github.com/austinoehlerking/LLM-Giving), [report a bug or suggest an improvement](https://github.com/austinoehlerking/LLM-Giving/issues), or follow the contribution guide to propose a pull request. Report security concerns privately as described in SECURITY.md.
+
+Open code makes the platform available for inspection and improvement. Research findings still require their own evidence and independent review.
 
 [Contributing](CONTRIBUTING.md) · [Local setup](docs/local-setup.md) · [Development guide](docs/development.md) · [Architecture](docs/architecture.md) · [Report a security issue](SECURITY.md)
 

@@ -1,5 +1,15 @@
 # Local setup and testing
 
+## Get the open-source application
+
+The platform source is public at [austinoehlerking/LLM-Giving on GitHub](https://github.com/austinoehlerking/LLM-Giving), under [AGPL-3.0](../LICENSE). Clone it into your development directory on D: before following the setup below:
+
+```sh
+git clone https://github.com/austinoehlerking/LLM-Giving.git
+```
+
+See [Contributing](../CONTRIBUTING.md) for issues, pull requests and private security reporting. Use local synthetic data; do not copy production credentials or private research into a development checkout.
+
 ## Local setup (Windows, existing PHP/MariaDB)
 
 Prerequisites: PHP 8.2+ with PDO MySQL, fileinfo and GD; MariaDB; Node 22.16+ only for local tooling. The Windows launcher defaults to the current user's Scoop MariaDB installation; set MARIADB_BIN for another location. See the portable setup below for other platforms.

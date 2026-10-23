@@ -10,6 +10,8 @@ src/domain.php owns research retrieval, discovery, state changes, moderation, ca
 
 There are no paid dependencies or production Node services. Local Node tools manage processes, existing binaries and browser QA only.
 
+The platform is [open source on GitHub](https://github.com/austinoehlerking/LLM-Giving) under AGPL-3.0. The homepage, footer and Licensing page expose the source link. The rendering helper defaults to this published repository and preserves an operator-configured source_url for forks or modified deployments. Public source availability supports inspection; it does not establish scientific correctness or replace the publication and permission boundaries below.
+
 ## Editorial blog
 
 The fixed content/blog/articles.json collection contains only explicitly published editorial entries compiled from reviewed Markdown by tools/build-blog.mjs. src/blog.php serves that collection through /blog, /blog/{slug} and a fixed-public-page sitemap. Request parameters never select filesystem paths. Draft metadata, keyword research and private review records are excluded from the compiled field allowlist.
