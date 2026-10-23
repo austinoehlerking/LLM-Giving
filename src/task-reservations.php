@@ -50,13 +50,13 @@ function wr_eligible(string $rid,string $tid,int $revision,?string $actor=null):
     }
     return $t;
 }
-/** Pin loss-of-availability events across the full source ancestry, including a withdrawal/restore race. */
+/** Pin source withdrawals across the full ancestry, including a withdrawal/restore race. */
 function wr_fence(string $rid): string {
     $chain=[];$seen=[];$next=$rid;
     while($next){
         if(isset($seen[$next])||count($seen)>=1000)fail(409,'Research ancestry cannot be validated.');
         $seen[$next]=true;
-        $event=one("SELECT MAX(id) AS id FROM status_history WHERE research_id=? AND new_status IN ('Needs Clarification','Blocked','Paused','Withdrawn','Archived — Inactive','Solved','Review Complete')",[$next]);
+        $event=one("SELECT MAX(id) AS id FROM status_history WHERE research_id=? AND new_status='Withdrawn'",[$next]);
         $chain[]=[$next,(int)($event['id']??0)];
         $next=one('SELECT parent_id FROM research_forks WHERE research_id=?',[$next])['parent_id']??null;
     }

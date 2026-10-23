@@ -108,6 +108,10 @@ try{
  [$source,$sourceTask]=vfixture();$draft=rf_prepare($source);$child=rf_create($source,rf_test_child_data($draft));$ids[]=$child['id'];
  moderate('request',$child['id'],'Approved','Disposable source visibility fence fixture.');$childTask=wf_tasks($child['id'])[0];$childActor=vactor();
  wr_claim($child['id'],$childTask['id'],1,$childActor);
+ change_status($source,'Paused','Pause source task work without withdrawing public background.','administrator');
+ vcheck(wr_renew($child['id'],$childTask['id'],1,$childActor)['actor_hash']===$childActor,'Source task pause does not cancel independent public child work');
+ change_status($source,'Needs Research Plan','Resume source task work.','administrator');
+ vcheck(wr_live($child['id'],$childTask['id'])!==null,'Source resume preserves a valid child reservation');
  change_status($source,'Withdrawn','Synthetic inherited source withdrawal.','administrator');
  vdeny(fn()=>wr_renew($child['id'],$childTask['id'],1,$childActor),404,'Source withdrawal prevents descendant renewal');
  change_status($source,'Needs Research Plan','Restore source availability without reviving its leases.','administrator');
