@@ -10,6 +10,19 @@ Migration **016_task_reservations.sql** is additive. It creates private `reserva
 
 Earlier local integration pins briefly included an actor foreign key in migration 016. A disposable development database that already applied that pre-release form will not rerun the filename: recreate only that owned synthetic schema or explicitly remove its actor-hash FK before testing this pin. Do not alter migration records to force a rerun, and do not apply development repairs to production. The final fresh migration retains only the research/task ownership FKs.
 
+For an earlier **owned disposable local schema only**, identify the obsolete constraint with:
+
+```sql
+SELECT CONSTRAINT_NAME
+FROM information_schema.KEY_COLUMN_USAGE
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME = 'task_reservations'
+  AND COLUMN_NAME = 'actor_hash'
+  AND REFERENCED_TABLE_NAME = 'reservation_actors';
+```
+
+If that returns one constraint, run `ALTER TABLE task_reservations DROP FOREIGN KEY` with that exact identifier quoted in backticks. Zero rows means no repair is needed. Keep the actor_live index and all actor/task rows; do not drop data or the task/research foreign keys. Verify against the final fresh migration and rerun the concurrency suite. This is a pre-release development compatibility step, not a production maintenance command.
+
 ## Trusted identity and operations
 
 All PHP actor arguments are **server-owned hashes**, obtained from `wf_actor()` or a session-authorized, unconsumed `browser_returns` grant's `actor_hash`. Never accept an actor hash, reservation row or ownership assertion from JSON, query strings or form fields. A reservation ID is an internal reference, not a capability.
