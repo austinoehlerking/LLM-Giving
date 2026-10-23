@@ -12,3 +12,5 @@
 <p class="fine">Context ID <?=e($snapshot['id'])?> · v<?=e($snapshot['context_version'])?> · <?=e($snapshot['created_at'])?> UTC<br>SHA-256 <?=e($snapshot['sha256'])?></p></section>
 <?php if(!$grant)include __DIR__.'/workflow-submit.php'; ?>
 <section><h2>Task submissions</h2><?php foreach(all("SELECT id,reason,outcome,admission,created_at FROM workflow_submissions WHERE task_id=? AND research_id=? AND visibility='public' ORDER BY created_at,id",[$task['id'],$r['id']]) as $s): ?><article class="ledger-entry"><time><?=e($s['created_at'])?> UTC</time><h3><?=e($s['admission']==='accepted'?$s['outcome']:ucfirst($s['admission']))?></h3><a href="<?=e($base)?>/results/<?=e($s['id'])?>"><?=e($s['reason'])?></a></article><?php endforeach ?></section>
+
+<p class="fine"><a class="text-action" href="/volunteer/quick-start#single-task">Volunteer quick start: task pickup and browser return</a></p>

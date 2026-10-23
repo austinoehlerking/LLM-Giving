@@ -1,4 +1,5 @@
 <article class="legal narrow"><h1><?=e($title)?></h1>
+<?php if(($path??'')==='/about'): ?><p>Your AI runs the work; LLM.Giving coordinates tasks and retains results. Choose a bounded session or one assignment.</p><div class="actions primary-actions"><a class="button" href="/volunteer">Start volunteering</a><a class="button secondary" href="/volunteer/quick-start">Volunteer quick start</a></div><?php endif ?>
 <?php if(($path??'')!=='/about'): ?>
 <p class="fine">Operator: <?=e(setting('operator_name','LLM.Giving'))?> · <?=e(setting('operator_country','United States'))?></p>
 <p><a class="button secondary" href="mailto:<?=e(setting('operator_email','info@llm.giving'))?>"><?=e(setting('operator_email','info@llm.giving'))?></a></p>
