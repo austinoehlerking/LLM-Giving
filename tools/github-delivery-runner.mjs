@@ -7,7 +7,10 @@ export function createClient({token=process.env.GITHUB_TOKEN||process.env.GH_TOK
   let calls=0;
   async function request(route,{method='GET',body}={}){
     need(++calls<=300,'GitHub metadata request budget exceeded.');
-    need(typeof route==='string'&&(route==='/repos/'+POLICY.repository||route.startsWith('/repos/'+POLICY.repository+'/')||route==='/graphql')&&!/[\\%#\r\n]/.test(route)&&!route.includes('..'),'Untrusted API route.');
+    const repositoryRoute='/repos/'+POLICY.repository,comparePrefix=repositoryRoute+'/compare/';
+    const isCompare=typeof route==='string'&&route.startsWith(comparePrefix)&&/^[a-f0-9]{40}\.\.\.[a-f0-9]{40}$/.test(route.slice(comparePrefix.length));
+    need(typeof route==='string'&&(route===repositoryRoute||route.startsWith(repositoryRoute+'/')||route==='/graphql')&&!/[\\%#\r\n]/.test(route)&&
+      (!route.includes('..')||isCompare)&&(!route.startsWith(repositoryRoute+'/compare')||isCompare),'Untrusted API route.');
     const r=await fetchImpl('https://api.github.com'+route,{method,redirect:'error',signal:AbortSignal.timeout(15000),
       headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',...(token?{Authorization:'Bearer '+token}:{}),...(body!==undefined?{'Content-Type':'application/json'}:{})},
       ...(body!==undefined?{body:JSON.stringify(body)}:{})});
