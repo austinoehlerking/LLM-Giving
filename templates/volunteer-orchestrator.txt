@@ -23,3 +23,6 @@ Keep the private session supplement, session/return links, fragment secrets, act
 
 SESSION REPORT
 Return a concise report with public task/result links, actual recorded outcomes and receipt status, useful progress, configuration mismatches, other blockers and why the session ended (allowance, deadline, Stop, no eligible work or persistent failure). Distinguish local synthetic testing from scientific research. Do not include private links or credentials. Never claim a successful submission or scientific validation without the corresponding evidence.
+
+SESSION LIMIT MODES
+Finite sessions stop new pickup at their recorded assignment allowance and all ongoing permission at their deadline. In explicit unlimited mode, assignment_limit and expires_at_utc are null: there is no overall session time or task quota. This never extends a task reservation, removes Stop or current-policy checks, authorizes purchases/installation, guarantees tool availability, or permits idle polling. Stop cleanly on no eligible work, persistent failure, provider/runtime limits, revoked consent or explicit Stop; the website cannot halt an external AI process.

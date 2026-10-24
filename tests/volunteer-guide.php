@@ -26,11 +26,11 @@ if($path==='/volunteer/quick-start' && $method==='GET')
 ROUTE;
 guide_check(str_contains($index,$route)&&str_contains($index,"render('volunteer-quick-start'"),'Guide has a fixed GET-only route');
 guide_check(strpos($index,$route)<strpos($index,'if(vs_route('),'Guide route dispatch precedes private session routing');
-foreach(['volunteer-setup','volunteer-session'] as $view)guide_check(str_contains(file_get_contents(ROOT.'/views/'.$view.'.php'),'volunteer-guide-link.php'),'Existing session hook exposes guide: '.$view);
+foreach(['volunteer-setup','volunteer-session'] as $view)guide_check((str_contains(file_get_contents(ROOT.'/views/'.$view.'.php'),'volunteer-guide-link.php')||str_contains(file_get_contents(ROOT.'/views/layout.php'),'/volunteer/quick-start')),'Existing session hook exposes guide: '.$view);
 foreach(['home','legal','research','workflow-task','browser-authorize','browser-handoff'] as $view)guide_check(str_contains(file_get_contents(ROOT.'/views/'.$view.'.php'),'/volunteer/quick-start'),'Public/contextual entry exists: '.$view);
 // These labels must still exist in the actual controls described by the guide.
 $labels=[
-'volunteer-setup'=>['Where would you like to help?','Task assignments','Session minutes','Worker configuration (advanced)','Continue to authorization','Exact worker model','Actual reasoning effort','AI tool or harness name','Workflow mode'],
+'volunteer-setup'=>['Where would you like to help?','Task assignments','Session minutes','Worker configuration (advanced)','Connect my AI','Exact worker model','Actual reasoning effort','AI tool or harness name','Workflow mode'],
 'volunteer-authorize'=>['Authorize session','Software assignments (optional)'],
 'volunteer-created'=>['Open private dashboard'],
 'volunteer-orchestrator'=>['Copy orchestrator handoff','Complete private handoff for manual copying'],
@@ -41,5 +41,5 @@ $labels=[
 'workflow-submit'=>['Check packet','Submit task result','Copy AI repair prompt','Manually submitted — fallback'],
 ];
 $guideText=html_entity_decode(strip_tags($html),ENT_QUOTES|ENT_HTML5,'UTF-8');
-foreach($labels as $view=>$names){$source=html_entity_decode(file_get_contents(ROOT.'/views/'.$view.'.php'),ENT_QUOTES|ENT_HTML5,'UTF-8');foreach($names as $name){guide_check(str_contains($source,$name),'Implemented UI label exists: '.$view.' / '.$name);guide_check(str_contains($guideText,$name),'Guide uses the implemented label: '.$name);}}
+foreach($labels as $view=>$names){$source=html_entity_decode(file_get_contents(ROOT.'/views/'.$view.'.php').($view==='volunteer-setup'?file_get_contents(ROOT.'/views/volunteer-options.php'):''),ENT_QUOTES|ENT_HTML5,'UTF-8');foreach($names as $name){guide_check(str_contains($source,$name),'Implemented UI label exists: '.$view.' / '.$name);guide_check(str_contains($guideText,$name),'Guide uses the implemented label: '.$name);}}
 echo $checks." volunteer quick-start template/link/label checks passed. Browser workflows and geometry require independent QA.\n";

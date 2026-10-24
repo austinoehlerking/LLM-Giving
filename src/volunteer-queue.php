@@ -121,6 +121,7 @@ function vs_validate_grant(array $r,array $grant): void {
     if ($assignment['ended_at']) fail(409,'This assignment was released. Save your work; this permission cannot submit it.');
     $task=wf_task($r['id'],$grant['task_id']);
     vs_task_eligible($session,$r,$task);
+    if ($grant['expires_at']!==$session['expires_at']) fail(403,'Assignment authorization does not match the recorded session deadline.');
     $live=wr_require($r['id'],$task['id'],(int)$assignment['task_revision'],$session['actor_hash']);
     if ($live['id']!==$assignment['reservation_id']) fail(409,'The reservation expired or changed. Explicitly reacquire this assignment; preserve its original signed identifiers.');
 }
@@ -143,7 +144,7 @@ function vs_reservation_projection(array $reservation): ?array {
     if (!$binding) return $reservation;
     $binding['consent']=json_decode($binding['consent'],true,16,JSON_THROW_ON_ERROR);
     if ($binding['assignment_ended'] || in_array(vs_state($binding),['expired','stopped','terms_changed'],true)) return null;
-    $reservation['expires_at']=min($reservation['expires_at'],$binding['expires_at']);
+    if (!vs_unlimited($binding)) $reservation['expires_at']=min($reservation['expires_at'],$binding['expires_at']);
     return $reservation;
 }
 function vs_release_current(array $session,string $reason): void {
@@ -194,5 +195,5 @@ function vs_handoff(string $id,string $assignmentId): string {
     $secret=vs_return_secret($grant['id']);
     if (!hash_equals($grant['secret_hash'],hash('sha256',$secret))) fail(409,'The private delivery key changed. Use your session dashboard; do not invent authorization.');
     $link=rtrim(env('APP_URL'),'/').'/research/'.$r['slug'].'/return/'.$grant['id'].'#'.$secret;
-    return $archive['body']."\n\nPRIVATE VOLUNTEER SESSION ASSIGNMENT — not part of the public archive.\nThis assignment is authorized by the volunteer's bounded session until ".$session['expires_at']." UTC. The original volunteer identity and captured consent are preserved. This worker may perform this assignment, repair validation errors and return it through the private link below. A session deadline or Stop revokes ongoing permission even if a task reservation would otherwise last longer. Unchanged copying and operational browser permission are not scientific influence. Report later scientific input independently. No purchases, installations, unrelated work or account access are authorized.\nPrivate return link: ".$link."\nKeep this link and its credential out of research packets, public archives, citations, screenshots shared publicly, analytics and final public answers. Inspect the recorded receipt before retrying an uncertain response. Stop this worker after this assignment and return its recorded outcome to the session controller.\n".vo_assignment_instructions();
+    return $archive['body']."\n\nPRIVATE VOLUNTEER SESSION ASSIGNMENT — not part of the public archive.\nThis assignment is authorized by the volunteer's session ".vs_permission_end($session).". The original volunteer identity and captured consent are preserved. This worker may perform this assignment, repair validation errors and return it through the private link below. A session deadline or Stop revokes ongoing permission even if a task reservation would otherwise last longer. Unchanged copying and operational browser permission are not scientific influence. Report later scientific input independently. No purchases, installations, unrelated work or account access are authorized.\nPrivate return link: ".$link."\nKeep this link and its credential out of research packets, public archives, citations, screenshots shared publicly, analytics and final public answers. Inspect the recorded receipt before retrying an uncertain response. Stop this worker after this assignment and return its recorded outcome to the session controller.\n".vo_assignment_instructions();
 }

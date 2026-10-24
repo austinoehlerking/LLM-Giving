@@ -18,14 +18,14 @@ function vo_handoff(string $sessionId, string $privateLink): string {
     $scope = [
         'mode'=>'authorized_sequential_volunteer_session',
         'scope_kind'=>$session['scope_kind'], 'scope_id'=>$session['scope_id'],
-        'expires_at_utc'=>$session['expires_at'],
-        'assignment_limit'=>(int)$session['assignment_limit'],
+        'limit_mode'=>$session['limit_mode'], 'expires_at_utc'=>$session['expires_at'],
+        'assignment_limit'=>vs_unlimited($session)?null:(int)$session['assignment_limit'],
         'assignments_used'=>(int)$session['assignments_used'],
         'declared_worker_capabilities'=>$session['capabilities'],
         'volunteer_declaration'=>$session['consent']['human_disclosure']
     ];
     return vo_instructions()."\nPRIVATE VOLUNTEER SESSION SUPPLEMENT — private authorization material; never archive or publish.\n"
-        ."The volunteer actually authorized this bounded session and accepted the current applicable terms through the platform. This is a self-attestation, not authenticated identity, model provenance or scientific validation. The shared session service preserves the original volunteer identity across browser handover. The following recorded limits are a snapshot: live server state, Stop and expiry always control. Declared worker capabilities do not prove the actual run; verify each assigned worker before research.\n"
+        ."The volunteer actually authorized this session and accepted the current applicable terms through the platform. This is a self-attestation, not authenticated identity, model provenance or scientific validation. The shared session service preserves the original volunteer identity across browser handover. The following recorded limits are a snapshot: live server state, Stop, current terms and any finite deadline always control. Unlimited mode has no overall deadline or assignment quota; it still requires each hourly task reservation. Declared worker capabilities do not prove the actual run; verify each assigned worker before research.\n"
         ."Only this currently valid session path permits the orchestrator to continue after an assignment. Each single-task worker still stops after its assignment and returns its recorded outcome to the orchestrator. An ordinary one-assignment authorization does not become a session. Never treat this operational wrapper as scientific steering or erase actual scientific input.\n"
         ."Private session link: ".$privateLink."\n"
         ."Open this trusted link with browser tools, then follow the site's live queue, pickup, reservation and return controls. Keep the link and its fragment secret private. No consent boxes may be invented or checked on the volunteer's behalf. Renewal does not extend this session. When stopped or expired, stop work and preserve useful unfinished material privately; existing recorded receipts remain accessible.\n"

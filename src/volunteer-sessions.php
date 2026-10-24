@@ -13,7 +13,41 @@ function vs_integer(array $post, string $key, int $default, int $min, int $max):
     }
     return (int)$value;
 }
+
+/** Presets are server-owned; hidden/custom numeric values cannot change a selected preset. */
+const VS_PRESETS = [
+    'quick'=>['label'=>'Quick try','minutes'=>15,'tasks'=>1],
+    'standard'=>['label'=>'Standard','minutes'=>60,'tasks'=>3],
+    'long'=>['label'=>'Long haul','minutes'=>180,'tasks'=>10],
+    'unlimited'=>['label'=>'No limit','minutes'=>null,'tasks'=>null],
+];
+function vs_unlimited(array $session): bool { return ($session['limit_mode']??'bounded')==='unlimited'; }
+function vs_limits(array $post): array {
+    $preset=isset($post['session_preset'])?text_field($post,'session_preset',1,16):'custom';
+    if ($preset==='custom') return ['limit_mode'=>'bounded','assignment_limit'=>vs_integer($post,'assignment_limit',3,1,20),'minutes'=>vs_integer($post,'minutes',60,5,240)];
+    if (!isset(VS_PRESETS[$preset])) fail(422,'Choose a session time preset or Custom limits.');
+    return ['limit_mode'=>$preset==='unlimited'?'unlimited':'bounded','assignment_limit'=>VS_PRESETS[$preset]['tasks'],'minutes'=>VS_PRESETS[$preset]['minutes']];
+}
+function vs_scope_input(array $post): array {
+    if (!isset($post['cause_choice'])) return $post;
+    $choice=text_field($post,'cause_choice',1,40);
+    if ($choice==='all') $post['scope_kind']='all';
+    elseif (preg_match('/^category:([0-9]+)$/D',$choice,$match)) { $post['scope_kind']='category'; $post['category_id']=$match[1]; }
+    elseif ($choice!=='custom') fail(422,'Choose where the session should help.');
+    return $post;
+}
+function vs_limit_label(array $configuration): string {
+    if (vs_unlimited($configuration)) return 'Until you press Stop · no session time or task limit';
+    $minutes=$configuration['minutes']??(int)round((strtotime($configuration['expires_at'].' UTC')-strtotime($configuration['created_at'].' UTC'))/60);
+    return $minutes.' min or '.$configuration['assignment_limit'].' '.((int)$configuration['assignment_limit']===1?'task':'tasks');
+}
+function vs_permission_end(array $session): string {
+    return vs_unlimited($session)?'until you press Stop (no session deadline or assignment quota)': 'until '.$session['expires_at'].' UTC';
+}
+
 function vs_configuration(array $post): array {
+    $post=vs_scope_input($post);
+    $limits=vs_limits($post);
     $scope = text_field($post, 'scope_kind', 1, 16);
     if (!in_array($scope, ['all','category','research'], true)) fail(422, 'Choose a volunteer scope.');
     $scopeId = '';
@@ -36,8 +70,7 @@ function vs_configuration(array $post): array {
     if ($capabilities['workflow_mode'] === 'ultracode' && (!isset($registry[$capabilities['model']]) || !in_array('ultracode', $registry[$capabilities['model']]['modes'], true) || strcasecmp($capabilities['tool'], 'Claude Code') !== 0 || $capabilities['reasoning'] === '')) {
         fail(422, 'Ultracode requires a supported exact model, actual effort and Claude Code.');
     }
-    return ['scope_kind'=>$scope, 'scope_id'=>$scopeId, 'assignment_limit'=>vs_integer($post, 'assignment_limit', 3, 1, 20),
-        'minutes'=>vs_integer($post, 'minutes', 60, 5, 240), 'capabilities'=>$capabilities];
+    return ['scope_kind'=>$scope, 'scope_id'=>$scopeId, 'capabilities'=>$capabilities]+$limits;
 }
 function vs_create(array $post): array {
     throttle('volunteer-session-start', 10);
@@ -56,16 +89,17 @@ function vs_create(array $post): array {
         'human_disclosure'=>$declaration, 'captured_at_utc'=>gmdate('Y-m-d H:i:s', $started),
         'source'=>'Volunteer session authorization form (self-attested)',
         'disclosure_scope'=>'Through session authorization; each worker separately reports later scientific input.',
-        'permission'=>'Eligible task selection, research, browser submission, platform validation repair and continuation only within the chosen scope, assignment limit and session deadline. One active task at a time. No purchases, installation, unrelated work or broader account access is authorized.',
+        'permission'=>'Eligible task selection, research, browser submission, platform validation repair and continuation only within the chosen scope. '.vs_limit_label($configuration).'. Stop and current terms remain authoritative. One active task at a time. No purchases, installation, unrelated work or broader account access is authorized.',
+        'session_limits'=>['mode'=>$configuration['limit_mode'],'assignment_limit'=>$configuration['assignment_limit'],'minutes'=>$configuration['minutes']],
         'resource_confirmation'=>CONTRIBUTOR_RESOURCE_CONFIRMATION,
         'authorized_resources'=>'Volunteer confirmed own or explicitly authorized resources, provider rules and permission for public publication.'];
     $id = uid();
     $secret = bin2hex(random_bytes(32));
     $row = ['id'=>$id, 'secret_hash'=>hash('sha256', $secret), 'actor_hash'=>wf_actor(),
         'scope_kind'=>$configuration['scope_kind'], 'scope_id'=>$configuration['scope_id'],
-        'assignment_limit'=>$configuration['assignment_limit'], 'assignments_used'=>0,
+        'limit_mode'=>$configuration['limit_mode'], 'assignment_limit'=>$configuration['assignment_limit'], 'assignments_used'=>0,
         'capabilities'=>json_encode($configuration['capabilities'], JSON_THROW_ON_ERROR), 'consent'=>json_encode($consent, JSON_THROW_ON_ERROR),
-        'created_at'=>gmdate('Y-m-d H:i:s', $started), 'expires_at'=>gmdate('Y-m-d H:i:s', $started+$configuration['minutes']*60)];
+        'created_at'=>gmdate('Y-m-d H:i:s', $started), 'expires_at'=>vs_unlimited($configuration)?null:gmdate('Y-m-d H:i:s', $started+$configuration['minutes']*60)];
     insert('volunteer_sessions', $row);
     $_SESSION['volunteer_sessions'][$id] = $row['secret_hash'];
     return ['id'=>$id, 'link'=>rtrim(env('APP_URL'), '/').'/volunteer/'.$id.'/open#'.$secret];
@@ -89,9 +123,9 @@ function vs_exchange(string $id, string $secret): void {
 }
 function vs_state(array $session): string {
     if ($session['stopped_at']) return 'stopped';
-    if (strtotime($session['expires_at'].' UTC') <= vs_now()) return 'expired';
+    if (!vs_unlimited($session) && strtotime($session['expires_at'].' UTC') <= vs_now()) return 'expired';
     if ($session['consent']['terms_version'] !== terms_version() || ($session['consent']['tool_terms_version'] !== null && $session['consent']['tool_terms_version'] !== RT_TERMS)) return 'terms_changed';
-    return (int)$session['assignments_used'] >= (int)$session['assignment_limit'] ? 'limit_reached' : 'active';
+    return !vs_unlimited($session) && (int)$session['assignments_used'] >= (int)$session['assignment_limit'] ? 'limit_reached' : 'active';
 }
 function vs_assert_active(array $session, bool $claim=false): void {
     $state = vs_state($session);

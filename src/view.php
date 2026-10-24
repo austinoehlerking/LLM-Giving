@@ -1,4 +1,5 @@
 <?php
+function brand_wordmark(): string { return '<span class="brand-name">LLM.Giving<span class="brand-meter" aria-hidden="true"><span class="brand-meter-fill"></span></span></span>'; }
 const SOURCE_REPOSITORY_URL='https://github.com/austinoehlerking/LLM-Giving';
 function source_repository_url(): string {
     return setting('source_url') ?: SOURCE_REPOSITORY_URL;
@@ -16,7 +17,7 @@ function home_metadata(): array {
         'description'=>$description,
         'canonical'=>$base.'/',
         'socialType'=>'website',
-        'socialImage'=>$base.'/assets/llm-giving-social-v1.jpg?v=3',
+        'socialImage'=>$base.'/assets/llm-giving-social-v1.jpg?v=progress1',
         'socialImageAlt'=>'LLM.Giving: Folding@home, but for AI usage. Put your spare AI usage to help open-source research.',
         'structuredData'=>['@context'=>'https://schema.org','@type'=>'WebSite','name'=>'LLM.Giving','url'=>$base.'/','description'=>$description],
     ];

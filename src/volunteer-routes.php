@@ -18,7 +18,7 @@ function vs_state_label(string $state): string {
 }
 function vs_form_draft(array $input): array {
     $draft=[];
-    foreach (['scope_kind','category_id','research_id','assignment_limit','minutes','model','reasoning','tool','workflow_mode'] as $field) {
+    foreach (['session_preset','cause_choice','scope_kind','category_id','research_id','assignment_limit','minutes','model','reasoning','tool','workflow_mode'] as $field) {
         if (isset($input[$field]) && is_scalar($input[$field])) $draft[$field]=(string)$input[$field];
     }
     return $draft;

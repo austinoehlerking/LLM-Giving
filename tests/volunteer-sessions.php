@@ -18,6 +18,17 @@ function vsd(callable $call, int $status, string $label): void {
 db()->beginTransaction();
 try {
     $post=['scope_kind'=>'all','assignment_limit'=>3,'minutes'=>60,'authorize'=>1,'terms'=>1,'authorized_resources'=>1,'policy_version'=>terms_version(),'human_level'=>'none','model'=>'gpt-6-astra','reasoning'=>'max','tool'=>'Codex'];
+
+    foreach (['quick'=>[15,1],'standard'=>[60,3],'long'=>[180,10],'unlimited'=>[null,null]] as $preset=>$expected) {
+        $limits=vs_limits(['session_preset'=>$preset,'minutes'=>999,'assignment_limit'=>999]);
+        vsc($limits['minutes']===$expected[0] && $limits['assignment_limit']===$expected[1], 'Server-owned preset '.$preset.' ignores stale custom values');
+        vsc(($limits['limit_mode']==='unlimited')===($preset==='unlimited'),'Explicit limit mode for '.$preset);
+    }
+    vsd(fn()=>vs_limits(['session_preset'=>'invented']),422,'Unknown time preset rejected');
+    vsd(fn()=>vs_limits(['session_preset'=>[]]),422,'Malformed time preset rejected');
+    vsc(vs_configuration($post+['cause_choice'=>'category:1'])['scope_id']==='1','Cause pill supplies the actual validated category');
+    vsd(fn()=>vs_configuration($post+['cause_choice'=>'category:2147483647']),422,'Invented cause pill cannot bypass taxonomy');
+
     foreach (['authorize','terms','authorized_resources','human_level'] as $field) {
         $bad=$post; unset($bad[$field]);
         vsd(fn()=>vs_create($bad), 422, 'Missing '.$field.' cannot authorize a session');
@@ -39,6 +50,18 @@ try {
     vsc($session['actor_hash']===$originalActor, 'Session pins original anonymous volunteer actor');
     vsc((int)$session['assignment_limit']===3 && (int)$session['assignments_used']===0, 'Defaults allow three assignments with zero consumed');
     vsc($session['expires_at']==='2026-10-22 17:00:00', 'Default deadline is exactly one server hour');
+
+    putenv('RATE_LIMIT_NAMESPACE=volunteer-unlimited-'.uid());
+    $unlimitedCreated=vs_create($post+['session_preset'=>'unlimited']);
+    $unlimited=vs_read($unlimitedCreated['id']);
+    vsc(vs_unlimited($unlimited) && $unlimited['assignment_limit']===null && $unlimited['expires_at']===null,'Unlimited stores no hidden task cap or deadline');
+    vsc($unlimited['consent']['session_limits']===['mode'=>'unlimited','assignment_limit'=>null,'minutes'=>null],'Captured consent explicitly records unlimited scope');
+    $unlimited['assignments_used']=70000;
+    $unlimitedClock=$GLOBALS['vs_test_now'];$GLOBALS['vs_test_now']+=86400*365;
+    vsc(vs_state($unlimited)==='active','Unlimited remains active beyond former time/count ceilings');
+    $GLOBALS['vs_test_now']=$unlimitedClock;
+    $unlimited['stopped_at']=now();vsc(vs_state($unlimited)==='stopped','Explicit Stop still revokes unlimited permission');
+
     vsc($session['consent']['human_disclosure']===['level'=>'none','details'=>''], 'Independent volunteer declaration is captured');
     vsc($session['consent']['tool_terms_version']===null, 'Software consent is not inferred');
     vsc(str_contains($session['consent']['permission'], 'No purchases, installation, unrelated work'), 'Permission is explicitly bounded against unrelated actions');

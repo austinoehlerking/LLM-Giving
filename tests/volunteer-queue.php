@@ -15,11 +15,11 @@ function vq_project(bool $plan=true,bool $tool=false): array {
     if ($plan) { $task=wf_tasks($created['id'])[0]; wf_test_submit($created['id'],$task['id'],wf_test_payload($created['id'],$task),hash('sha256',uid())); }
     return research($created['id']);
 }
-function vq_session(array $r,int $limit=3,int $minutes=60,bool $software=false,?string $actor=null,string $disclosure='none'): array {
+function vq_session(array $r,int $limit=3,int $minutes=60,bool $software=false,?string $actor=null,string $disclosure='none',string $preset='custom'): array {
     global $sessions;
     $_SESSION['workflow_actor']=$actor??bin2hex(random_bytes(32));
     putenv('RATE_LIMIT_NAMESPACE=volunteer-queue-'.uid());
-    $created=vs_create(['scope_kind'=>'research','research_id'=>$r['id'],'assignment_limit'=>$limit,'minutes'=>$minutes,'model'=>'gpt-6-astra','reasoning'=>'max','tool'=>'Codex',
+    $created=vs_create(['session_preset'=>$preset,'scope_kind'=>'research','research_id'=>$r['id'],'assignment_limit'=>$limit,'minutes'=>$minutes,'model'=>'gpt-6-astra','reasoning'=>'max','tool'=>'Codex',
         'authorize'=>1,'terms'=>1,'authorized_resources'=>1,'tool_terms'=>$software?1:0,'policy_version'=>terms_version(),'human_level'=>$disclosure,'human_details'=>$disclosure==='none'?'':'Synthetic scientific steering explicitly declared by the volunteer.']);
     $sessions[]=$created['id'];return $created;
 }
@@ -147,7 +147,46 @@ try {
         vqc($stillLive && $stillLive['id']===$freshLease['id'] && $stillLive['expires_at']===$freshLease['expires_at'] && (int)vs_read($controlsId)['assignments_used']===2,'Rejected session '.$operation.' retains the new generation and consumed allowance');
     }
     vs_stop($controlsId);
-    $checksFile=storage('qa/volunteer-draft/queue-tests.json');file_put_contents($checksFile,json_encode(['pass'=>true,'count'=>count($checks),'checks'=>$checks],JSON_PRETTY_PRINT));
+
+
+    $expiryResearch=vq_project();$expiryCreated=vq_session($expiryResearch);$expiryId=$expiryCreated['id'];$expiryAssignment=vs_claim_next($expiryId);
+    $expirySession=vs_read($expiryId);$expiryGrant=vs_assignment_grant($expirySession,$expiryAssignment);$expiryPacket=vq_packet($expirySession,$expiryAssignment);
+    $badDeadline=$expiryGrant;$badDeadline['expires_at']=null;
+    vqd(fn()=>vs_validate_grant($expiryResearch,$badDeadline),403,'An active finite assignment cannot replace its deadline with unlimited permission');
+    query('UPDATE volunteer_sessions SET expires_at=? WHERE id=?',[wr_stamp($GLOBALS['vqq_now']-1),$expiryId]);
+    vqd(fn()=>vs_record($expiryId,$expiryAssignment['id'],$expiryPacket,true),409,'Expired session returns recoverable expiry before stale deadline consistency checks');
+
+    $unlimitedStart=$GLOBALS['vqq_now'];
+    $ur=vq_project();$uc=vq_session($ur,3,60,false,null,'none','unlimited');$ui=$uc['id'];
+    query('UPDATE volunteer_sessions SET assignments_used=70000 WHERE id=?',[$ui]);
+    $ua=vs_claim_next($ui);$us=vs_read($ui);$ug=vs_assignment_grant($us,$ua);
+    vqc($us['expires_at']===null && $us['assignment_limit']===null && (int)$us['assignments_used']===70001,'Unlimited queue has neither former quota nor small-counter overflow');
+    vqc($ug['expires_at']===null && wr_live($ur['id'],$ua['task_id'])['expires_at']===wr_stamp($GLOBALS['vqq_now']+3600),'Unlimited return remains session-bound while task reservation stays exactly hourly');
+    $unlimitedHandoff=vs_handoff($ui,$ua['id']);
+    vqc(str_contains($unlimitedHandoff,'no session deadline or assignment quota') && !str_contains($unlimitedHandoff,'session until  UTC'),'Unlimited private worker instructions report actual limits');
+    $packetU=vq_packet($us,$ua);
+    $unscoped=$ug;unset($unscoped['scope']['volunteer_session_id'],$unscoped['scope']['volunteer_assignment_id']);
+    vqd(fn()=>ar_validate($ur,$unscoped),403,'Null expiration cannot authorize an ordinary return');
+    $GLOBALS['vqq_now']+=86400*2;
+    vqc(vs_state(vs_read($ui))==='active','Unlimited session remains active after two days');
+    vqd(fn()=>vs_record($ui,$ua['id'],$packetU,false),409,'Unlimited never bypasses an expired task reservation');
+    vs_assignment_action($ui,$ua['id'],'reacquire');$GLOBALS['vqq_now']+=5;vs_assignment_action($ui,$ua['id'],'renew');
+    vqc(wr_live($ur['id'],$ua['task_id'])['expires_at']===wr_stamp($GLOBALS['vqq_now']+3600),'Unlimited explicit renewal preserves the hourly lease contract');
+    vqc(vs_handoff($ui,$ua['id'])===$unlimitedHandoff,'Unlimited reacquisition preserves the complete handoff and signed identifiers');
+    $uq=vs_record($ui,$ua['id'],$packetU,false);
+    vqc(one('SELECT actor_hash FROM workflow_submissions WHERE id=?',[$uq])['actor_hash']===$us['actor_hash'],'Unlimited submission records with original contributor lineage');
+    $ub=vs_claim_next($ui);$nextPacket=vq_packet(vs_read($ui),$ub);
+    $oldTerms=setting('terms_version');
+    try {set_setting('terms_version','unlimited-policy-'.uid());vqd(fn()=>vs_record($ui,$ub['id'],$nextPacket,false),409,'Terms changes revoke unlimited worker permission');}
+    finally {set_setting('terms_version',$oldTerms);}
+    vs_stop($ui);
+    vqc(vs_state(vs_read($ui))==='stopped' && wr_live($ur['id'],$ub['task_id'])===null,'Stop releases unlimited task ownership and ends website permission');
+    vqd(fn()=>vs_record($ui,$ub['id'],$nextPacket,false),409,'Stopped unlimited worker cannot submit');
+    vqd(fn()=>vs_claim_next($ui),409,'Stopped unlimited controller cannot continue');
+    vqc(vs_record($ui,$ua['id'],$packetU,false)===$uq,'Unlimited exact recorded receipt remains recoverable after Stop');
+    $GLOBALS['vqq_now']=$unlimitedStart;
+
+    $checksFile=storage('qa/volunteer-draft/queue-tests.json');if(!is_dir(dirname($checksFile)))mkdir(dirname($checksFile),0700,true);file_put_contents($checksFile,json_encode(['pass'=>true,'count'=>count($checks),'checks'=>$checks],JSON_PRETTY_PRINT));
     echo count($checks)." volunteer queue and lifecycle checks passed.\n";
 } finally {
     unset($GLOBALS['wr_test_clock'],$GLOBALS['vqq_now']);

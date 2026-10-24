@@ -1,6 +1,6 @@
 # Volunteer orchestrator handoff
 
-Volunteer mode supplies a bounded, sequential controller handoff after the volunteer actually authorizes a session. It reuses the shared reservation, pickup, session/queue and browser-return services. The platform makes no runtime AI calls and starts no background workers.
+Volunteer mode supplies a scoped, sequential controller handoff after the volunteer actually authorizes a session. It reuses the shared reservation, pickup, session/queue and browser-return services. The platform makes no runtime AI calls and starts no background workers.
 
 ## Authorization and private delivery
 
@@ -44,3 +44,5 @@ Redacted local evidence belongs under ignored storage/qa/orchestrator: complete 
 All local runtime, temporary files, profiles and reports stay on D:. Use a dedicated database/ports and preserve other worktrees. If default setup encounters another worktree's port, use a separately configured repository launcher and record the triggering failure. Restricted Windows junction/Edge failures use the documented unchanged-command execution-context fallback. The in-app browser's failed kernel initialization is recorded separately from the repo browser route. The pre-release reservation schema compatibility procedure applies only to the owned disposable database.
 
 No push, external PR, merge, production migration or deployment is authorized by local implementation/QA.
+
+Explicit unlimited sessions record limit_mode=unlimited with null assignment_limit and expires_at_utc. These are absent overall limits, not zero allowances or a hidden finite deadline. Finite presets retain their exact task/time stopping rules. Every session remains one assignment at a time with hourly reservations, Stop, legal-version checks and existing no-work/error stopping rules.
