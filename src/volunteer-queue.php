@@ -118,10 +118,10 @@ function vs_validate_grant(array $r,array $grant): void {
     $assignment=vs_assignment($session,(string)($grant['scope']['volunteer_assignment_id']??''));
     if ($assignment['return_id']!==$grant['id'] || $session['actor_hash']!==$grant['actor_hash'] || $assignment['research_id']!==$r['id'] || $assignment['task_id']!==$grant['task_id']) fail(403,'Invalid volunteer assignment binding.');
     if ($grant['result_id']) return; // Receipt recovery precedes all ongoing permission checks.
-    if ($grant['expires_at']!==$session['expires_at']) fail(403,'Assignment authorization does not match the recorded session deadline.');
     if ($assignment['ended_at']) fail(409,'This assignment was released. Save your work; this permission cannot submit it.');
     $task=wf_task($r['id'],$grant['task_id']);
     vs_task_eligible($session,$r,$task);
+    if ($grant['expires_at']!==$session['expires_at']) fail(403,'Assignment authorization does not match the recorded session deadline.');
     $live=wr_require($r['id'],$task['id'],(int)$assignment['task_revision'],$session['actor_hash']);
     if ($live['id']!==$assignment['reservation_id']) fail(409,'The reservation expired or changed. Explicitly reacquire this assignment; preserve its original signed identifiers.');
 }

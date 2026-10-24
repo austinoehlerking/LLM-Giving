@@ -148,6 +148,14 @@ try {
     }
     vs_stop($controlsId);
 
+
+    $expiryResearch=vq_project();$expiryCreated=vq_session($expiryResearch);$expiryId=$expiryCreated['id'];$expiryAssignment=vs_claim_next($expiryId);
+    $expirySession=vs_read($expiryId);$expiryGrant=vs_assignment_grant($expirySession,$expiryAssignment);$expiryPacket=vq_packet($expirySession,$expiryAssignment);
+    $badDeadline=$expiryGrant;$badDeadline['expires_at']=null;
+    vqd(fn()=>vs_validate_grant($expiryResearch,$badDeadline),403,'An active finite assignment cannot replace its deadline with unlimited permission');
+    query('UPDATE volunteer_sessions SET expires_at=? WHERE id=?',[wr_stamp($GLOBALS['vqq_now']-1),$expiryId]);
+    vqd(fn()=>vs_record($expiryId,$expiryAssignment['id'],$expiryPacket,true),409,'Expired session returns recoverable expiry before stale deadline consistency checks');
+
     $unlimitedStart=$GLOBALS['vqq_now'];
     $ur=vq_project();$uc=vq_session($ur,3,60,false,null,'none','unlimited');$ui=$uc['id'];
     query('UPDATE volunteer_sessions SET assignments_used=70000 WHERE id=?',[$ui]);
