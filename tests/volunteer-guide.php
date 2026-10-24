@@ -16,7 +16,18 @@ guide_check($actions->length===2,'Initial action area offers session and single-
 guide_check($actions->item(0)->getAttribute('href')==='/volunteer'&&$actions->item(1)->getAttribute('href')==='/research','Primary actions use implemented public routes');
 guide_check($xpath->query('//script|//form|//input|//textarea')->length===0,'Public guide does not collect or embed authorization');
 $ids=[];foreach($xpath->query('//*[@id]') as $node){$id=$node->getAttribute('id');guide_check(!isset($ids[$id]),'No duplicate guide ID: '.$id);$ids[$id]=true;}
-foreach($xpath->query('//a[@href]') as $node){$href=$node->getAttribute('href');guide_check(str_starts_with($href,'/')||str_starts_with($href,'#'),'Guide links stay within the site');if(str_starts_with($href,'#'))guide_check(isset($ids[substr($href,1)]),'In-page guide destination exists: '.$href);else guide_check(in_array(explode('#',$href)[0],['/volunteer','/research','/legal/licensing','/legal/terms'],true),'Guide links target known public destinations');}
+$official=['https://learn.chatgpt.com/docs/environments/cloud-environments','https://learn.chatgpt.com/docs/environments/cloud-environments#current-limitations','https://learn.chatgpt.com/docs/mobile','https://github.com/austinoehlerking/LLM-Giving/blob/develop/docs/cloud-volunteer-setup.md'];
+foreach($xpath->query('//a[@href]') as $node){$href=$node->getAttribute('href');
+ if(str_starts_with($href,'#'))guide_check(isset($ids[substr($href,1)]),'In-page guide destination exists: '.$href);
+ elseif(str_starts_with($href,'/')){guide_check(in_array(parse_url($href,PHP_URL_PATH),['/volunteer','/research','/legal/licensing','/legal/terms'],true),'Guide links target implemented public destinations');if(str_contains($href,'?'))guide_check($href==='/volunteer?session_profile=restricted_web_v1','Profile preselection uses the exact server contract');}
+ else guide_check(in_array($href,$official,true)&&$node->getAttribute('target')==='_blank'&&$node->getAttribute('rel')==='noopener','External links use fetched official documentation or the reviewed public setup guide safely');
+}
+guide_check($xpath->query('//section[@data-phone-guide]')->length===1,'Phone guide is integrated in the existing quick start');
+guide_check($xpath->query('//ol[@id="phone-session-steps"]/li')->length===5,'Conditional phone path contains five complete steps');
+guide_check(isset($ids['cloud-preparation'],$ids['cloud-phone-session'],$ids['cloud-troubleshooting']),'Preparation, phone use and troubleshooting are separate named sections');
+$cloudStatus=$xpath->query('//*[@data-cloud-status]')->item(0)->textContent;
+guide_check(str_contains($cloudStatus,'unsupported')&&str_contains($cloudStatus,'unverified')&&str_contains($cloudStatus,'do not start'),'Current browser gap blocks unsupported compatibility claims');
+guide_check($xpath->query('//*[@data-phone-guide-actions]/a[@href="/volunteer?session_profile=restricted_web_v1"]')->length===1,'Phone guide reviews exact restricted setup without issuing authorization');
 guide_check(!preg_match('~/volunteer/[a-f0-9]{32}|/return/[a-f0-9]{32}|#session:~i',$html),'Guide contains no private capability links');
 $partial=guide_dom(guide_render('volunteer-guide-link'));
 guide_check((new DOMXPath($partial))->query('//a[@href="/volunteer/quick-start"]')->length===1,'Reusable contextual link resolves to the guide');
@@ -30,7 +41,7 @@ foreach(['volunteer-setup','volunteer-session'] as $view)guide_check((str_contai
 foreach(['home','legal','research','workflow-task','browser-authorize','browser-handoff'] as $view)guide_check(str_contains(file_get_contents(ROOT.'/views/'.$view.'.php'),'/volunteer/quick-start'),'Public/contextual entry exists: '.$view);
 // These labels must still exist in the actual controls described by the guide.
 $labels=[
-'volunteer-setup'=>['Where would you like to help?','Task assignments','Session minutes','Worker configuration (advanced)','Connect my AI','Exact worker model','Actual reasoning effort','AI tool or harness name','Workflow mode'],
+'volunteer-setup'=>['Where would you like to help?','Task assignments','Session minutes','Worker configuration (advanced)','Research profile','Connect my AI','Exact worker model','Actual reasoning effort','AI tool or harness name','Workflow mode'],
 'volunteer-authorize'=>['Authorize session','Software assignments (optional)'],
 'volunteer-created'=>['Open private dashboard'],
 'volunteer-orchestrator'=>['Copy orchestrator handoff','Complete private handoff for manual copying'],

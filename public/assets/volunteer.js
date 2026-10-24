@@ -8,6 +8,7 @@ if(setup){
  const select=(name,value)=>{const item=setup.querySelector('input[name="'+name+'"][value="'+value+'"]');if(item)item.checked=true;};
  const update=()=>{
   const preset=chosen('session_preset')?.value||'custom',cause=chosen('cause_choice');
+  setup.querySelectorAll('[data-volunteer-profile-note]').forEach(el=>{el.hidden=el.dataset.volunteerProfileNote!==setup.elements.session_profile.value;});
   if(cause?.value==='all')scope.value='all';
   else if(cause?.value.startsWith('category:')){scope.value='category';category.value=cause.value.slice(9);}
   setup.querySelectorAll('[data-volunteer-scope]').forEach(el=>{el.hidden=el.dataset.volunteerScope!==scope.value;});
