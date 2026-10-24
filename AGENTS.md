@@ -27,3 +27,10 @@ UI changes require inspected initial viewports at 1366x768, 390x844 and 375x667 
 Use one integration owner, one independent semantic reviewer and one independent QA owner. Preserve branches, worktrees, dirty files and raw evidence.
 If no immediately executable work remains, report the named dependency and end the turn. Do not sleep, poll, send acknowledgement loops, create self-wakeups or invent extra smoke/QA work.
 Choose isolated databases and application/browser/internal-fixture ports. QA_CALCULATION_PORT and QA_TOOL_HTTP_PORT configure the two HTTP fixtures; browser-heavy jobs remain serialized when host capacity requires it. Release owned processes/slots after checks.
+
+## GitHub enforcement
+Follow [docs/github-delivery.md](docs/github-delivery.md). GitHub issue #20 holds the sanitized active batch; the local ledger mirrors membership/candidate and keeps private evidence.
+Register every assigned task before development. Development PRs target develop and include the exact llm-delivery-task batch/task marker. Independent Code Review must publish the current-head llm-delivery-review record before delivery/develop can pass.
+Do not bypass required checks, unresolved reviews, protected branches or administrator enforcement. Missing checks are blockers; a prose PASS cannot substitute for the machine record.
+Before local batch QA, GitHub delivery/batch-ready must approve the same closed batch and develop candidate. QA publishes a sanitized exact-source attestation with evidence hashes; keep private research/runtime files out of GitHub.
+Main requires delivery/release for the exact QA-approved develop candidate and a successful Manual release authorization run approved through the main-only manual-release environment. A human deploy request is still required; that workflow only authorizes promotion and never merges/deploys or accesses production.

@@ -13,7 +13,7 @@ function object(value) { return value!==null && typeof value==='object' && !Arra
 function text(value) { return typeof value==='string' && value.trim().length>0; }
 
 // Injection is for offline tests; production calls always use bounded, shell-free Git.
-export function createContext({cwd=process.cwd(),git}={}) {
+export function createContext({cwd=process.cwd(),git,github}={}) {
   const invoke=git || ((args)=>spawnSync('git',args,{cwd,encoding:'utf8',shell:false,windowsHide:true,
     timeout:15000,maxBuffer:1024*1024,env:{...process.env,GIT_TERMINAL_PROMPT:'0',GCM_INTERACTIVE:'Never',GIT_OPTIONAL_LOCKS:'0'}}));
   function run(args,allowNotAncestor=false) {
@@ -24,12 +24,18 @@ export function createContext({cwd=process.cwd(),git}={}) {
   }
   const common=run(['rev-parse','--git-common-dir']).output;
   need(text(common),'Git common directory is unavailable.');
-  return {cwd,sharedRoot:path.dirname(path.resolve(cwd,common)),run};
+  const verifyGithub=github || (state=>{
+    const check=spawnSync(process.execPath,[fileURLToPath(new URL('./github-delivery-readiness.mjs',import.meta.url)),'--stdin'],{
+      cwd,input:JSON.stringify(state),encoding:'utf8',shell:false,windowsHide:true,timeout:120000,maxBuffer:1024*1024});
+    need(!check.error&&check.status===0,'Live GitHub batch readiness failed; inspect metadata separately.');
+    return JSON.parse(check.stdout);
+  });
+  return {cwd,sharedRoot:path.dirname(path.resolve(cwd,common)),run,verifyGithub};
 }
 function stateFile(ctx,override,allowTestState) {
   const canonical=path.join(ctx.sharedRoot,'storage','orchestration','batch-state.json');
   if(override===undefined) return canonical;
-  need(allowTestState===true,'--state is restricted to isolated tests (DELIVERY_GATE_TEST=1).');
+  need(allowTestState===true,'--state is restricted to programmatic isolated tests.');
   need(text(override),'Test state path is empty.');
   const target=path.resolve(ctx.cwd,override);
   const identity=value=>process.platform==='win32'?value.toLowerCase():value;
@@ -90,6 +96,12 @@ function validate(state,ctx,phase) {
   need(refs.get('refs/heads/develop')===state.candidate.sha,'Candidate drift: live origin develop differs.');
   need(SHA.test(refs.get('refs/heads/main')),'Live origin main is missing.');
   if(phase==='qa_passed') ancestor(ctx,refs.get('refs/heads/main'),state.candidate.sha,'Live main');
+  else {
+    need(typeof ctx.verifyGithub==='function','Live GitHub readiness verifier is missing.');
+    const remote=ctx.verifyGithub(state);
+    need(remote?.status==='PASS'&&remote.batchId===state.batchId&&remote.sha===state.candidate.sha&&remote.tree===state.candidate.tree,
+      'Live GitHub readiness identity differs from the local candidate.');
+  }
 }
 function evidencePath(root,relative) {
   need(text(relative) && !path.isAbsolute(relative) && !path.win32.isAbsolute(relative),'Evidence path must be relative to the shared root.');
@@ -165,7 +177,8 @@ function cli(args) {
   const command=args.shift(); const options={};
   while(args.length) { const flag=args.shift(); need(['--state','--owner'].includes(flag) && args.length>0,'Unknown or incomplete option.'); const key=flag==='--state'?'statePath':'owner'; need(options[key]===undefined,'Duplicate option: '+flag); options[key]=args.shift(); }
   need(options.owner===undefined || command==='start-qa','--owner is only valid with start-qa.');
-  return runGate(command,{...options,allowTestState:process.env.DELIVERY_GATE_TEST==='1'});
+  need(options.statePath===undefined,'--state is restricted to programmatic isolated tests; no environment bypass.');
+  return runGate(command,options);
 }
 if(process.argv[1] && path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
   try { console.log(JSON.stringify(cli(process.argv.slice(2)),null,2)); }

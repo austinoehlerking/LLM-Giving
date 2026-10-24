@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
 import {createContext,runGate} from '../tools/delivery-gate.mjs';
 
 const artifacts=path.resolve(import.meta.dirname,'../storage/qa');
@@ -28,17 +29,19 @@ function git(args) {
   if(args[0]==='ls-remote')return {status:0,stdout:remote+'\trefs/heads/develop\n'+main+'\trefs/heads/main\n'};
   throw new Error('Unexpected Git command '+JSON.stringify(args));
 }
-const ctx=createContext({cwd:root,git});
+let githubCalls=0,githubFailure=false,githubDrift=false;
+const github=state=>{githubCalls++;if(githubFailure)throw new Error('Synthetic GitHub metadata failure');return {status:'PASS',batchId:state.batchId,sha:githubDrift?OTHER:state.candidate.sha,tree:state.candidate.tree};};
+const ctx=createContext({cwd:root,git,github});
 const fresh=()=>({schemaVersion:1,batchId:'batch-local',membershipClosed:true,phase:'qa_ready',baseMain:A,candidate:{sha:C,tree:T},blockers:[],tasks:[{id:'dev1',owner:'Dev 1',status:'merged',commit:B,review:{status:'pass',sha:B},checks:{status:'pass',sha:B,evidence:['storage/qa/component.json']}}]});
 function save(state){fs.writeFileSync(ledger,JSON.stringify(state,null,2)+'\n');}
-function reset(){remote=C;main=A;head=C;tree=T;dirty='';notAncestor='';failGit='';hook=undefined;calls=[];save(fresh());}
+function reset(){remote=C;main=A;head=C;tree=T;dirty='';notAncestor='';failGit='';hook=undefined;calls=[];githubCalls=0;githubFailure=false;githubDrift=false;save(fresh());}
 let count=0;const passed=[];
 function test(name,fn){reset();fn();passed.push(name);count++;}
 function gate(command='check-qa',options={}){return runGate(command,{context:ctx,...options});}
 function rejects(change,pattern=/./,command='check-qa'){const state=fresh();change(state);save(state);const before=fs.readFileSync(ledger,'utf8');assert.throws(()=>gate(command),pattern);assert.equal(fs.readFileSync(ledger,'utf8'),before);}
 function passState(){const state=fresh();state.phase='qa_passed';state.qa={status:'pass',owner:'QA',candidateSha:C,candidateTree:T,evidence:[{path:evidence,sha256:hash}]};return state;}
 
-test('canonical path resolves through Git common dir from linked worktree',()=>{const linked=path.join(root,'storage/worktrees/linked');fs.mkdirSync(linked,{recursive:true});const linkedContext=createContext({cwd:linked,git});const before=fs.readFileSync(ledger,'utf8');const result=runGate('check-qa',{context:linkedContext});assert.equal(result.statePath,ledger);assert.equal(result.testState,false);assert.equal(fs.readFileSync(ledger,'utf8'),before);});
+test('canonical path resolves through Git common dir from linked worktree',()=>{const linked=path.join(root,'storage/worktrees/linked');fs.mkdirSync(linked,{recursive:true});const linkedContext=createContext({cwd:linked,git,github});const before=fs.readFileSync(ledger,'utf8');const result=runGate('check-qa',{context:linkedContext});assert.equal(result.statePath,ledger);assert.equal(result.testState,false);assert.equal(fs.readFileSync(ledger,'utf8'),before);});
 test('relative common-dir path also resolves to shared root',()=>{const linked=path.join(root,'storage/worktrees/linked');const relative=(args)=>args[0]==='rev-parse'&&args[1]==='--git-common-dir'?{status:0,stdout:path.relative(linked,path.join(root,'.git'))+'\n'}:git(args);assert.equal(createContext({cwd:linked,git:relative}).sharedRoot,root);});
 test('open membership',()=>rejects(s=>s.membershipClosed=false,/membership is open/));
 test('empty membership',()=>rejects(s=>s.tasks=[],/nonempty/));
@@ -84,6 +87,12 @@ test('Git spawn errors fail closed during context discovery',()=>assert.throws((
 
 test('running claim cannot be bypassed by changing phase back to ready',()=>rejects(s=>s.qa={status:'running',owner:'first QA',candidateSha:C,candidateTree:T},/running claim/));
 test('prior stopped QA evidence is retained on explicit restart',()=>{const state=fresh();state.qa={status:'failed',owner:'prior QA',candidateSha:C,candidateTree:T,evidence:[{path:evidence,sha256:hash}]};save(state);gate('start-qa',{owner:'new QA'});const current=JSON.parse(fs.readFileSync(ledger));assert.deepEqual(current.qaHistory,[state.qa]);assert.equal(current.qa.owner,'new QA');});
+
+test('GitHub unavailable refuses the QA claim without changing ledger',()=>{githubFailure=true;const before=fs.readFileSync(ledger,'utf8');assert.throws(()=>gate('start-qa',{owner:'QA'}),/GitHub metadata failure/);assert.equal(fs.readFileSync(ledger,'utf8'),before);assert.ok(!fs.existsSync(ledger+'.lock'));});
+test('GitHub candidate mismatch fails closed',()=>{githubDrift=true;assert.throws(()=>gate(),/GitHub readiness identity/);});
+test('GitHub readiness rechecked inside QA claim lock',()=>{gate('start-qa',{owner:'QA'});assert.equal(githubCalls,2);});
+test('GitHub change under lock prevents QA claim',()=>{const original=ctx.verifyGithub;let reads=0;ctx.verifyGithub=s=>{if(++reads===2)throw new Error('Synthetic remote changed under lock');return github(s);};try{assert.throws(()=>gate('start-qa',{owner:'QA'}),/remote changed/);assert.equal(JSON.parse(fs.readFileSync(ledger)).phase,'qa_ready');assert.ok(!fs.existsSync(ledger+'.lock'));}finally{ctx.verifyGithub=original;}});
+test('environment cannot enable operational state override',()=>{const result=spawnSync(process.execPath,[path.resolve(import.meta.dirname,'../tools/delivery-gate.mjs'),'check-qa','--state','fake.json'],{encoding:'utf8',env:{...process.env,DELIVERY_GATE_TEST:'1'},windowsHide:true});assert.notEqual(result.status,0);assert.match(result.stderr,/programmatic isolated tests/);});
 
 fs.writeFileSync(path.join(root,'test-report.json'),JSON.stringify({status:'PASS',tests:count,passed,limitation:'Offline injected Git context; no live remote, QA matrix or deployment exercised.'},null,2)+'\n');
 console.log(count+' offline delivery-gate checks passed. Artifacts: '+root);
