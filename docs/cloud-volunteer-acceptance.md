@@ -1,8 +1,10 @@
-# Restricted Cloud volunteer acceptance
+# Restricted Dot volunteer acceptance
 
-This is a prepared test, not a working Codex Cloud submission claim. The current capability report says native computer/browser use is unsupported and no suitable published environment has been tested. A published environment alone does not resolve that gap. See [Cloud setup](cloud-volunteer-setup.md) and the conditional phone guide at /volunteer/quick-start after integration. No live setup or research submission was executed by this development task.
+The active route is Dot’s own native cloud browser. Existing cloud-volunteer filenames and operator commands remain compatible; they do not require a published Codex Cloud environment. See [Dot setup](cloud-volunteer-setup.md) and the public guide at /volunteer/quick-start#phone-cloud.
 
-The human selected https://llm.giving for isolated synthetic acceptance; there is no non-production site. That permission does not deploy a candidate, expose a database/tunnel, install tools or authorize unrelated research. The new-feature live test stays PENDING until separately authorized deployment of the reviewed candidate AND genuine native Cloud interactive-browser support in the selected account/environment. Do not substitute Work, desktop, HTTP/API automation, installed Playwright or a resized screen. Development artifacts can merge before that external test.
+On 24 October 2026, a real Dot independently authored a synthetic NASA source-reading result, repaired a validation error and recorded [one accepted completed AI browser result](https://llm.giving/research/qa-dot-native-cloud-browser-submission-proof-2026-10-24-dotqa20261024a01-0242a1b38a/results/cec5f4649f0446fc6b7622ddad933f97). Check stored zero results; reopening retained that same sole result. The deployed authorization fix was already separately reviewed, QA’d and released. That single-task test did not establish actual handset initiation, multi-task restricted-controller operation, Dot-derived arithmetic or future Dot-to-Codex delegation. Exact model/effort were unavailable; UNKNOWN/unknown was accepted only on a task without an additional exact requirement. Never use unavailable settings to match a required setting.
+
+The remaining real-phone/restricted-session/arithmetic walkthrough below is prepared, not completed. Use only an exact candidate and isolated synthetic records on a separately authorized deployed instance. This document update authorizes no deployment, new production test, installation, connected-computer access or real research. Do not substitute Work/Codex workers, desktop resizing, HTTP/API delivery or installed browser tooling for Dot/phone evidence.
 
 ## Operator tooling
 
@@ -11,7 +13,7 @@ Run these tools privately as an authorized operator, outside the volunteer resea
     php tools/cloud-volunteer-fixtures.php
     php tools/cloud-volunteer-fixtures.php plan --scope=32_LOWERCASE_HEX
 
-Both are DRY_RUN and access no database. They provide only a research brief and two exclusion controls, no extracted values, answer, packet, source inspection or AI provenance. The proposed primary sources are NASA's [Apollo 11](https://www.nasa.gov/mission/apollo-11/) and [Apollo 12](https://www.nasa.gov/mission/apollo-12/) pages. Source-page availability during preparation is not the Cloud volunteer's inspection evidence. The volunteer must read the actual pages and produce its own cited derivation; do not supply it an answer.
+Both are DRY_RUN and access no database. They provide only a research brief and two exclusion controls, no extracted values, answer, packet, source inspection or AI provenance. The proposed primary sources are NASA's [Apollo 11](https://www.nasa.gov/mission/apollo-11/) and [Apollo 12](https://www.nasa.gov/mission/apollo-12/) pages. Source-page availability during preparation is not the Dot volunteer's inspection evidence. The volunteer must read the actual pages and produce its own cited derivation; do not supply it an answer.
 
 Choose a fresh random 128-bit scope. Use one study with a narrative/Maybe calculation task and computational execution/reproduction controls. Scope the session to that exact study, one assignment; never select All work for this production test. The controls must remain unassigned and unsubmitted. Fixtures explicitly construct research-stage tasks, not an AI-authored accepted plan.
 
@@ -26,18 +28,18 @@ Future live operations use the SAME commands but require BOTH --destination=http
 
 ## Verbatim independent walkthrough
 
-Record the exact application commit/tree, actual host/source proof, Cloud setup version, environment ID/revision and actual worker model/reasoning/tool availability. Record phone OS/app versions, real handset actions, UTC times, Cloud task identity and tester participation. Unknown required settings are incompatible; do not guess or relabel. Instructions/configuration are not technical sandbox guarantees.
+Record the exact application commit/tree, actual host/source proof, Dot setup version, actual account/Dot identity privately and actual worker model/reasoning/tool availability. Record phone OS/app versions, real handset actions, UTC times, Dot conversation identity and tester participation. Unknown required settings are incompatible; do not guess or relabel. Record honest UNKNOWN/unknown only on otherwise compatible tasks; the actual model field requires a string, not null. Instructions/configuration are not technical sandbox guarantees.
 
-1. Stop if candidate deployment or native Cloud browser support is unverified. Record the precise gap; do not authorize/copy a live session yet. After those prerequisites are independently established, create only the manifested study and confirm zero results.
-2. On a real phone follow the conditional guide: choose Restricted web research, select this exact study and one assignment, verify the actual worker settings, authorize honestly, and copy the COMPLETE private orchestrator handoff. Save it privately. Select the genuinely prepared Cloud environment and start the Cloud task. If the tester cannot operate the handset, record the human-assisted launch; a desktop resize is insufficient.
-3. Let the Cloud agent pick up the compatible task using normal browser controls. Confirm the full unchanged handoff, reservation and original volunteer identity. Confirm execution/reproduction controls are excluded. If a hidden incompatible deliverable appears, release/skip honestly; do not scientifically block the study merely because the worker lacks tools.
-4. Have the Cloud agent inspect the primary sources and author the narrative plus evidence.derivations record itself, including source locations, input units, formula, worked steps, outputs, assumptions and limitations. Keep all applicable supporting materials, including the full evidence.sources registry and methodology refs. Do not generate a packet or compute the answer with fixture code, calculators, spreadsheets or another worker. Record the actual tool-use evidence; a prompt restriction alone proves no sandbox.
+1. Stop if the intended candidate deployment/live-test authorization or actual Dot native browser capability is unverified. Record the precise gap; do not authorize/copy a live session yet. After those prerequisites are independently established, create only the manifested study and confirm zero results.
+2. On a real phone follow the conditional guide: choose Restricted web research, select this exact study and one assignment, verify the actual worker settings, authorize honestly, and copy the COMPLETE private orchestrator handoff. Save it privately. Open the same account’s Dot conversation in the latest ChatGPT mobile app and paste/send the complete handoff. Mobile web is unsupported; no repository or published Codex Cloud environment is required. If the tester cannot operate the handset, record the human-assisted launch; a desktop resize is insufficient.
+3. Let Dot pick up the compatible task using normal browser controls. Confirm the full unchanged handoff, reservation and original volunteer identity. Confirm execution/reproduction controls are excluded. If a hidden incompatible deliverable appears, release/skip honestly; do not scientifically block the study merely because the worker lacks tools.
+4. Have Dot inspect the primary sources and author the narrative plus evidence.derivations record itself, including source locations, input units, formula, worked steps, outputs, assumptions and limitations. Keep all applicable supporting materials, including the full evidence.sources registry and methodology refs. Do not generate a packet or compute the answer with fixture code, calculators, spreadsheets or another worker. Record the actual tool-use evidence; a prompt restriction alone proves no sandbox.
 5. While genuinely working, explicitly Renew reservation and inspect the returned expiry. Recopy does not renew. Keep the 60-minute reservation distinct from the session deadline; Stop/expiry remains authoritative.
 6. Record an independent before_check DB observation. Exercise a formatting-only omission such as the required reason summary. Let the AI read the actual browser error and repair it in its own work context. Preserve conclusions, handoff_code, context_id, task_revision and submission_key. Record fault injection and human/AI disclosures truthfully; never change them to force acceptance. The actual error may differ from this example.
 7. Click Check packet through the actual browser form. Record after_check independently and verify no result exists. A passing preview is not submission. No hidden API result delivery is permitted.
 8. Submit the complete JSON through the browser, inspect the recorded receipt and retain its public result ID. Capture after_submit independently. Require exactly one current accepted completed result with submission_method=ai_browser and the original stored restricted-session/assignment binding. Quarantine proves recording, not acceptance; report it and do not bypass moderation.
-9. Reopen the same return/receipt. Recover the existing receipt before any uncertain retry. If a retry is genuinely needed, preserve the identical packet/key. Capture after_recovery independently and verify the same sole result, with no duplicate. Reopen the SAME Cloud chat on the actual phone and review the result link there.
-10. Stop the session using the website and stop external work. Capture after_stop independently. The same current result must remain available under normal parent, moderation, current-result and snapshot rules; Stop does not grant visibility to withdrawn/revoked evidence.
+9. Reopen the same return/receipt. Recover the existing receipt before any uncertain retry. If a retry is genuinely needed, preserve the identical packet/key. Capture after_recovery independently and verify the same sole result, with no duplicate. Reopen the same Dot conversation on the actual phone and review the result link there.
+10. Stop the session using the website and stop Dot’s external work. Review any delegated tasks/schedules separately; pausing the main Dot does not end them. Capture after_stop independently. The same current result must remain available under normal parent, moderation, current-result and snapshot rules; Stop does not grant visibility to withdrawn/revoked evidence.
 
 ## Independent stored-result observations
 
@@ -51,7 +53,7 @@ Create a private JSON object mapping those five phase names, in that order, to t
 
     php tools/cloud-volunteer-fixtures.php verify --scope=SCOPE --destination=local --manifest=storage/qa/cloud-manifest.json --snapshots=storage/qa/snapshot-paths.json --result=RESULT_ID
 
-For production verification use the exact live destination. Offline comparison reads no DB. Exit 0 / stored_result_verification=PASS means only that the independent observations satisfy the stored-state contract. real_phone_cloud_acceptance ALWAYS remains NOT_ESTABLISHED_BY_THIS_TOOL. Source pins are operator-reported, not authenticated. QA must independently inspect the real phone/Cloud, source/tool, form/repair and deployed-source evidence before issuing overall acceptance. Synthetic unit observations cannot provide that evidence.
+For production verification use the exact live destination. Offline comparison reads no DB. Exit 0 / stored_result_verification=PASS means only that the independent observations satisfy the stored-state contract. real_phone_cloud_acceptance (the legacy output key) ALWAYS remains NOT_ESTABLISHED_BY_THIS_TOOL. Source pins are operator-reported, not authenticated. QA must independently inspect the real phone/Dot, source/tool, form/repair and deployed-source evidence before issuing overall acceptance. Synthetic unit observations cannot provide that evidence.
 
 After evidence is retained and active assignments are stopped/released, remove only this manifested study:
 
@@ -61,13 +63,13 @@ Omitting --apply is a database-free dry run. Repeated scoped cleanup reports alr
 
 ## Evidence report template
 
-Copy this table into a private dated report under storage/qa. Initial verdict: PENDING. Name executed and explicitly reused evidence separately; preserve raw failures.
+Copy this table into a private dated report under storage/qa. Initial remaining-walkthrough verdict: PENDING; the single-task browser proof above remains separately verified. Name executed and explicitly reused evidence separately; preserve raw failures.
 
 | Item | Actual evidence / status |
 | --- | --- |
 | Candidate/tree and independently verified deployed source | PENDING |
-| Cloud setup/environment revision; actual browser/search capability | PENDING |
-| Real phone OS/app, Cloud task identity, launch/reopen UTC and human action | PENDING |
+| Dot setup version; actual browser/search capability | PENDING |
+| Real phone OS/app, Dot conversation identity, launch/reopen UTC and human action | PENDING |
 | Actual worker model/effort/mode and any unknown required setting | PENDING |
 | Restricted stored profile; compatible pickup; controls untouched | PENDING |
 | Private full handoff and original volunteer identity transfer (redacted) | PENDING |
@@ -91,4 +93,4 @@ Required separate batch-plan entry, from a candidate checkout with its own local
 
 This is required focused fixture coverage, not an optional skip and not part of the normal server-stage PASS. Use APP_ENV=local/test/testing, DB_HOST=127.0.0.1, an isolated llm_giving_cloud_qa_* database and APP_URL=http://127.0.0.1:PORT. Record the exact candidate/relevant hashes, actual database/ports, raw exit/report, and owned-resource cleanup. The coordinator must include this command in the closed-batch plan. Independent QA may explicitly accept valid unchanged developer evidence instead of rerunning it, with source/environment identity and coverage stated. A normal runner PASS alone cannot claim that this separate suite executed. Never weaken cv_guard or point the suite at the shared/default database to make it pass.
 
-Local developer checks are separate: source hygiene, pure guard/verifier contracts, local scoped setup/read-only observation/cleanup, and the other owners' focused suites after integration. The phone-guide browser mode is repository-owned UI QA, not proof of phone-launched Cloud execution. Required UI screenshots remain 1366x768, 390x844, 375x667 before interaction, plus 200% text reflow; Dev4 owns that module. No per-component complete application matrix is required.
+Local developer checks are separate: source hygiene, pure guard/verifier contracts, local scoped setup/read-only observation/cleanup, and the other owners' focused suites after integration. The phone-guide browser mode is repository-owned UI QA, not proof of phone-launched Dot execution. Required UI screenshots remain 1366x768, 390x844, 375x667 before interaction, plus 200% text reflow; Dev4 owns that module. No per-component complete application matrix is required.

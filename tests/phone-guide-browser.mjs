@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {root,env} from '../tools/runtime.mjs';
-/** Local UI evidence only. Never claims actual phone launch or Cloud execution. */
+/** Local UI evidence only. Never claims actual handset launch or a new Dot execution. */
 export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) {
  const out=path.join(root,'storage/qa/phone-guide');fs.mkdirSync(out,{recursive:true});
  const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}],errors=[];
@@ -15,16 +15,18 @@ export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) 
  try{
   await initial(page,'/volunteer/quick-start','guide','[data-guide-actions] > a,[data-phone-entry]');
   check('Guide has real content and correct title',(await page.title()).includes('Volunteer quick start')&&await page.locator('article[data-unavailable]').count()===0&&await page.locator('#quick-start-title').isVisible());
-  check('Phone prerequisites clearly mark Cloud unsupported and unverified',(await page.locator('[data-cloud-status]').innerText()).includes('unsupported')&&(await page.locator('[data-cloud-status]').innerText()).includes('unverified'));
+  check('Dot guide bounds verified browser proof and untested phone/controller operation',(await page.locator('[data-cloud-status]').innerText()).includes('one synthetic task')&&(await page.locator('[data-cloud-status]').innerText()).includes('Phone initiation and multi-task operation are untested'));
+  check('Dot guide uses mobile app/native browser without a published Codex environment',(await page.locator('[data-phone-guide]').innerText()).includes('ChatGPT mobile app')&&(await page.locator('[data-phone-guide]').innerText()).includes('No repository or published Codex Cloud environment is required'));
+  check('Public proof links exactly the accepted result',await page.locator('[data-cloud-status] a').getAttribute('href')==='https://llm.giving/research/qa-dot-native-cloud-browser-submission-proof-2026-10-24-dotqa20261024a01-0242a1b38a/results/cec5f4649f0446fc6b7622ddad933f97');
   check('Guide contains no private session or return material',!await page.locator('input,textarea,form').count()&&!new RegExp('/return/[a-f0-9]{32}|#session:','i').test(await page.locator('article').innerText()));
   await reflow(page,'guide');await page.goto(base+'/volunteer/quick-start');
-  await page.locator('[data-phone-entry]').click();check('Phone entry opens the actual integrated section',new URL(page.url()).hash==='#phone-cloud'&&await page.locator('#phone-cloud').isVisible());
+  await page.locator('[data-phone-entry]').click();check('Phone entry opens the actual integrated section',new URL(page.url()).hash==='#phone-cloud'&&await page.locator('#phone-cloud').isVisible());await screenshot(page,'dot-guide-section');
   await page.locator('[data-phone-guide-actions] a[href^="/volunteer?"]').click();check('Restricted settings action opens exact preselection',new URL(page.url()).search==='?session_profile=restricted_web_v1');
   await initial(page,'/volunteer?session_profile=restricted_web_v1','restricted-setup','.volunteer-profile-choice select,.time-card,.connect-ai');
   check('Restricted profile preselection is real',await page.locator('[name=session_profile]').inputValue()==='restricted_web_v1');
-  check('Restricted setup exposes the actual Cloud capability warning',await page.locator('[data-volunteer-profile-note]').isVisible());
+  check('Restricted setup exposes accurate Dot proof limits',await page.locator('[data-volunteer-profile-note]').isVisible()&&(await page.locator('[data-volunteer-profile-note]').innerText()).includes('phone start untested'));
   await page.locator('[name=session_profile]').selectOption('general');check('General choice hides restricted-only help',await page.locator('[data-volunteer-profile-note]').isHidden());
-  await page.locator('[name=session_profile]').selectOption('restricted_web_v1');check('Restricted choice restores the warning',await page.locator('[data-volunteer-profile-note]').isVisible());
+  await page.locator('[name=session_profile]').selectOption('restricted_web_v1');check('Restricted choice restores proof limits',await page.locator('[data-volunteer-profile-note]').isVisible());
   await page.getByRole('button',{name:'Connect my AI',exact:true}).click();await page.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();
   await initial(page,null,'restricted-authorization','.volunteer-start .primary-actions > *');
   check('Server review retains one validated restricted profile',await page.locator('input[name=session_profile]').count()===1&&await page.locator('input[name=session_profile]').inputValue()==='restricted_web_v1');
@@ -50,6 +52,6 @@ export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) 
   check('Native setup preserves server preselection',await np.locator('[name=session_profile]').inputValue()==='restricted_web_v1');await np.getByRole('button',{name:'Connect my AI',exact:true}).click();check('Native configure retains the exact profile',await np.locator('input[name=session_profile]').inputValue()==='restricted_web_v1');
   check('Configuring never issues a private session',await np.locator('#volunteer-private-link').count()===0);
   report.consoleErrors=errors;check('No guide/setup script or console errors',errors.length===0);
-  report.scope='Local rendered guide/setup/review/navigation evidence only. Synthetic local authorization/Stop only; no actual handset, Codex Cloud research or accepted-result claim.';
+  report.scope='Local rendered guide/setup/review/navigation evidence only. Synthetic local authorization/Stop only; no actual handset, new Dot research or accepted-result claim. The separate earlier single-task Dot proof is not re-executed by this suite.';
  } finally {await native?.close();}
 }

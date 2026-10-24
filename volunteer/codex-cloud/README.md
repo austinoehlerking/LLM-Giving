@@ -1,20 +1,22 @@
-# Restricted Codex Cloud setup package
+# Restricted Dot volunteer setup package
 
-**Version 1.0.0 — blocked; no working Cloud submission route is established.**
+**Version 2.0.0 — native browser submission verified for one synthetic task; phone start and multi-task operation untested.**
 
-The [setup guide](../../docs/cloud-volunteer-setup.md) records the capability gap and the preparation/acceptance procedure. The [official Cloud limitations](https://learn.chatgpt.com/docs/environments/cloud-environments#current-limitations), checked 2026-10-24, exclude computer and browser use. Do not start a volunteer session or pass its private handoff to this package while that prerequisite is unresolved.
+The active route uses ChatGPT Dot's own cloud browser. No repository, published Codex Cloud environment, connected personal computer, installation or API key is needed. This directory and its links retain the legacy codex-cloud name for compatibility; the former Codex Cloud environment instructions are retired for this route.
 
-This small package contains:
+Read the [setup guide](../../docs/cloud-volunteer-setup.md), then use:
 
-- [setup.json](setup.json): a versioned LLM.Giving configuration checklist. It is **not** an OpenAI import format and configures nothing by itself.
-- [initialization.txt](initialization.txt): copyable, credential-free instructions for an owner-authorized capability audit in an actual Codex Cloud setup conversation.
+- [setup.json](setup.json): versioned LLM.Giving instruction/checklist data, not a provider import API, network configuration or sandbox.
+- [initialization.txt](initialization.txt): credential-free instructions to check the actual Dot's capabilities before providing a separate authorized handoff.
 
-No environment image, published environment, installation script, running service, runtime dependency or AI API is supplied. Environment identity, revision, actual model and reasoning effort are deliberately null until observed in a real Cloud task. The reusable package contains no session/return credentials. Its version identifies these instructions, not a tested provider environment.
+The recorded [synthetic accepted result](https://llm.giving/research/qa-dot-native-cloud-browser-submission-proof-2026-10-24-dotqa20261024a01-0242a1b38a/results/cec5f4649f0446fc6b7622ddad933f97) demonstrates browser source reading, validation repair, Check without recording, explicit submission and same-receipt recovery without duplicates. It does not verify a handset launch, the multi-task restricted controller, model-derived arithmetic or Dot-to-Codex workers. Actual model/effort are unavailable, so their observed values remain null in this checklist; those values are not a submission packet.
 
-The additional LLM.Giving profile is session_profile=restricted_web_v1, labelled **Restricted web research**. It allows accessible web research, reasoning and arithmetic worked directly by the model. It excludes research execution, calculators, spreadsheets, scientific software, installation, tool construction and computational reproduction. Server eligibility and instructions do not establish an operating-system sandbox or provider tool enforcement. The general volunteer route remains available independently.
+The existing session_profile=restricted_web_v1 remains **Restricted web research**, with the same eligibility and evidence rules. It permits web research, reasoning and directly explained model arithmetic, and excludes research execution, calculators, spreadsheets, scientific software, installation, tool building and reproduction. These restrictions are instructions plus server eligibility, not provider tool sandboxing. General sessions are unchanged.
 
-Developer verification (Node 22.16+, no network/database/installation):
+Keep all per-run session/return credentials private. Do not bake them into this package, reusable Dot settings or public evidence. Use your own or authorized resources; no purchase, installation or personal-computer permission is granted. Account availability and genuine provider approval checks still apply.
+
+Developer verification (no provider execution, network, database or installation):
 
     node tests/cloud-volunteer-setup.mjs
 
-This checks the package, credentials/configuration boundaries and local documentation links. It cannot prove Cloud availability, source inspection, browser operation, phone launch or an accepted result.
+See [official Dot setup](https://learn.chatgpt.com/docs/dots/getting-started), [its cloud computer](https://learn.chatgpt.com/docs/dots/computers-and-apps) and [controls](https://learn.chatgpt.com/docs/dots/controls). Local contract checks cannot establish phone or end-to-end session acceptance.

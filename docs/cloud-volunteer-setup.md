@@ -1,49 +1,63 @@
-# Restricted Codex Cloud volunteer setup
+# Restricted Dot volunteer setup
 
-**Blocked as of 2026-10-24.** Codex Cloud currently documents computer/browser use as unsupported. LLM.Giving requires interactive browser controls to exchange private authorization, reserve work, check and submit packets, and inspect receipts. Search or an HTTP fetch does not establish that capability. [Official Cloud environments](https://learn.chatgpt.com/docs/environments/cloud-environments#current-limitations)
+**Version 2.0.0, checked 24 October 2026.** Dot's native cloud browser completed one accepted synthetic LLM.Giving task. The [public result](https://llm.giving/research/qa-dot-native-cloud-browser-submission-proof-2026-10-24-dotqa20261024a01-0242a1b38a/results/cec5f4649f0446fc6b7622ddad933f97) is a bounded NASA source-reading proof: a real validation omission was repaired, Check stored zero results, Submit recorded one accepted completed AI browser result, and reopening the receipt retained that same single result. It is not proof of scientific correctness, handset initiation, model-derived arithmetic, a multi-task restricted controller or Dot-to-Codex delegation.
 
-The [version 1.0.0 package](../volunteer/codex-cloud/README.md) supplies reviewable settings and audit instructions. No LLM.Giving Cloud environment has been configured, published or tested by this package. Actual environment/task identity, provider revision, model/effort, source access, phone launch and accepted browser submission are unverified. No working Cloud route is advertised. Do not authorize a live volunteer session or copy its private handoff to Cloud while the browser prerequisite remains unresolved.
+This guide and [reusable instruction package](../volunteer/codex-cloud/README.md) now describe **ChatGPT Dot**. Existing cloud-volunteer and volunteer/codex-cloud links remain compatible; their names are historical. The old published Codex Cloud environment procedure is retired for this route. No repository or published Codex Cloud environment is needed. Do not run the LLM.Giving application, development setup, database or tests as volunteer research.
 
-## One-time preparation
+## A. Prepare Dot once
 
-An environment owner needs an owner-designated private published Codex Cloud environment accessible to the tester. The smallest proposed capability change is supported native interactive browser control in that same Cloud task. Publishing alone cannot resolve the gap. Browser-tool installation, Work/connected-desktop substitution and an HTTP/API submission path are outside this setup.
+Use the current ChatGPT mobile app, a desktop app or desktop browser to set up/access your Dot. Continue with the same account and Dot on your phone. Dot mobile web is unsupported, and access depends on account/workspace availability. [Official getting started](https://learn.chatgpt.com/docs/dots/getting-started)
 
-Official preparation happens on web/desktop under **Settings → Codex Cloud → Environments → Create environment**; mobile selects a published environment. Review before **Publish**; later changes need **Republish** and a fresh task. Keep **Who can use: Only me**. Never publish individual session credentials. These are provider UI instructions, not evidence that an environment was created. [Official environment guide](https://learn.chatgpt.com/docs/environments/cloud-environments)
+Use Dot's own cloud browser, which can work while your personal computer is off. Connecting your computer is optional and outside this route; do not grant personal-file or desktop access. The cloud browser has separate sessions from your personal browser. If needed, inspect it through Dot's profile under Computers; Take over and Return control transfer interaction explicitly. [Official computers and apps](https://learn.chatgpt.com/docs/dots/computers-and-apps)
 
-For a future supported environment, use the [configuration checklist](../volunteer/codex-cloud/setup.json) and [initialization instructions](../volunteer/codex-cloud/initialization.txt). The JSON is an LLM.Giving specification, not an OpenAI import/configuration API. No installation/start commands, services or keys are needed. If a repository is required, select an owner-approved minimal instructions repository containing this package; do not create one silently or run the application repository's development setup. Review any automatically proposed installation before continuing.
+Read [setup.json](../volunteer/codex-cloud/setup.json) and provide [initialization.txt](../volunteer/codex-cloud/initialization.txt) to check the actual Dot. These are instruction/checklist data, not an OpenAI import API, enforced sandbox or configurable network policy. No installations, services, API keys, production/admin access or connected-computer permission are requested. Verify source reading and interactive form capability independently; search or a page fetch is insufficient. Use only task-relevant accessible destinations and retain genuine permission checks. The earlier successful Dot is not an attestation for every account/session.
 
-Use Custom domains only with llm.giving over HTTPS443 plus individually approved source/search hosts and necessary redirects. Record the final host list. Verify actual search and browser traffic separately; the VM policy may not govern every provider tool. Domain access supplies neither site permission nor a browser. Do not add production/admin access, personal files, VPN or unrestricted access as a workaround.
+## B. Start a volunteer session from a phone
 
-The restrictions govern volunteer research: accessible source search/reading, synthesis and model reasoning/arithmetic are allowed. Code execution, calculators, spreadsheets, scientific software, research-tool installation/building and computational reproduction are excluded. Instructions and LLM.Giving server eligibility do not prove a provider sandbox. Contributors retain responsibility for permissions, resource use and costs; no purchase/installation authority is granted.
+The following phone workflow follows provider documentation but has **not been exercised on an actual handset**. Multi-task operation of the restricted controller is also untested. For an authorized acceptance test, use the designated synthetic study and one assignment; do not select all production work.
 
-## Initialization and session contract
+1. Open /volunteer?session_profile=restricted_web_v1 and confirm **Research profile → Restricted web research**. Choose scope and limits; **Advanced Options** includes exact worker configuration and custom limits. This GET creates no consent or reservation.
+2. Select **Connect my AI**, review the profile, resource/publication permission, current terms and independent human-input declaration, then **Authorize session**. Use your own AI resources or ones you are authorized to contribute. General sessions and the single-assignment alternative remain available.
+3. Save the private dashboard link. Copy **Copy orchestrator handoff** in full, including private authorization. On clipboard failure copy every word of **Complete private handoff for manual copying**. Never put session/return material in reusable Dot settings, repositories, screenshots, research evidence, citations or logs.
+4. In the latest ChatGPT mobile app, open the same account's Dot conversation, paste the complete handoff and send. No environment publishing or Codex task is involved. LLM.Giving does not launch/connect an AI. Return to the same Dot conversation for continuity; do not silently delegate to a different worker.
+5. Respond to genuine permission requests within scope. Inspect the task and actual requirements, use **Check packet**, repair recoverable validation errors without changing conclusions or signed identifiers, then **Submit task result**. Open the recorded receipt yourself. A passing check or the AI saying done is not submission.
 
-Run only an owner-authorized capability audit using the credential-free initialization text first. Record observed native source search, full-source reading and interactive forms independently. If browser control is absent, stop without claiming work or requesting a live handoff. Never infer actual model/effort from a task's requested settings, the package, a controller or the desktop agent.
+## Actual settings and research boundaries
 
-When a future package revision has verified native browser support, the existing volunteer setup can preselect **Restricted web research** at /volunteer?session_profile=restricted_web_v1. The validated field is session_profile=restricted_web_v1; a GET only configures. Review scope/settings and give fresh consent before copying **Copy orchestrator handoff** privately into the prepared Cloud task. Never bake session/return links into setup files, images, variables/vault, shared logs, screenshots or public evidence. General sessions keep their existing behavior. See the [server session contract](volunteer-sessions.md) and [orchestrator contract](volunteer-orchestrator.md).
+The verified run's exact model/effort were unavailable. Honest UNKNOWN/unknown metadata was accepted only because that fixture had no additional exact requirement. Unavailable metadata cannot match a specific model/reasoning requirement; skip incompatible work. Do not copy a requested setting into the actual-setting field or infer worker identity from a controller or product documentation. The actual schema remains authoritative: a null model failed the string field in the real run. Checklist nulls mean unobserved configuration, not valid packet values.
 
-Use the actual complete generated handoff and packet schema. Read all deliverables before work. Release/skip hidden incompatible software/execution dependencies without declaring the scientific study blocked. Optional Maybe calculations do not force execution. Use metadata.evidence.derivations with version=1 and type=model_derived, separate from executed calculations. Preserve source inputs/locations, units, formula, worked steps, result, assumptions and limitations. Independent derivation_reviews assess the reasoning; they do not claim computational reproduction. Do not invent code/files/software/checksums or use derivations to satisfy required execution. Preparation/review-only excludes external execution; explanatory non-executed derivations remain permitted unless an explicit brief restriction forbids them. See the [calculation contract](reproducible-calculations.md).
+The unchanged restricted_web_v1 profile permits accessible source research, reasoning and directly explained model arithmetic. It excludes research code/shell execution, calculators, spreadsheets, simulations/scientific software, research-tool installation, software building and computational reproduction. Known incompatibilities are filtered server-side. Read the whole task for hidden dependencies, then release/skip honestly when needed; a worker limitation is not a scientific blocker. Optional **Maybe — if useful** does not force calculations or exclude narrative work.
 
-The existing session controls, 60-minute task reservations, explicit renew/release, original contributor identity, independent-review rules and Stop remain authoritative. Session duration does not extend a reservation; recopying does not renew. Check packet records nothing. Only inspectable recorded receipts prove submission, and quarantined/awaiting-admin-review is not accepted. Preserve signed identifiers and recover an existing receipt after a network interruption before retrying.
+Use metadata.evidence.derivations (version=1,type=model_derived) for non-executed arithmetic, with cited inputs/locations, units, formula, worked steps, result, assumptions and limitations. Independent derivation_reviews assess reasoning, not computational reproduction. Do not invent code, execution, software, files or checksums, or substitute derivations for required execution. Preparation/review-only excludes execution; explicit brief restrictions still apply. See the [calculation contract](reproducible-calculations.md).
 
-## Separate capability and acceptance evidence
+Eligibility and instructions are not provider tool sandboxing. Contributors retain responsibility for permission, resources, costs and publication rights. No purchase, installation, personal-file or unrelated-account authority is granted. Preserve the [session contract](volunteer-sessions.md), [orchestrator contract](volunteer-orchestrator.md), original actor and independent-review separation.
 
-| Check in an actual fresh Cloud task | Required evidence; current status |
+## Reservations, results and Stop
+
+Each task requires a 60-minute reservation, bounded by a finite session's earlier deadline. **Renew reservation** and **Release task** are explicit. Viewing/recopying/checking does not renew; renewal does not extend session duration or add assignment allowance. Preserve entered work and exact signed IDs on expiry/conflict; reacquire only the same eligible unreserved assignment when offered.
+
+**Check packet** records nothing. **Submission accepted** means admitted; **Packet quarantined — awaiting admin** means recorded but not accepted evidence. Recover the existing receipt before uncertain retry, and verify no duplicate. **Stop session** releases held work and revokes further platform permission while preserving receipts under normal visibility rules. Also stop Dot's external work. Pausing Dot does not stop every delegated task or cancel schedules; inspect those separately if any exist. This setup creates neither. [Official controls](https://learn.chatgpt.com/docs/dots/controls)
+
+## Evidence boundaries and remaining checks
+
+| Item | Current evidence |
 | --- | --- |
-| Identity/configuration | Private environment ID, published revision/setup version, Cloud task identity, observed model/effort or unavailable; NOT TESTED |
-| Source search | Native search with actual source results; NOT TESTED |
-| Source inspection | Accessible primary page, observed passage and precise location; NOT TESTED |
-| Browser operation | Native controls for cookies/CSRF, private fragment exchange, full JSON entry and explicit reservation actions; DOCUMENTED UNSUPPORTED / NOT TESTED |
-| Actual phone start and return | Phone OS/app version, published environment selection, same Cloud task reopened; NOT TESTED |
-| Validation and recording | AI-authored synthetic research, recoverable omission repaired in browser, Check packet with no stored result, Submit, accepted stored result independently confirmed, receipt recovery without duplicate; PENDING |
+| Native Dot source reading, browser validation/repair, Check and Submit | One synthetic NASA task verified on 2026-10-24 |
+| Accepted completed ai_browser result, revision1; receipt reopen | Result cec5f4649f0446fc6b7622ddad933f97; stored count0 after Check,1 after reopen |
+| Exact provider model/effort | UNKNOWN/unknown; fixture had no additional exact requirement |
+| Native source search beyond the inspected source | Not established by that submission proof |
+| Actual phone launch/reopen | NOT TESTED |
+| Multi-task restricted-session controller | NOT TESTED |
+| Model-derived arithmetic in Dot | NOT TESTED |
+| Future Dot-to-Codex worker mode | NOT IMPLEMENTED / NOT TESTED |
 
-The acceptance destination is https://llm.giving with isolated labelled synthetic records. New-feature live acceptance waits for a separately human-authorized deployment of the exact candidate and genuine Cloud browser capability. This package authorizes no deployment or research submission. Record exact application commit/tree, package version, environment revision, real timestamps, human actions and sources. The AI must author research itself using allowed capabilities; fixture-generated research and a precomputed packet cannot prove acceptance. A resized desktop, Work or connected computer is not an actual phone-started Cloud run. [Official mobile instructions](https://learn.chatgpt.com/docs/mobile)
-
-Keep per-run secrets private, outside all public examples. Redact screenshots without claiming unobserved controls or concealing failures. Record blocked/unavailable source access honestly and do not fabricate metadata or inspections. Preserve partial work and explain expired/conflicting reservations; do not replace signed identifiers. No receipt means no proven submission. Stop the website session and external AI separately.
+Use the [phone tester checklist](phone-cloud-tester-checklist.md) and [acceptance contract](cloud-volunteer-acceptance.md) for remaining real checks. This guide update authorizes no deployment, live test or real research. Local resized screenshots prove UI only. Keep private evidence under ignored D: storage, retain source/receipt truth and report blocked sources or unavailable capabilities honestly.
 
 ## Developer verification
 
     node tests/cloud-volunteer-setup.mjs
+    php tests/volunteer-guide.php
     node tools/source-check.mjs
+    node tools/qa.mjs phone-guide
 
-The first command validates the reusable package, local links, configuration boundaries and credential exclusions, including rejection cases. Neither command runs Cloud, visits production, installs tools or proves a live submission. This documentation/package changes no application UI, so application viewport QA belongs to the integrated guide/profile change. Independent integrated QA occurs once after the complete reviewed batch is merged and closed.
+Contract checks validate inert configuration, links, honest evidence limits and credential exclusions. The repo browser suite checks the local rendered guide/setup/authorization/dashboard at required viewports and enlarged text. It does not launch Dot or establish handset/multi-task acceptance. Independent QA follows the coordinator's closed-batch plan and may reuse unchanged source-bound evidence.

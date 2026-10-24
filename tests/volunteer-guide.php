@@ -16,17 +16,20 @@ guide_check($actions->length===2,'Initial action area offers session and single-
 guide_check($actions->item(0)->getAttribute('href')==='/volunteer'&&$actions->item(1)->getAttribute('href')==='/research','Primary actions use implemented public routes');
 guide_check($xpath->query('//script|//form|//input|//textarea')->length===0,'Public guide does not collect or embed authorization');
 $ids=[];foreach($xpath->query('//*[@id]') as $node){$id=$node->getAttribute('id');guide_check(!isset($ids[$id]),'No duplicate guide ID: '.$id);$ids[$id]=true;}
-$official=['https://learn.chatgpt.com/docs/environments/cloud-environments','https://learn.chatgpt.com/docs/environments/cloud-environments#current-limitations','https://learn.chatgpt.com/docs/mobile','https://github.com/austinoehlerking/LLM-Giving/blob/develop/docs/cloud-volunteer-setup.md'];
+$official=['https://learn.chatgpt.com/docs/dots/getting-started','https://learn.chatgpt.com/docs/dots/computers-and-apps','https://learn.chatgpt.com/docs/dots/controls','https://github.com/austinoehlerking/LLM-Giving/blob/develop/docs/cloud-volunteer-setup.md','https://llm.giving/research/qa-dot-native-cloud-browser-submission-proof-2026-10-24-dotqa20261024a01-0242a1b38a/results/cec5f4649f0446fc6b7622ddad933f97'];
 foreach($xpath->query('//a[@href]') as $node){$href=$node->getAttribute('href');
  if(str_starts_with($href,'#'))guide_check(isset($ids[substr($href,1)]),'In-page guide destination exists: '.$href);
  elseif(str_starts_with($href,'/')){guide_check(in_array(parse_url($href,PHP_URL_PATH),['/volunteer','/research','/legal/licensing','/legal/terms'],true),'Guide links target implemented public destinations');if(str_contains($href,'?'))guide_check($href==='/volunteer?session_profile=restricted_web_v1','Profile preselection uses the exact server contract');}
  else guide_check(in_array($href,$official,true)&&$node->getAttribute('target')==='_blank'&&$node->getAttribute('rel')==='noopener','External links use fetched official documentation or the reviewed public setup guide safely');
 }
 guide_check($xpath->query('//section[@data-phone-guide]')->length===1,'Phone guide is integrated in the existing quick start');
-guide_check($xpath->query('//ol[@id="phone-session-steps"]/li')->length===5,'Conditional phone path contains five complete steps');
+guide_check($xpath->query('//ol[@id="phone-session-steps"]/li')->length===5,'Dot phone guidance contains five complete steps');
 guide_check(isset($ids['cloud-preparation'],$ids['cloud-phone-session'],$ids['cloud-troubleshooting']),'Preparation, phone use and troubleshooting are separate named sections');
 $cloudStatus=$xpath->query('//*[@data-cloud-status]')->item(0)->textContent;
-guide_check(str_contains($cloudStatus,'unsupported')&&str_contains($cloudStatus,'unverified')&&str_contains($cloudStatus,'do not start'),'Current browser gap blocks unsupported compatibility claims');
+guide_check(str_contains($cloudStatus,'one synthetic task')&&str_contains($cloudStatus,'Phone initiation and multi-task operation are untested'),'Verified browser proof is separate from untested phone/controller claims');
+guide_check(str_contains($html,'ChatGPT mobile app')&&str_contains($html,'Dot mobile web is unsupported')&&str_contains($html,'No repository or published Codex Cloud environment is required'),'Dot guidance uses the documented native app/browser route');
+guide_check(str_contains($html,'Unavailable metadata cannot satisfy a specific model or reasoning requirement')&&str_contains($html,'truthful string, not null'),'Unknown model settings cannot bypass exact requirements or the actual schema');
+guide_check(str_contains($html,'Check stored no result')&&str_contains($html,'same single result'),'Receipt proof distinguishes validation from recording and duplicates');
 guide_check($xpath->query('//*[@data-phone-guide-actions]/a[@href="/volunteer?session_profile=restricted_web_v1"]')->length===1,'Phone guide reviews exact restricted setup without issuing authorization');
 guide_check(!preg_match('~/volunteer/[a-f0-9]{32}|/return/[a-f0-9]{32}|#session:~i',$html),'Guide contains no private capability links');
 $partial=guide_dom(guide_render('volunteer-guide-link'));

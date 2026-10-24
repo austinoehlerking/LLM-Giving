@@ -1,8 +1,8 @@
 {
-  "schema_version": 1,
-  "setup_version": "1.0.0",
-  "product": "Codex Cloud",
-  "status": "blocked_browser_capability",
+  "schema_version": 2,
+  "setup_version": "2.0.0",
+  "product": "ChatGPT Dot",
+  "status": "native_browser_submission_verified_phone_pending",
   "documentation_checked_on": "2026-10-24",
   "profile": {
     "session_profile": "restricted_web_v1",
@@ -10,13 +10,12 @@
     "setup_path": "/volunteer?session_profile=restricted_web_v1"
   },
   "environment": {
-    "suggested_name": "LLM.Giving restricted web research",
-    "published_environment_id": null,
-    "published_revision": null,
-    "cloud_task_id": null,
+    "runtime": "dot_native_cloud_browser",
+    "personal_computer_required": false,
+    "repository_required": false,
+    "published_codex_environment_required": false,
     "model": null,
     "reasoning_effort": null,
-    "sharing": "Only me",
     "install_script": "",
     "start_services": [],
     "environment_variables": {},
@@ -24,12 +23,12 @@
     "initialization_file": "initialization.txt"
   },
   "network": {
-    "mode": "Custom domains only",
+    "mode": "Instruction scope; not provider configuration",
     "required_https_hosts": [
       "llm.giving"
     ],
     "https_port": 443,
-    "source_hosts": "Approve the concrete source/search hosts and necessary redirects before access; record the exact final list. Do not default to unrestricted access.",
+    "source_hosts": "Use only the concrete accessible source/search destinations needed for the task. Provider safeguards still apply; this checklist does not configure a domain allowlist.",
     "private_network": false
   },
   "restrictions": {
@@ -58,16 +57,32 @@
     ]
   },
   "capabilities": {
-    "cloud_source_search": "not_tested",
-    "cloud_source_reading": "not_tested",
-    "cloud_interactive_browser": "documented_unsupported",
+    "cloud_source_search": "not_established_by_submission_proof",
+    "cloud_source_reading": "verified_single_synthetic_task",
+    "cloud_interactive_browser": "verified_single_synthetic_task",
     "actual_model_settings": "unavailable",
     "phone_launch": "not_tested",
-    "production_accepted_result": "pending_deployment_and_cloud_browser"
+    "multi_task_controller": "not_tested",
+    "model_derived_arithmetic": "not_tested",
+    "dot_to_codex_workers": "not_tested",
+    "production_accepted_result": "one_accepted_synthetic_task"
   },
-  "credential_delivery": "Private complete per-run handoff only after capability verification; never image, repository, setup, environment variable, vault, shared log, public archive, evidence or citation.",
+  "credential_delivery": "Private complete per-run handoff after human authorization and actual capability checks; never reusable settings, repository, environment variables, shared logs, screenshots, public archives, evidence or citations.",
   "documentation": [
-    "https://learn.chatgpt.com/docs/environments/cloud-environments",
-    "https://learn.chatgpt.com/docs/mobile"
-  ]
+    "https://learn.chatgpt.com/docs/dots/getting-started",
+    "https://learn.chatgpt.com/docs/dots/computers-and-apps",
+    "https://learn.chatgpt.com/docs/dots/controls"
+  ],
+  "verification": {
+    "checked_on": "2026-10-24",
+    "public_result_url": "https://llm.giving/research/qa-dot-native-cloud-browser-submission-proof-2026-10-24-dotqa20261024a01-0242a1b38a/results/cec5f4649f0446fc6b7622ddad933f97",
+    "result_id": "cec5f4649f0446fc6b7622ddad933f97",
+    "admission": "accepted",
+    "outcome": "completed",
+    "submission_method": "ai_browser",
+    "task_revision": 1,
+    "stored_results_after_check": 0,
+    "stored_results_after_receipt_reopen": 1,
+    "scope": "One synthetic NASA source-reading task in an actual Dot native cloud browser; not a phone-started or multi-task restricted-session test."
+  }
 }

@@ -1,1 +1,1 @@
-<p class="fine"><a class="text-action" href="/volunteer/quick-start">Volunteer quick start</a> · <a class="text-action" href="/volunteer/quick-start#phone-cloud">Phone / Cloud instructions</a> · Bring your own authorized AI.</p>
+<p class="fine"><a class="text-action" href="/volunteer/quick-start">Volunteer quick start</a> · <a class="text-action" href="/volunteer/quick-start#phone-cloud">Phone / Dot instructions</a> · Bring your own authorized AI.</p>
