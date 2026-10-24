@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "setup_version": "1.0.0",
+  "product": "Codex Cloud",
+  "status": "blocked_browser_capability",
+  "documentation_checked_on": "2026-10-24",
+  "profile": {
+    "session_profile": "restricted_web_v1",
+    "label": "Restricted web research",
+    "setup_path": "/volunteer?session_profile=restricted_web_v1"
+  },
+  "environment": {
+    "suggested_name": "LLM.Giving restricted web research",
+    "published_environment_id": null,
+    "published_revision": null,
+    "cloud_task_id": null,
+    "model": null,
+    "reasoning_effort": null,
+    "sharing": "Only me",
+    "install_script": "",
+    "start_services": [],
+    "environment_variables": {},
+    "network_secrets": [],
+    "initialization_file": "initialization.txt"
+  },
+  "network": {
+    "mode": "Custom domains only",
+    "required_https_hosts": [
+      "llm.giving"
+    ],
+    "https_port": 443,
+    "source_hosts": "Approve the concrete source/search hosts and necessary redirects before access; record the exact final list. Do not default to unrestricted access.",
+    "private_network": false
+  },
+  "restrictions": {
+    "enforcement": "Instructions plus LLM.Giving server-side profile eligibility; no provider sandbox attestation.",
+    "allowed": [
+      "web_search",
+      "accessible_source_reading",
+      "synthesis_and_reasoning",
+      "model_derived_arithmetic",
+      "llm_giving_browser_forms"
+    ],
+    "excluded": [
+      "research_code_execution",
+      "shell_execution",
+      "calculators",
+      "spreadsheets",
+      "notebooks",
+      "simulations",
+      "scientific_software",
+      "research_tool_installation",
+      "tool_building",
+      "computational_reproduction",
+      "desktop_access",
+      "personal_files",
+      "api_funded_substitute"
+    ]
+  },
+  "capabilities": {
+    "cloud_source_search": "not_tested",
+    "cloud_source_reading": "not_tested",
+    "cloud_interactive_browser": "documented_unsupported",
+    "actual_model_settings": "unavailable",
+    "phone_launch": "not_tested",
+    "production_accepted_result": "pending_deployment_and_cloud_browser"
+  },
+  "credential_delivery": "Private complete per-run handoff only after capability verification; never image, repository, setup, environment variable, vault, shared log, public archive, evidence or citation.",
+  "documentation": [
+    "https://learn.chatgpt.com/docs/environments/cloud-environments",
+    "https://learn.chatgpt.com/docs/mobile"
+  ]
+}
