@@ -3,7 +3,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {assertLocalEnvironment} from './runtime.mjs';
 assertLocalEnvironment();
-for(const args of [['tools/source-check.mjs'],['tests/qa-ports.mjs'],['tests/source-tooling.mjs'],['tests/error-http.mjs'],['tools/build-blog.mjs','--check'],['tests/blog-build.mjs'],['tests/calculation-model.mjs'],['tools/tool-build-pilot.mjs'],['tests/artifact-controls.mjs'],['tests/request-setup.mjs'],['tests/ai-selection.mjs']]) {
+for(const args of [['tools/source-check.mjs'],['tests/qa-ports.mjs'],['tests/cloud-volunteer-setup.mjs'],['tests/source-tooling.mjs'],['tests/error-http.mjs'],['tools/build-blog.mjs','--check'],['tests/blog-build.mjs'],['tests/calculation-model.mjs'],['tools/tool-build-pilot.mjs'],['tests/artifact-controls.mjs'],['tests/request-setup.mjs'],['tests/ai-selection.mjs']]) {
  const result=spawnSync(process.execPath,args,{encoding:'utf8'});
  if(result.status!==0)throw new Error(result.stdout+result.stderr);
  process.stdout.write(result.stdout);
@@ -32,12 +32,16 @@ process.stdout.write(grantRace.stdout);
 process.stdout.write(runPhp(['tests/evidence.php']));
 process.stdout.write(runPhp(['tests/resources.php']));
 process.stdout.write(runPhp(['tests/calculations.php']));
+process.stdout.write(runPhp(['tests/derivations.php']));
 process.stdout.write(runPhp(['tests/research-tools.php']));
 process.stdout.write(runPhp(['tests/artifacts.php']));
 process.stdout.write(runPhp(['tests/quarantine.php']));
 process.stdout.write(runPhp(['tests/handoffs.php']));
 process.stdout.write(runPhp(['tests/browser-return.php']));
 process.stdout.write(runPhp(['tests/volunteer-sessions.php']));
+process.stdout.write(runPhp(['tests/volunteer-profiles.php']));
+process.stdout.write(runPhp(['tests/cloud-volunteer-contract.php']));
+process.stdout.write(runPhp(['tests/cloud-volunteer-state.php']));
 process.stdout.write(runPhp(['tests/volunteer-queue.php']));
 process.stdout.write(runPhp(['tests/volunteer-orchestrator.php']));
 process.stdout.write(runPhp(['tests/volunteer-guide.php']));
