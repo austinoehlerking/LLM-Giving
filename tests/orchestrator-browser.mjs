@@ -10,7 +10,7 @@ export async function orchestratorQa({page,ctx,base,check,visibleActions}) {
  async function authorize(p){
   await p.goto(base+'/volunteer');
   check('Public setup has no private orchestrator authorization',await p.locator('#orchestrator-handoff').count()===0);
-  await p.getByRole('button',{name:'Continue to authorization',exact:true}).click();
+  await p.getByRole('button',{name:'Connect my AI',exact:true}).click();
   check('Session consent begins unchecked',await p.locator('[name=authorize],[name=authorized_resources],[name=terms]').evaluateAll(es=>es.length===3&&es.every(e=>!e.checked)));
   check('No orchestrator copy control precedes actual authorization',await p.locator('[data-copy-orchestrator]').count()===0);
   for(const name of ['authorize','authorized_resources','terms'])await p.locator('[name='+name+']').check();
