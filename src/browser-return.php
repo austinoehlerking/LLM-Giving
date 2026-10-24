@@ -103,6 +103,7 @@ function ar_record(array $r,array $grant,array $d,bool $checkOnly): string {
             return $g['result_id'];
         }
         ar_validate($r,$g);
+        if (!empty($g['scope']['volunteer_session_id'])) vs_profile_assert_packet(vs_read($g['scope']['volunteer_session_id'],false),$d);
         if($g['task_id']){
             foreach(['task_revision'=>'revision','context_id'=>'context_id','submission_key'=>'submission_key'] as $field=>$scope)if((string)($d[$field]??'')!==(string)$g['scope'][$scope])fail(409,'Packet identifiers differ from this authorized assignment. Preserve the full original handoff; do not replace signed identifiers.');
         }

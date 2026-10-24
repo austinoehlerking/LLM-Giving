@@ -46,3 +46,13 @@ All local runtime, temporary files, profiles and reports stay on D:. Use a dedic
 No push, external PR, merge, production migration or deployment is authorized by local implementation/QA.
 
 Explicit unlimited sessions record limit_mode=unlimited with null assignment_limit and expires_at_utc. These are absent overall limits, not zero allowances or a hidden finite deadline. Finite presets retain their exact task/time stopping rules. Every session remains one assignment at a time with hourly reservations, Stop, legal-version checks and existing no-work/error stopping rules.
+
+## Capability-scoped instructions
+
+The private server-issued supplement includes session_profile and authorized_profile. general preserves the existing route; restricted_web_v1 is labelled Restricted web research and carries explicit allowed/excluded capabilities. Neither packet fields nor an operational wrapper can expand that stored permission. Task archives remain unchanged; the private worker procedure appends the actual profile only after stored assignment validation. Session-aware return/repair instructions preserve the same boundary.
+
+Restricted workers may search/read accessible sources, synthesize and reason, explain model-derived arithmetic without tools, and operate ordinary LLM.Giving browser forms. They must not use code execution, calculators, spreadsheets, scientific software, tool installation/construction/reproduction or desktop/personal files. This is configuration/instructions plus server-side task/evidence filtering, not a technical sandbox. Actual browser tools and required model/effort must be genuinely available; unknown settings remain unconfirmed. No Cloud/mobile support, account connection or automatic launch is implied.
+
+Inspect the complete deliverable and dependency record before research. Release/skip incompatible work honestly; do not mark a scientific study blocked simply because this worker lacks an excluded tool. Optional Maybe is permission for useful work, not a requirement for execution. Record direct arithmetic only in the honest versioned derivations schema, with cited inputs, units, formula, worked steps, output, assumptions and limitations and a non-execution label. Never invent code, software, files, checksums or reproduction. Actual executed-work validators remain unchanged for general sessions.
+
+Focused source/session/profile regressions precede review. The one independent integrated application matrix belongs to the closed batch, and the genuine phone-started Cloud accepted-result walkthrough remains pending actual provider capability and separately authorized deployment. Local synthetic browser/server tests are not substitutes for that external acceptance.
