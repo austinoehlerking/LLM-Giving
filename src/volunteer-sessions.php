@@ -46,6 +46,8 @@ function vs_permission_end(array $session): string {
 }
 
 function vs_configuration(array $post): array {
+    $profile=text_field($post,'session_profile',0,32)?:'general';
+    vs_profile_definition($profile);
     $post=vs_scope_input($post);
     $limits=vs_limits($post);
     $scope = text_field($post, 'scope_kind', 1, 16);
@@ -70,7 +72,7 @@ function vs_configuration(array $post): array {
     if ($capabilities['workflow_mode'] === 'ultracode' && (!isset($registry[$capabilities['model']]) || !in_array('ultracode', $registry[$capabilities['model']]['modes'], true) || strcasecmp($capabilities['tool'], 'Claude Code') !== 0 || $capabilities['reasoning'] === '')) {
         fail(422, 'Ultracode requires a supported exact model, actual effort and Claude Code.');
     }
-    return ['scope_kind'=>$scope, 'scope_id'=>$scopeId, 'capabilities'=>$capabilities]+$limits;
+    return ['scope_kind'=>$scope, 'scope_id'=>$scopeId, 'capabilities'=>$capabilities,'session_profile'=>$profile]+$limits;
 }
 function vs_create(array $post): array {
     throttle('volunteer-session-start', 10);
@@ -90,6 +92,8 @@ function vs_create(array $post): array {
         'source'=>'Volunteer session authorization form (self-attested)',
         'disclosure_scope'=>'Through session authorization; each worker separately reports later scientific input.',
         'permission'=>'Eligible task selection, research, browser submission, platform validation repair and continuation only within the chosen scope. '.vs_limit_label($configuration).'. Stop and current terms remain authoritative. One active task at a time. No purchases, installation, unrelated work or broader account access is authorized.',
+        'session_profile'=>$configuration['session_profile'],
+        'capability_profile'=>vs_profile_definition($configuration['session_profile']),
         'session_limits'=>['mode'=>$configuration['limit_mode'],'assignment_limit'=>$configuration['assignment_limit'],'minutes'=>$configuration['minutes']],
         'resource_confirmation'=>CONTRIBUTOR_RESOURCE_CONFIRMATION,
         'authorized_resources'=>'Volunteer confirmed own or explicitly authorized resources, provider rules and permission for public publication.'];
@@ -97,6 +101,7 @@ function vs_create(array $post): array {
     $secret = bin2hex(random_bytes(32));
     $row = ['id'=>$id, 'secret_hash'=>hash('sha256', $secret), 'actor_hash'=>wf_actor(),
         'scope_kind'=>$configuration['scope_kind'], 'scope_id'=>$configuration['scope_id'],
+        'session_profile'=>$configuration['session_profile'],
         'limit_mode'=>$configuration['limit_mode'], 'assignment_limit'=>$configuration['assignment_limit'], 'assignments_used'=>0,
         'capabilities'=>json_encode($configuration['capabilities'], JSON_THROW_ON_ERROR), 'consent'=>json_encode($consent, JSON_THROW_ON_ERROR),
         'created_at'=>gmdate('Y-m-d H:i:s', $started), 'expires_at'=>vs_unlimited($configuration)?null:gmdate('Y-m-d H:i:s', $started+$configuration['minutes']*60)];
@@ -133,6 +138,7 @@ function vs_assert_active(array $session, bool $claim=false): void {
     if ($claim && $state === 'limit_reached') fail(409, 'Your assignment limit is reached. You may finish the current assignment before the session deadline.');
 }
 function vs_configuration_matches(array $session, array $research, array $task): bool {
+    if (!vs_profile_compatible($session,$research,$task)) return false;
     $capability = $session['capabilities'];
     if (rt_is_tool($research) && $session['consent']['tool_terms_version'] !== RT_TERMS) return false;
     if (!rq_matches(rq_requirements($research), $capability['model'], $capability['reasoning'], $capability['workflow_mode'], $capability['tool'])) return false;
