@@ -75,7 +75,7 @@ function ar_validate(array $r,array $g): void {
     if($g['expires_at']===null && empty($g['scope']['volunteer_session_id']))fail(403,'A standalone return requires an expiration.');
     if($g['expires_at']!==null && $g['expires_at']<now())fail(403,'This return authorization expired. Ask the volunteer for fresh authorization; do not invent consent.');
     if($g['consent']['terms_version']!==terms_version()||(rt_is_tool($r)&&$g['consent']['tool_terms_version']!==RT_TERMS))fail(409,'The terms changed. Fresh volunteer authorization is required.');
-    if($g['scope']['requirements']!==rq_requirements($r))fail(409,'Requester AI requirements changed. Obtain fresh authorization and reassess with a qualifying run.');
+    if(!rq_same_requirements($g['scope']['requirements']??null,rq_requirements($r)))fail(409,'Requester AI requirements changed. Obtain fresh authorization and reassess with a qualifying run.');
 }
 function ar_record(array $r,array $grant,array $d,bool $checkOnly): string {
     // A separate session worker reads its grant before waiting for the parent lock.

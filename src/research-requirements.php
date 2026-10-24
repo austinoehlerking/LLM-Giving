@@ -5,6 +5,16 @@ function rq_requirements(array $r): array {
     // Do not rewrite historical records or immutable snapshots.
     return ($v['version']??null)===2?$v:$v+['model'=>'','mode'=>'none','effort'=>''];
 }
+/** JSON object key order is storage detail; lists, scalar types and every value remain exact. */
+function rq_same_requirements(mixed $captured,mixed $current): bool {
+    if (!is_array($captured) || !is_array($current) || array_is_list($captured) || array_is_list($current)) return false;
+    $canonical = static function(array $value) use (&$canonical): array {
+        foreach ($value as $key=>$item) if (is_array($item)) $value[$key]=$canonical($item);
+        if (!array_is_list($value)) ksort($value,SORT_STRING);
+        return $value;
+    };
+    return $canonical($captured)===$canonical($current);
+}
 function rq_choices(array $req): array {
     if(($req['version']??null)===2)return $req;
     return ['version'=>2,'models'=>$req['model']!==''?[$req['model']]:[],
@@ -109,7 +119,7 @@ function rq_update(string $rid,array $d): void {
   $same=true;foreach($expected as $key=>$values){$input=$d[$key]??[];if($input===['any'])$input=[];if(!is_array($input)||!array_is_list($input)||array_filter($input,fn($v)=>!is_string($v))){$same=false;break;}sort($input);sort($values);if($input!==$values)$same=false;}
   if($same)return;
  }
- $req=rq_parse($d);if($old===$req)return;
+ $req=rq_parse($d);if(rq_same_requirements($old,$req))return;
  if(($old['version']??null)!==2&&($req['version']??null)===2){$oldChoices=rq_choices($old);if($oldChoices['models']===$req['models']&&$oldChoices['efforts']===$req['efforts']&&$oldChoices['modes']===$req['modes'])return;}
  query('UPDATE research SET ai_requirements=? WHERE id=?',[json_encode($req),$rid]);touch_context($rid,false);
  audit_event($rid,'Requester AI requirements updated',rq_description($req),'research',$rid,'Previous AI requirements','Updated AI requirements','Copy a fresh handoff before starting research.','requester','Original submitter',['previous'=>$old,'current'=>$req],$r['moderation']==='Approved'?'public':'private');
