@@ -20,6 +20,7 @@ permissions:
   pull-requests: read
   issues: write
   actions: read
+  statuses: read
 jobs:
   authorize:
     if: github.ref == 'refs/heads/main'

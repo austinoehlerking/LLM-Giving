@@ -290,6 +290,7 @@ await test('workflow static security contract',()=>{
  for(const source of [gates,manual]){assert.doesNotMatch(source,/pull_request_target|actions\/download-artifact|git merge|ssh |deploy:/);assert.match(source,/actions\/checkout@11bd71901bbe5b1630ceea73d27597364c9af683/);assert.match(source,/ref: main/);assert.match(source,/persist-credentials: false/);}
  assert.match(gates,/workflows: \['Delivery signal', 'Manual release authorization'\]/);assert.doesNotMatch(gates,/workflow_run:[\s\S]*workflows:.*Delivery metadata gates/);assert.match(gates,/types: \[completed\]/);assert.match(manual,/environment: manual-release/);assert.match(manual,/if: github.ref == 'refs\/heads\/main'/);
  assert.match(gates,/statuses: write/);assert.match(manual,/issues: write/);assert.doesNotMatch(manual,/push:|schedule:|pull_request:/);
+ assert.match(manual,/^  statuses: read\r?$/m);
 });
 const dir=path.resolve(import.meta.dirname,'../storage/qa/github-delivery');
 fs.mkdirSync(dir,{recursive:true});
