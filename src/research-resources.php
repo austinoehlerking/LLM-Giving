@@ -57,7 +57,7 @@ function rs_reference_map(array $row,array $evidence,array $files=[]): array {
     $map=[];
     foreach(['body','methodology','sources','limitations','next_action'] as $key)if(!empty($row[$key]))$map[$key]=$row[$key];
     $map['evidence.sources']=$evidence['sources']??[];
-    foreach(['sources','claims','datasets','artifacts','calculations','tool_builds'] as $kind)foreach($evidence[$kind]??[] as $item){
+    foreach(['sources','claims','datasets','artifacts','calculations','derivations','tool_builds'] as $kind)foreach($evidence[$kind]??[] as $item){
         $prefix='evidence.'.$kind.'/'.$item['id'];$map[$prefix]=$item;
         foreach($item['files']??[] as $file)$map[$prefix.'/files/'.$file['id']]=$file;
         foreach(['inputs','outputs'] as $quantities)foreach($item[$quantities]??[] as $quantity)$map[$prefix.'/'.$quantities.'/'.$quantity['id']]=$quantity;
@@ -77,6 +77,7 @@ function rs_required_materials(array $evidence): array {
         }
         if($kind==='calculations'){$required['units'][]=$prefix;$required['formulas'][]=$prefix;}
     }
+    foreach($evidence['derivations']??[] as $d)foreach(['inputs','units','formulas','methods','assumptions','outputs','intermediate_results'] as $category)$required[$category][]='evidence.derivations/'.$d['id'];
     return $required;
 }
 function rs_validate_materials(mixed $raw,array $row,array $evidence,bool $terminal): array {
@@ -184,6 +185,7 @@ function rs_catalogue(string $rid): array {
             foreach($e['claims']??[] as $claim)foreach($claim['links'] as $link)if($link['source_id']===$source['id'])$uses[]=['kind'=>'claim','id'=>$claim['id'],'title'=>$claim['statement'],'locator'=>$link['locator'],'extraction'=>$link['excerpt'],'explanation'=>$link['explanation'],'relation'=>$link['relation']];
             foreach($e['datasets']??[] as $dataset)if(in_array($source['id'],$dataset['source_ids'],true))$uses[]=['kind'=>'dataset','id'=>$dataset['id'],'title'=>$dataset['title'],'provenance'=>$dataset['provenance'],'locations'=>$dataset['source_locations']??[]];
             foreach($e['calculations']??[] as $calculation)if(in_array($source['id'],$calculation['source_ids'],true))$uses[]=['kind'=>'calculation','id'=>$calculation['id'],'title'=>$calculation['title'],'status'=>$calculation['status'],'inputs'=>array_values(array_filter($calculation['inputs'],fn($q)=>($q['source_id']??'')===$source['id']))];
+            foreach($e['derivations']??[] as $d)if(in_array($source['id'],$d['source_ids'],true))$uses[]=['kind'=>'derivation','id'=>$d['id'],'title'=>$d['title'],'type'=>'model_derived','version'=>$d['version'],'inputs'=>array_values(array_filter($d['inputs'],fn($q)=>$q['source_id']===$source['id']))];
             foreach(['artifacts','tool_builds'] as $kind)foreach($e[$kind]??[] as $item)if(in_array($source['id'],$item['source_ids'],true))$uses[]=['kind'=>$kind==='artifacts'?'artifact':'tool','id'=>$item['id'],'title'=>$item['title']];
             $groups[$key]['id']=$key;
             $groups[$key]['contributions'][]=['result_id'=>$result['id'],'task_id'=>$record['task']['id'],'created_at'=>$result['created_at'],'display_name'=>$result['display_name'],'outcome'=>$result['outcome'],'contribution'=>!empty($record['contribution']),'source'=>$source,'uses'=>$uses,'historical_metadata'=>!isset($source['authors'])];
