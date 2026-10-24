@@ -1,6 +1,7 @@
 /** One catalogue shared by the single-suite and complete-suite runners. */
 export const qaReports = Object.freeze({
   volunteers: 'volunteers/browser-report.json',
+  'volunteer-design': 'volunteer-design/browser-report.json',
   reservations: 'reservations/browser-report.json',
   forks: 'forks/browser-report.json',
   viewport: 'viewport-report.json',

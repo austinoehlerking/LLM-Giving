@@ -1,4 +1,4 @@
-<div class="volunteer-start"><h1>Authorize this session</h1><p class="fine"><?=e(vs_scope_label($configuration))?> · Up to <?=e($configuration['assignment_limit'])?> assignments or <?=e($configuration['minutes'])?> minutes · One active task.</p>
+<div class="volunteer-start"><h1>Authorize this session</h1><p class="fine"><?=e(vs_scope_label($configuration))?> · <?=e(vs_limit_label($configuration))?> · One active task.</p>
 <?php if($error): ?><p class="warning" role="alert"><?=e($error)?></p><?php endif ?>
 <form method="post" class="form-panel" data-volunteer-consent><?=csrf()?><input type="hidden" name="operation" value="authorize"><input type="hidden" name="policy_version" value="<?=e(terms_version())?>">
 <?php foreach($draft as $name=>$value): ?><input type="hidden" name="<?=e($name)?>" value="<?=e($value)?>"><?php endforeach ?>
