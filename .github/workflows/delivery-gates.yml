@@ -16,13 +16,21 @@ permissions:
   pull-requests: read
   actions: read
   statuses: write
-concurrency:
-  group: delivery-metadata
-  cancel-in-progress: false
 jobs:
   metadata:
+    # Ignore unrelated issue/comment traffic. This job only publishes metadata.
+    if: >-
+      github.event_name == 'workflow_run' ||
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && github.event.issue.number == 20) ||
+      (github.event_name == 'issue_comment' &&
+        (github.event.issue.number == 20 || contains(github.event.comment.body, '<!-- llm-delivery-') || contains(github.event.changes.body.from, '<!-- llm-delivery-')))
+    concurrency:
+      group: delivery-metadata
+      cancel-in-progress: true
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 2
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # official v4.2.2
         with:

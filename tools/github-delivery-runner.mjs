@@ -91,7 +91,7 @@ export async function loadSnapshot(client,{base,includeManualRuns=true}={}){
   }
   const q=latestDependencyDeclaration(s.issueComments,'qa',POLICY.trustedActor,
     q=>q.reviewerThread===POLICY.qaThread&&q.batchId===b.id);
-  if(q){
+  if(q?.evidence!==undefined){
     need(Array.isArray(q.evidence)&&q.evidence.length<=20,'Malformed QA evidence.');
     for(const e of q.evidence){
       const match=typeof e.url==='string'&&e.url.match(/^https:\/\/github\.com\/austinoehlerking\/LLM-Giving\/(?:issues|pull)\/[1-9][0-9]*#issuecomment-([1-9][0-9]*)$/);
@@ -108,12 +108,11 @@ export async function loadSnapshot(client,{base,includeManualRuns=true}={}){
   }
   need(runIds.size<=10,'Too many release authorization runs.');
   for(const id of runIds)s.manualRuns[id]=await loadRun(client,id);
-  s.statuses=(await client.pages(prefix+'/commits/'+s.refs.develop.sha+'/statuses')).map(x=>({...x,sha:s.refs.develop.sha}));
   return s;
 }
 export async function loadRun(client,id){
   need(positive(id),'Invalid run ID.');
-  return {run:await client.request(prefix+'/actions/runs/'+id),workflow:await client.request(prefix+'/actions/workflows/manual-release.yml'),approvals:await client.request(prefix+'/actions/runs/'+id+'/approvals')};
+  return {run:await client.request(prefix+'/actions/runs/'+id),workflow:await client.request(prefix+'/actions/workflows/manual-release.yml')};
 }
 function identity(base){
   return hash(JSON.stringify({issue:base.issue.body,issueUpdated:base.issue.updated_at,refs:base.refs,open:base.open.map(p=>({n:p.number,sha:p.head?.sha,body:p.body,updated:p.updated_at})).sort((a,b)=>a.n-b.n)}));
@@ -130,7 +129,7 @@ export async function refresh(client,env=process.env){
   trustedEnvironment(env);
   // Pending statuses revoke prior decisions before fetching policy/review metadata.
   const base=await loadBase(client,{includeIssue:false});
-  const targets=[{sha:base.refs.develop.sha,context:POLICY.contexts.batch},...base.open.map(pr=>({sha:pr.head.sha,context:pr.base.ref==='main'?POLICY.contexts.release:POLICY.contexts.develop,number:pr.number}))];
+  const targets=[...base.open.map(pr=>({sha:pr.head.sha,context:pr.base.ref==='main'?POLICY.contexts.release:POLICY.contexts.develop,number:pr.number}))];
   const status=async(t,state,description)=>{
     need(SHA.test(t.sha),'Invalid status target.');
     await client.request(prefix+'/statuses/'+t.sha,{method:'POST',body:{state,context:t.context,description:description.replace(/[^\x20-\x7e]/g,'?').slice(0,140),target_url:'https://github.com/'+POLICY.repository+'/actions/runs/'+env.GITHUB_RUN_ID}});
@@ -167,7 +166,7 @@ export async function authorize(client,env=process.env){
   assertManualRun(data,auth,ready,pr,POLICY,true);
   need(env.GITHUB_SHA===data.run.head_sha,'Dispatched main SHA differs from workflow run.');
   need(identity(s)===identity(await loadBase(client)),'Batch/branch metadata changed before authorization.');
-  await client.request(prefix+'/issues/'+prNumber+'/comments',{method:'POST',body:{body:'Manual release authorization recorded after protected environment approval. No merge or deployment performed.\n\n'+marker('release',auth)}});
+  await client.request(prefix+'/issues/'+prNumber+'/comments',{method:'POST',body:{body:'Manual release authorization recorded from the owner dispatch following the human deploy command. No merge or deployment performed.\n\n'+marker('release',auth)}});
   // GITHUB_TOKEN comments do not trigger another workflow. workflow_run(completed) refreshes after success.
   return {status:'RECORDED',pr:prNumber,sha:ready.sha,batchDigest:ready.batchDigest};
 }

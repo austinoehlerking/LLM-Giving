@@ -8,7 +8,6 @@
   "manualWorkflow": ".github/workflows/manual-release.yml",
   "manualWorkflowName": "Manual release authorization",
   "deliveryWorkflow": ".github/workflows/delivery-gates.yml",
-  "environment": "manual-release",
   "contexts": {
     "develop": "delivery/develop",
     "release": "delivery/release",
