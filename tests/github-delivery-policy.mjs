@@ -303,6 +303,29 @@ await test('one QA record and one owner dispatch suffice without environment API
 for(const summary of ['', 'D:\\private\\data', 'Bearer '+ 'x'.repeat(25), '<script>bad</script>'])await test('single QA record rejects empty/private/executable summary '+count,()=>{const f=approved(),q=readMarker(f.s.issueComments[0].body,'qa');delete q.evidence;q.summary=summary;f.s.issueComments[0].body=marker('qa',q);assert.throws(()=>releaseGate(f.s,f.release));});
 await test('open unqueued work still prevents local QA',()=>{const f=fixture();f.s.pulls.push({...f.first,number:3,state:'open',merged:false});assert.throws(()=>assertLocalReady(f.s,{batchId:'batch-a',baseMain:A,candidate:{sha:C,tree:T},tasks:[{id:'dev-1',status:'merged',commit:H}]}),/queued/);});
 
+
+await test('eligible-job concurrency cannot be cancelled by ignored events',()=>{
+ const gates=fs.readFileSync(new URL('../.github/workflows/delivery-gates.yml',import.meta.url),'utf8').replaceAll('\r\n','\n');
+ assert.doesNotMatch(gates,/^concurrency:/m);
+ assert.match(gates,/\n    concurrency:\n      group: delivery-metadata\n      cancel-in-progress: true/);
+ const block=gates.match(/^    if: >-\n([\s\S]*?)(?=^    [A-Za-z])/m);assert.ok(block);
+ const expression=block[1].split('\n').map(s=>s.trim()).join(' ');
+ const eligible=Function('github','contains','return ('+expression+');');
+ const event=(name,number=7,body='',previous='')=>({event_name:name,event:{issue:{number},comment:{body},changes:{body:{from:previous}}}});
+ const contains=(value,fragment)=>typeof value==='string'&&value.includes(fragment);
+ for(const [label,input,expected] of [
+  ['review marker created',event('issue_comment',7,'<!-- llm-delivery-review {} -->'),true],
+  ['review marker removed by edit',event('issue_comment',7,'ordinary text','<!-- llm-delivery-review {} -->'),true],
+  ['review marker deleted',event('issue_comment',7,'<!-- llm-delivery-review {} -->'),true],
+  ['unrelated PR comment',event('issue_comment',7,'ordinary discussion'),false],
+  ['unrelated issue',event('issues',7),false],
+  ['batch edit',event('issues',20),true],
+  ['batch QA comment',event('issue_comment',20,'QA summary'),true],
+  ['review signal completed',event('workflow_run'),true],
+  ['owner refresh',event('workflow_dispatch'),true]
+ ])assert.equal(eligible(input,contains),expected,label);
+});
+
 const dir=path.resolve(import.meta.dirname,'../storage/qa/github-delivery');
 fs.mkdirSync(dir,{recursive:true});
 const report=path.join(dir,'policy-'+Date.now()+'.json');
