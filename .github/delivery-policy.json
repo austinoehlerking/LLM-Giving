@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "repository": "austinoehlerking/LLM-Giving",
+  "controlIssue": 20,
+  "trustedActor": "austinoehlerking",
+  "reviewerThread": "01a15bda-b64c-7540-9a89-261c5349b451",
+  "qaThread": "01a15bea-834d-7771-a3a9-cb783ce547e1",
+  "manualWorkflow": ".github/workflows/manual-release.yml",
+  "manualWorkflowName": "Manual release authorization",
+  "deliveryWorkflow": ".github/workflows/delivery-gates.yml",
+  "environment": "manual-release",
+  "contexts": {
+    "develop": "delivery/develop",
+    "release": "delivery/release",
+    "batch": "delivery/batch-ready"
+  }
+}

@@ -14,6 +14,8 @@ Use a dedicated least-privilege application DB account. Use a separate migration
 
 ## Deployment sequence
 
+Development PRs merge into develop. Only an explicit human deploy command starts release promotion. First follow [the batch release gate](delivery-workflow.md): run node tools/delivery-gate.mjs check-release from the clean QA-approved candidate, verify live main/develop identities, merge that exact candidate into main, and verify the resulting tree equals the QA-approved tree. Stop on drift or conflicts. Deploy only that verified main commit. QA completion alone never authorizes promotion or production access.
+
 1. Back up the database and private uploaded files, config and sources. Verify restoration in an isolated environment.
 2. Validate the PHP version/extensions, schema compatibility, document root, rewrite rules, TLS, permissions and resource limits.
 3. Copy application files and local static assets. Exclude .env, local database data, development email, session files, QA reports and browser profiles.
@@ -36,3 +38,7 @@ The web admin can initiate private backups and configure the server-mail/file ad
 Run `node tools/package-siteground.mjs` to create a timestamped release under ignored `storage/deploy/`. The tool copies an explicit runtime allowlist into private `app/` and public `public_html/`, adjusts the public entry point for that layout, and records file hashes. It excludes local configuration, storage, QA evidence, editorial drafts, development tools, and tests. It does not connect to hosting or deploy.
 
 Extract only into the intended website directory after checking the existing hosting layout and backing up anything already present. Create `app/.env` privately on the server, keep `app/storage/` outside the document root, and run migrations from `app/`. Never replace persistent storage or configuration with a release bundle. Verify PHP extensions, database compatibility, TLS, rewrite behavior, mail delivery, and private-path denial on the actual host.
+
+## Protected release promotion
+
+Before promotion, follow [GitHub delivery enforcement](github-delivery.md). The release PR must contain exactly the QA-approved develop head and pass delivery/release, including a successful owner-approved Manual release authorization run. The main-only manual-release environment has no production credentials and its workflow does not merge/deploy. Once the human-authorized promotion is verified, perform the manual hosting sequence above and record its actual result separately.

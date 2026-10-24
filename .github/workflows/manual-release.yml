@@ -1,0 +1,41 @@
+name: Manual release authorization
+run-name: 'Release authorization PR #${{ inputs.pr }} ${{ inputs.sha }} ${{ inputs.digest }}'
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: 'Open develop-to-main release PR number'
+        required: true
+        type: string
+      sha:
+        description: 'Exact QA candidate full commit SHA'
+        required: true
+        type: string
+      digest:
+        description: 'Exact closed batch SHA-256 digest'
+        required: true
+        type: string
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+  actions: read
+jobs:
+  authorize:
+    if: github.ref == 'refs/heads/main'
+    environment: manual-release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # official v4.2.2
+        with:
+          ref: main
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Record approved metadata only; no merge or deployment
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_PR: ${{ inputs.pr }}
+          RELEASE_SHA: ${{ inputs.sha }}
+          RELEASE_DIGEST: ${{ inputs.digest }}
+        run: node tools/github-delivery-runner.mjs authorize
