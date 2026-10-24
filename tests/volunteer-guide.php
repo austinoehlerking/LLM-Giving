@@ -16,11 +16,11 @@ guide_check($actions->length===2,'Initial action area offers session and single-
 guide_check($actions->item(0)->getAttribute('href')==='/volunteer'&&$actions->item(1)->getAttribute('href')==='/research','Primary actions use implemented public routes');
 guide_check($xpath->query('//script|//form|//input|//textarea')->length===0,'Public guide does not collect or embed authorization');
 $ids=[];foreach($xpath->query('//*[@id]') as $node){$id=$node->getAttribute('id');guide_check(!isset($ids[$id]),'No duplicate guide ID: '.$id);$ids[$id]=true;}
-$official=['https://learn.chatgpt.com/docs/environments/cloud-environments','https://learn.chatgpt.com/docs/environments/cloud-environments#current-limitations','https://learn.chatgpt.com/docs/mobile'];
+$official=['https://learn.chatgpt.com/docs/environments/cloud-environments','https://learn.chatgpt.com/docs/environments/cloud-environments#current-limitations','https://learn.chatgpt.com/docs/mobile','https://github.com/austinoehlerking/LLM-Giving/blob/develop/docs/cloud-volunteer-setup.md'];
 foreach($xpath->query('//a[@href]') as $node){$href=$node->getAttribute('href');
  if(str_starts_with($href,'#'))guide_check(isset($ids[substr($href,1)]),'In-page guide destination exists: '.$href);
  elseif(str_starts_with($href,'/')){guide_check(in_array(parse_url($href,PHP_URL_PATH),['/volunteer','/research','/legal/licensing','/legal/terms'],true),'Guide links target implemented public destinations');if(str_contains($href,'?'))guide_check($href==='/volunteer?session_profile=restricted_web_v1','Profile preselection uses the exact server contract');}
- else guide_check(in_array($href,$official,true)&&$node->getAttribute('target')==='_blank'&&$node->getAttribute('rel')==='noopener','External prerequisite claims link only fetched official documentation safely');
+ else guide_check(in_array($href,$official,true)&&$node->getAttribute('target')==='_blank'&&$node->getAttribute('rel')==='noopener','External links use fetched official documentation or the reviewed public setup guide safely');
 }
 guide_check($xpath->query('//section[@data-phone-guide]')->length===1,'Phone guide is integrated in the existing quick start');
 guide_check($xpath->query('//ol[@id="phone-session-steps"]/li')->length===5,'Conditional phone path contains five complete steps');

@@ -6,6 +6,7 @@ export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) 
  const out=path.join(root,'storage/qa/phone-guide');fs.mkdirSync(out,{recursive:true});
  const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}],errors=[];
  page.on('pageerror',e=>errors.push(e.message));
+ page.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
  const screenshot=async(p,name)=>{const file=path.join(out,name+'.png');await p.screenshot({path:file,fullPage:false});report.screenshots.push(file);return file;};
  const inspect=async(label,files)=>{console.log('INSPECT PHONE GUIDE '+label+': '+files.join(' | '));if(['1','phone-guide'].includes(env.QA_INSPECT_FIRST))await new Promise(resolve=>{process.stdin.resume();process.stdin.once('data',()=>{process.stdin.pause();resolve();});});};
  const initial=async(p,url,label,selector)=>{const files=[];for(const size of sizes){await p.setViewportSize(size);if(url){const response=await p.goto(base+url);check(label+' HTTP success '+size.width,response.status()===200);}await p.evaluate(()=>scrollTo(0,0));files.push(await screenshot(p,label+'-'+size.width+'x'+size.height));check(label+' starts at scroll zero '+size.width,await p.evaluate(()=>scrollY===0));await visibleActions(p,selector,label+' '+size.width);}await inspect(label,files);await p.setViewportSize(sizes[0]);};
@@ -38,7 +39,7 @@ export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) 
   native=await ctx.browser().newContext({javaScriptEnabled:false,viewport:sizes[0]});const np=await native.newPage();await np.goto(base+'/volunteer?session_profile=restricted_web_v1');
   check('Native setup preserves server preselection',await np.locator('[name=session_profile]').inputValue()==='restricted_web_v1');await np.getByRole('button',{name:'Connect my AI',exact:true}).click();check('Native configure retains the exact profile',await np.locator('input[name=session_profile]').inputValue()==='restricted_web_v1');
   check('Configuring never issues a private session',await np.locator('#volunteer-private-link').count()===0);
-  check('No unhandled guide/setup browser errors',errors.length===0);
+  report.consoleErrors=errors;check('No guide/setup script or console errors',errors.length===0);
   report.scope='Local rendered guide/setup/review/navigation evidence only. No actual handset, Codex Cloud research, permission or accepted-result claim.';
  } finally {await native?.close();}
 }
