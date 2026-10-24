@@ -1,5 +1,5 @@
 name: Manual release authorization
-run-name: 'Release authorization PR #${{ inputs.pr }} ${{ inputs.sha }} ${{ inputs.digest }}'
+run-name: 'Bounded authorization transport diagnostic; grants no release'
 on:
   workflow_dispatch:
     inputs:
@@ -22,21 +22,17 @@ permissions:
   actions: read
   statuses: read
 jobs:
-  authorize:
-    if: github.ref == 'refs/heads/main'
-    environment: manual-release
+  diagnostic:
+    if: github.ref == 'refs/heads/codex/diagnose-manual-authorization'
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # official v4.2.2
         with:
-          ref: main
+          ref: ${{ github.sha }}
           persist-credentials: false
           fetch-depth: 1
-      - name: Record approved metadata only; no merge or deployment
+      - name: Probe fixed transport routes; never authorize or deploy
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          RELEASE_PR: ${{ inputs.pr }}
-          RELEASE_SHA: ${{ inputs.sha }}
-          RELEASE_DIGEST: ${{ inputs.digest }}
-        run: node tools/github-delivery-runner.mjs authorize
+        run: node tools/diagnose-authorization-transport.mjs
