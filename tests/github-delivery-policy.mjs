@@ -291,6 +291,7 @@ await test('workflow static security contract',()=>{
  assert.match(gates,/workflows: \['Delivery signal', 'Manual release authorization'\]/);assert.doesNotMatch(gates,/workflow_run:[\s\S]*workflows:.*Delivery metadata gates/);assert.match(gates,/types: \[completed\]/);assert.match(manual,/environment: manual-release/);assert.match(manual,/if: github.ref == 'refs\/heads\/main'/);
  assert.match(gates,/statuses: write/);assert.match(manual,/issues: write/);assert.doesNotMatch(manual,/push:|schedule:|pull_request:/);
  assert.match(manual,/^  statuses: read\r?$/m);
+ assert.match(manual,/^  pull-requests: write\r?$/m);
 });
 const dir=path.resolve(import.meta.dirname,'../storage/qa/github-delivery');
 fs.mkdirSync(dir,{recursive:true});
