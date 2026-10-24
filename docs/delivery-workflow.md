@@ -6,7 +6,7 @@ develop is the integration branch. main is the release branch. Both began this w
 
 ## One coordinator and one batch
 
-The coordinator owns one canonical, ignored ledger at storage/orchestration/batch-state.json in the primary repository, not a separate copy inside each linked worktree. The gate resolves this location through the Git common directory. Keep previous delivery/recovery ledgers as history; do not use them as competing queues.
+The coordinator owns the sanitized public batch in GitHub delivery control issue #20 and one ignored local mirror at storage/orchestration/batch-state.json in the primary repository. The local gate resolves this location through the Git common directory. Membership, candidate and verdicts must agree; private evidence stays local. Keep previous delivery/recovery ledgers as history, not competing queues.
 
 Before closing a batch, enumerate currently assigned dev tasks and their dependencies, with acceptance criteria, owner, branch/PR, reviewed commit and focused evidence. Existing completed tasks do not become active just because their chats are loaded. New assigned work joins the open batch or is explicitly queued for the next one. Close membership once its intended scope is recorded. A late unrelated task must not silently extend a closed batch.
 
@@ -84,3 +84,7 @@ An emergency main hotfix requires explicit human authorization and must be broug
 Schema version 1 contains batchId, membershipClosed, phase, baseMain, candidate {sha, tree}, tasks and blockers. Task statuses are merged, deferred or nonterminal development/review states. A merged task records commit, review {status: pass, sha}, and checks {status: pass, sha, evidence: [shared-root-relative paths]}. Deferred tasks record reason and humanDecision. The gate validates this contract rather than inferring state from chat activity.
 
 Only the coordinator updates membership and verdicts, with the gate owning the atomic start-qa transition. Keep old evidence and closed ledgers when starting the next batch. Every handoff names the batch and candidate so old approvals cannot be applied accidentally.
+
+## GitHub enforcement
+
+[GitHub delivery enforcement](github-delivery.md) defines required checks, the public control issue, exact-head review/QA records and manual release approval. Issue #20 is authoritative for the public gate state; the ignored local ledger keeps private evidence and mirrors that membership/candidate. A local claim or prose approval alone does not satisfy a protected branch. The manual-release workflow records authorization only; deployment stays manual.

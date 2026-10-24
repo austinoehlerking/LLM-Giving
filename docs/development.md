@@ -93,3 +93,7 @@ Publish source and synthetic test fixtures only. Never add `.env` variants, `sto
 
 Production deployment uses only `public/` as the document root. The Dockerfile copies explicit runtime directories instead of the entire checkout. Validate the actual hosting runtime and restore procedure using [the launch checklist](siteground.md). Local QA does not authorize deployment or publication.
 For anonymous AI return work, run `node tools/qa.mjs returns` after `node tools/check.mjs`. This mode covers the consent form, software consent, private archive separation, separate browser handover, validation repair, check-versus-submit, quarantine and receipt recovery. `tests/browser-return.php` covers the server boundaries. Citation and launch suites use a portable synthetic completed workflow rather than private historical project data. See [browser return QA](browser-return-qa.md) for the genuine agent walkthrough and its limits.
+
+## GitHub-enforced handoffs
+
+See [GitHub delivery enforcement](github-delivery.md) before opening or merging a task PR. Register work in delivery control issue #20, bind the PR to its batch/task, and obtain an exact-head machine-readable Code Review verdict. GitHub blocks stale or missing approvals. QA remains one closed-batch operation after reviewed develop integration; only a separately authorized manual release can promote the approved candidate to main.
