@@ -1,0 +1,35 @@
+name: Delivery metadata gates
+on:
+  workflow_run:
+    workflows: ['Delivery signal', 'Manual release authorization']
+    types: [completed]
+  issue_comment:
+    types: [created, edited, deleted]
+  issues:
+    types: [opened, edited, reopened, closed]
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+  actions: read
+  statuses: write
+concurrency:
+  group: delivery-metadata
+  cancel-in-progress: false
+jobs:
+  metadata:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # official v4.2.2
+        with:
+          ref: main
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Evaluate live metadata using trusted main only
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tools/github-delivery-runner.mjs refresh

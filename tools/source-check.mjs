@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 export const sourceRoot = path.resolve(import.meta.dirname, '..');
-const directories = ['bin', 'content', 'docs', 'migrations', 'public', 'src', 'views', 'templates', 'tests', 'tools'];
+const directories = ['.github', 'bin', 'content', 'docs', 'migrations', 'public', 'src', 'views', 'templates', 'tests', 'tools'];
 const rootFiles = ['.dockerignore', '.editorconfig', '.env.example', '.gitattributes', '.gitignore', 'AGENTS.md', 'CONTRIBUTING.md', 'Dockerfile', 'LICENSE', 'README.md', 'SECURITY.md', 'compose.yaml', 'package.json'];
 
 export function sourceFiles() {
