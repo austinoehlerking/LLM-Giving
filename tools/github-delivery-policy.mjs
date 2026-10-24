@@ -104,11 +104,11 @@ export function developGate(s,pr,p=POLICY){
   repository(s,p);sameRepo(pr,s,p);
   const state=readState(s.issue,p),b=state.activeBatch;
   need(pr.base.ref==='develop'&&pr.state==='open'&&pr.draft===false&&/^codex\/[A-Za-z0-9._/-]+$/.test(pr.head.ref),'Development PR must be an open codex/ branch targeting develop.');
-  need(!['qa_running','qa_passed'].includes(b.phase),'Develop merges are frozen during/after QA.');
+  need(!['qa_ready','qa_running','qa_passed'].includes(b.phase),'Develop merges are frozen during/after QA.');
   const bind=readMarker(pr.body,'task',true);keys(bind,['batchId','taskId']);
   need(bind.batchId===b.id,'PR belongs to a different batch.');
   const t=b.tasks.find(t=>t.id===bind.taskId&&t.pr===pr.number);
-  need(t?.status==='reviewed'&&t.head===pr.head.sha,'PR must be a registered reviewed task at its current head.');
+  need(t&&['in_progress','in_review','reviewed'].includes(t.status),'PR must be registered in the active batch.');
   need(b.blockers.length===0,'Active batch has blockers.');
   assertReviewed(s,pr,t,p);
   return {status:'PASS',batchId:b.id,taskId:t.id,sha:pr.head.sha};
@@ -154,8 +154,14 @@ export function assertQa(s,ready,p=POLICY){
   const candidates=declarations(list(s.issueComments),'qa',p.qaThread,p).filter(e=>e.value.batchId===ready.batchId);
   const q=candidates.at(-1)?.value;
   need(q,'Missing trusted QA attestation.');
-  keys(q,['schemaVersion','batchId','sha','tree','batchDigest','verdict','reviewerThread','evidence']);
+  keys(q,['schemaVersion','batchId','sha','tree','batchDigest','verdict','reviewerThread','summary','evidence']);
   need(q.schemaVersion===1&&q.verdict==='pass'&&q.sha===ready.sha&&q.tree===ready.tree&&q.batchDigest===ready.batchDigest,'QA candidate/tree/digest/verdict mismatch.');
+  if(q.evidence===undefined){
+    need(text(q.summary),'QA needs a concise coverage/verdict summary.');
+    need(!/(?:\/manage\/|\/return\/[a-f0-9]+#|(?:^|\s)[A-Z]:[\\/]|storage[\\/]private[\\/]|Bearer\s+[A-Za-z0-9_-]{20,}|<script)/i.test(q.summary),'QA summary contains unsanitized content.');
+    return q;
+  }
+  // Existing signed evidence stays valid; new batches need only one QA record.
   need(Array.isArray(q.evidence)&&q.evidence.length>0&&q.evidence.length<=20,'QA needs bounded evidence.');
   const seen=new Set();
   for(const e of q.evidence){
@@ -163,7 +169,7 @@ export function assertQa(s,ready,p=POLICY){
     need(HASH.test(e.sha256)&&!seen.has(id),'Invalid/duplicate evidence hash.');seen.add(id);
     const c=s.evidence?.[e.url];
     need(c?.html_url===e.url&&c.user?.login===p.trustedActor&&typeof c.body==='string'&&c.body.trim().length>0&&c.body.length<=65536,'Evidence comment is missing or untrusted.');
-    need(!/(?:\/manage\/|\/return\/[a-f0-9]+#|[A-Z]:[\\/]|storage[\\/]private[\\/]|Bearer\s+[A-Za-z0-9_-]{20,}|<script)/i.test(c.body),'Evidence contains unsanitized private/executable content.');
+    need(!/(?:\/manage\/|\/return\/[a-f0-9]+#|(?:^|\s)[A-Z]:[\\/]|storage[\\/]private[\\/]|Bearer\s+[A-Za-z0-9_-]{20,}|<script)/i.test(c.body),'Evidence contains unsanitized private/executable content.');
     need(hash(c.body)===e.sha256,'QA evidence body hash mismatch.');
   }
   return q;
@@ -183,8 +189,6 @@ export function assertManualRun(data,auth,ready,pr,p=POLICY,inProgress=false){
   need(r.actor?.login===p.trustedActor&&r.triggering_actor?.login===p.trustedActor,'Release dispatch/rerun actor is untrusted.');
   need(r.display_title===releaseRunName(pr.number,ready.sha,ready.batchDigest),'Release workflow inputs do not bind this PR/candidate/digest.');
   need(inProgress?r.status==='in_progress':r.status==='completed'&&r.conclusion==='success','Release run has not completed successfully.');
-  const approvals=list(data.approvals).filter(a=>Array.isArray(a.environments)&&a.environments.some(e=>e.name===p.environment));
-  need(approvals.some(a=>a.state==='approved'&&a.user?.login===p.trustedActor)&&!approvals.some(a=>a.state==='rejected'),'Missing owner environment approval.');
 }
 export function releaseGate(s,pr,p=POLICY){
   const ready=releasePrerequisites(s,pr,p);
@@ -203,14 +207,16 @@ export function assertLocalReady(s,local,p=POLICY){
   need(b.tasks.every(t=>['merged','deferred'].includes(t.status)),'GitHub membership is not terminal.');
   need(local.batchId===b.id&&local.baseMain===b.baseMain&&local.candidate?.sha===b.candidate.sha&&local.candidate.tree===b.candidate.tree,'Local and GitHub batch candidate differ.');
   need(local.tasks.length===b.tasks.length&&b.tasks.every(t=>{const x=local.tasks.find(x=>x.id===t.id);return x?.status===t.status&&(t.status==='merged'?x.commit===t.head:x.reason===t.reason&&x.humanDecision===t.humanDecision);}), 'Local and GitHub task membership differ.');
-  const digest=batchDigest(state),latest=ordered(list(s.statuses).filter(x=>x.context===p.contexts.batch)).at(-1);
-  need(latest?.state==='success'&&latest.creator?.login==='github-actions[bot]'&&latest.sha===b.candidate.sha&&latest.description==='batch:'+digest,'Live GitHub batch-ready status/digest is not successful.');
-  const target=typeof latest.target_url==='string'&&latest.target_url.match(/^https:\/\/github\.com\/austinoehlerking\/LLM-Giving\/actions\/runs\/([1-9][0-9]*)$/);
-  need(target,'Batch-ready publisher URL is invalid.');
-  const run=s.publisher?.run,workflow=s.publisher?.workflow;
-  need(run&&workflow&&run.id===Number(target[1])&&run.repository?.full_name===p.repository&&run.workflow_id===workflow.id&&workflow.path===p.deliveryWorkflow&&run.path===p.deliveryWorkflow,'Batch-ready publisher run/workflow identity differs.');
-  need(run.head_branch==='main'&&run.head_sha===s.refs.main.sha&&run.status==='completed'&&run.conclusion==='success'&&['workflow_run','issue_comment','issues','workflow_dispatch','push'].includes(run.event),'Batch-ready publisher is not a successful trusted-main run.');
-  const changed=Date.parse(s.issue.updated_at),published=Date.parse(latest.created_at),started=Date.parse(run.run_started_at),finished=Date.parse(run.updated_at);
-  need([changed,published,started,finished].every(Number.isFinite)&&changed<=published&&started<=published&&published<=finished,'Control issue changed after the status, or publisher timestamps are missing; await refresh.');
-  return {status:'PASS',batchId:b.id,sha:b.candidate.sha,tree:b.candidate.tree,batchDigest:digest};
+  // One live preflight at QA start; no dependency on another workflow's status.
+  ancestor(s,b.baseMain,b.candidate.sha);
+  for(const t of b.tasks){
+    if(t.status==='deferred')continue;
+    const pr=s.pulls?.find(pr=>pr.number===t.pr);sameRepo(pr,s,p);
+    need(pr.state==='closed'&&pr.merged===true&&pr.base.ref==='develop'&&pr.head.sha===t.head&&SHA.test(pr.merge_commit_sha),'Task is not actually merged at its recorded head.');
+    ancestor(s,t.head,pr.merge_commit_sha);ancestor(s,pr.merge_commit_sha,b.candidate.sha);
+  }
+  for(const pr of (s.pulls??[]).filter(pr=>pr.state==='open'&&pr.base?.ref==='develop')){
+    need((state.queuedNextBatch??[]).some(q=>q.pr===pr.number&&q.head===pr.head.sha)&&!b.tasks.some(t=>t.pr===pr.number&&t.status!=='deferred'),'Open develop PR is not explicitly queued for the next batch.');
+  }
+  return {status:'PASS',batchId:b.id,sha:b.candidate.sha,tree:b.candidate.tree,batchDigest:batchDigest(state)};
 }

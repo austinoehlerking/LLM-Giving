@@ -47,9 +47,10 @@ await test('edited comment order uses updated timestamp',()=>{const f=dev();f.s.
 await test('outstanding native changes requested blocks marker pass',()=>{const f=dev();f.s.prData[1].reviews=[{...comment(30,'Please fix'),state:'CHANGES_REQUESTED',commit_id:H}];reject(f,x=>developGate(x.s,x.first),/CHANGES_REQUESTED/);f.s.prData[1].reviews.push({...comment(31,'Fixed',2),state:'COMMENTED',commit_id:H});reject(f,x=>developGate(x.s,x.first));f.s.prData[1].reviews.push({...comment(32,'Approved',3),state:'APPROVED',commit_id:H});assert.equal(developGate(f.s,f.first).status,'PASS');});
 await test('all unresolved threads block conservatively',()=>{const f=dev();f.s.prData[1].threads=[{isResolved:false}];reject(f,x=>developGate(x.s,x.first),/thread/);});
 await test('review marker must match actual review commit',()=>{const f=dev();f.s.prData[1].reviews=[{...f.s.prData[1].comments[0],state:'APPROVED',commit_id:X}];f.s.prData[1].comments=[];reject(f,x=>developGate(x.s,x.first),/reviewed commit/);});
-for(const status of ['in_progress','in_review','deferred'])await test('task '+status+' cannot merge to develop',()=>{const f=dev();Object.assign(f.state.activeBatch.tasks[0],{status,reason:'Later',humanDecision:'Human explicitly deferred'});f.save();reject(f,x=>developGate(x.s,x.first));});
+for(const status of ['in_progress','in_review'])await test('one review suffices without duplicate coordinator verdict '+status,()=>{const f=dev();f.state.activeBatch.tasks[0].status=status;f.state.activeBatch.tasks[0].head=null;f.save();assert.equal(developGate(f.s,f.first).status,'PASS');});
+await test('deferred task cannot merge',()=>{const f=dev();Object.assign(f.state.activeBatch.tasks[0],{status:'deferred',reason:'Later',humanDecision:'Human explicitly deferred'});f.save();reject(f,x=>developGate(x.s,x.first));});
 await test('unregistered head and stale binding fail',()=>{const f=dev();f.state.activeBatch.tasks=[];f.save();reject(f,x=>developGate(x.s,x.first));});
-for(const phase of ['qa_running','qa_passed'])await test('freeze during '+phase,()=>{const f=dev();f.state.activeBatch.phase=phase;f.save();reject(f,x=>developGate(x.s,x.first),/frozen/);});
+for(const phase of ['qa_ready','qa_running','qa_passed'])await test('freeze during '+phase,()=>{const f=dev();f.state.activeBatch.phase=phase;f.save();reject(f,x=>developGate(x.s,x.first),/frozen/);});
 await test('forked PR cannot merge',()=>{const f=dev();f.first.head={...f.first.head,repo:{id:44,full_name:'other/fork'}};reject(f,x=>developGate(x.s,x.first),/same repository/);});
 await test('closed integrated batch readiness passes',()=>assert.equal(batchReady(fixture().s).status,'PASS'));
 for(const mutate of [f=>f.state.activeBatch.membershipClosed=false,f=>f.state.activeBatch.tasks=[],f=>f.state.activeBatch.blockers=['finding'],f=>f.state.activeBatch.tasks[0].status='reviewed',f=>f.state.activeBatch.candidate.sha=X,f=>f.state.activeBatch.candidate.tree=X,f=>f.s.refs.main.sha=X,f=>f.first.head.sha=X,f=>f.first.base.ref='main',f=>f.first.merged=false,f=>delete f.s.ancestry[H+'...'+M]])await test('readiness rejects incomplete/mismatched integration '+(count+1),()=>{const f=fixture();mutate(f);f.save();reject(f,x=>batchReady(x.s));});
@@ -63,12 +64,12 @@ await test('QA digest mismatch fails',()=>{const f=approved();f.s.issueComments[
 await test('tampered QA evidence fails',()=>{const f=approved();Object.values(f.s.evidence)[0].body+=' altered';reject(f,x=>releaseGate(x.s,x.release),/hash mismatch/);});
 await test('evidence private paths are not public proof',()=>{const f=approved();const e=Object.values(f.s.evidence)[0];e.body='Private evidence D:\\private\\file';const q=readMarker(f.s.issueComments[0].body,'qa');q.evidence[0].sha256=hash(e.body);f.s.issueComments[0].body=marker('qa',q);reject(f,x=>releaseGate(x.s,x.release),/unsanitized/);});
 await test('missing manual run cannot be replaced by marker text',()=>{const f=approved();delete f.s.manualRuns[7];reject(f,x=>releaseGate(x.s,x.release),/workflow run identity/);});
-for(const mutate of [r=>r.run.conclusion='failure',r=>r.run.status='in_progress',r=>r.run.event='push',r=>r.run.head_branch='develop',r=>r.run.actor={login:'stranger'},r=>r.run.triggering_actor={login:'stranger'},r=>r.workflow.path='other.yml',r=>r.run.workflow_id=999,r=>r.run.run_attempt=2,r=>r.run.display_title='unbound',r=>r.approvals=[],r=>r.approvals[0].user={login:'stranger'},r=>r.approvals[0].environments=[{name:'other'}]])await test('release rejects unapproved/run identity mismatch '+(count+1),()=>{const f=approved();mutate(f.s.manualRuns[7]);reject(f,x=>releaseGate(x.s,x.release));});
+for(const mutate of [r=>r.run.conclusion='failure',r=>r.run.status='in_progress',r=>r.run.event='push',r=>r.run.head_branch='develop',r=>r.run.actor={login:'stranger'},r=>r.run.triggering_actor={login:'stranger'},r=>r.workflow.path='other.yml',r=>r.run.workflow_id=999,r=>r.run.run_attempt=2,r=>r.run.display_title='unbound'])await test('release rejects unapproved/run identity mismatch '+(count+1),()=>{const f=approved();mutate(f.s.manualRuns[7]);reject(f,x=>releaseGate(x.s,x.release));});
 await test('human typed authorization cannot impersonate workflow bot',()=>{const f=approved();f.s.prData[2].comments[0].user=actor;reject(f,x=>releaseGate(x.s,x.release));});
 await test('duplicate/malformed state and marker fail closed',()=>{const f=fixture();f.s.issue.body+=f.s.issue.body;reject(f,x=>readState(x.s.issue));assert.throws(()=>readMarker('<!-- llm-delivery-review {"x":1}','review'));assert.throws(()=>readMarker(marker('task',{})+marker('task',{}),'task'));});
 await test('JSON code-injection inputs remain rejected data',()=>{const f=dev();f.s.prData[1].comments[0].body='<!-- llm-delivery-review {"schemaVersion":1,"sha":"$(touch SHOULD_NOT_EXIST)","verdict":"pass","taskId":"dev-1","reviewerThread":"'+P.reviewerThread+'"} -->';reject(f,x=>developGate(x.s,x.first));assert.equal(fs.existsSync('SHOULD_NOT_EXIST'),false);assert.throws(()=>readMarker('<!-- llm-delivery-task {"x": process.exit(0)} -->','task'));});
 await test('live local readiness binds local membership/candidate and GitHub status',async()=>{const f=fixture();const local={batchId:'batch-a',baseMain:A,candidate:{sha:C,tree:T},tasks:[{id:'dev-1',status:'merged',commit:H}]};assert.equal((await verifyGithubReady(local,{snapshot:f.s})).status,'PASS');local.candidate.sha=X;assert.throws(()=>assertLocalReady(f.s,local),/Local and GitHub/);});
-await test('fake/stale successful status cannot authorize local QA',()=>{const f=fixture();f.s.statuses[0].creator={login:'stranger'};assert.throws(()=>assertLocalReady(f.s,{batchId:'batch-a',baseMain:A,candidate:{sha:C,tree:T},tasks:[{id:'dev-1',status:'merged',commit:H}]}),/status/);});
+await test('QA start needs no retired publisher status',()=>{const f=fixture();delete f.s.statuses;delete f.s.publisher;assert.equal(assertLocalReady(f.s,{batchId:'batch-a',baseMain:A,candidate:{sha:C,tree:T},tasks:[{id:'dev-1',status:'merged',commit:H}]}).status,'PASS');});
 await test('API adapter confines token to fixed GitHub routes',async()=>{let calls=0;const api=createClient({token:'synthetic-only',fetchImpl:async(url,o)=>{calls++;assert.equal(new URL(url).origin,'https://api.github.com');assert.equal(o.redirect,'error');return new Response('[]',{status:200});}});await api.pages('/repos/'+P.repository+'/pulls');assert.equal(calls,1);for(const route of ['https://evil.invalid','/repos/'+P.repository+'/../../other','/repos/'+P.repository+'/%2e%2e/evil'])await assert.rejects(()=>api.request(route),/Untrusted API/);assert.equal(calls,1);});
 await test('API missing/error data fails closed',async()=>{for(const response of [new Response('{}',{status:403}),new Response('{"errors":[{"message":"no"}]}',{status:200})]){const api=createClient({fetchImpl:async()=>response});await assert.rejects(()=>api.request('/graphql'));}});
 await test('runner rejects untrusted execution context before requests',async()=>{let calls=0;const client={request:()=>{calls++;}};await assert.rejects(()=>refresh(client,{GITHUB_REPOSITORY:P.repository,GITHUB_WORKFLOW_REF:P.repository+'/'+P.deliveryWorkflow+'@refs/pull/1/merge',GITHUB_RUN_ID:'1'}),/trusted main/);await assert.rejects(()=>authorize(client,{GITHUB_REPOSITORY:P.repository,GITHUB_WORKFLOW_REF:P.repository+'/'+P.manualWorkflow+'@refs/heads/main',GITHUB_RUN_ID:'1',GITHUB_REF:'refs/heads/develop',GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_ACTOR:P.trustedActor}));assert.equal(calls,0);});
@@ -84,7 +85,7 @@ await test('missing control issue revokes earlier statuses before failing',async
   throw new Error('Synthetic missing control issue');
  }};
  await assert.rejects(()=>refresh(client,{GITHUB_REPOSITORY:P.repository,GITHUB_WORKFLOW_REF:P.repository+'/'+P.deliveryWorkflow+'@refs/heads/main',GITHUB_RUN_ID:'10'}),/missing control issue/);
- assert.deepEqual(writes.map(x=>x.state),['pending','pending','failure','failure']);
+ assert.deepEqual(writes.map(x=>x.state),['pending','failure']);
 });
 await test('latest QA declaration with stale candidate cannot inherit earlier pass',()=>{const f=approved(),old=readMarker(f.s.issueComments[0].body,'qa');f.s.issueComments.push(comment(61,marker('qa',{...old,sha:X}),5));reject(f,x=>releaseGate(x.s,x.release),/mismatch/);});
 await test('API pagination exhaustion is a blocker',async()=>{const api=createClient({fetchImpl:async()=>new Response(JSON.stringify(Array.from({length:100},()=>({id:1}))),{status:200})});await assert.rejects(()=>api.pages('/repos/'+P.repository+'/pulls'),/pagination/);});
@@ -99,15 +100,15 @@ await test('public REST local readiness needs no token and never calls GraphQL',
   else if(u.pathname===prefix+'/branches/develop')data={commit:{sha:C}};
   else if(u.pathname===prefix+'/git/commits/'+A)data={sha:A,tree:{sha:X}};
   else if(u.pathname===prefix+'/git/commits/'+C)data={sha:C,tree:{sha:T}};
-  else if(u.pathname===prefix+'/commits/'+C+'/statuses')data=f.s.statuses;
-  else if(u.pathname===prefix+'/actions/runs/88')data=f.s.publisher.run;
-  else if(u.pathname===prefix+'/actions/workflows/delivery-gates.yml')data=f.s.publisher.workflow;
+  else if(u.pathname===prefix+'/pulls')data=[f.release];
+  else if(u.pathname===prefix+'/pulls/1')data=f.first;
+  else if(u.pathname.startsWith(prefix+'/compare/')){const proof=f.s.ancestry[u.pathname.slice((prefix+'/compare/').length)];assert.ok(proof);data={status:'ahead',base_commit:{sha:proof.base},merge_base_commit:{sha:proof.base}};}
   else throw new Error('Unexpected/non-REST route '+u.pathname);
   return new Response(JSON.stringify(data),{status:200});
  }});
- assert.equal((await verifyGithubReady(local,{client})).status,'PASS');assert.ok(seen.length>0);
+ assert.equal((await verifyGithubReady(local,{client})).status,'PASS');assert.ok(seen.length>0);assert.ok(!seen.some(r=>r.includes('/actions/')||r.endsWith('/statuses')));
 });
-for(const mutate of [f=>f.s.issue.updated_at=date(4),f=>f.s.statuses[0].description='batch:'+'0'.repeat(64),f=>f.s.statuses[0].target_url='https://evil.invalid/actions/runs/88',f=>f.s.publisher.run.head_branch='develop',f=>f.s.publisher.run.conclusion='failure',f=>f.s.publisher.run.status='in_progress',f=>f.s.publisher.workflow.path='untrusted.yml'])await test('public publisher proof mismatch fails closed '+(count+1),()=>{const f=fixture();mutate(f);const local={batchId:'batch-a',baseMain:A,candidate:{sha:C,tree:T},tasks:[{id:'dev-1',status:'merged',commit:H}]};assert.throws(()=>assertLocalReady(f.s,local));});
+for(const mutate of [f=>f.s.refs.develop.sha=X,f=>f.first.merged=false,f=>f.first.head.sha=X,f=>delete f.s.ancestry[H+'...'+M]])await test('direct QA preflight rejects stale/incomplete integration '+count,()=>{const f=fixture();mutate(f);const local={batchId:'batch-a',baseMain:A,candidate:{sha:C,tree:T},tasks:[{id:'dev-1',status:'merged',commit:H}]};assert.throws(()=>assertLocalReady(f.s,local));});
 await test('trusted publisher emits complete compact batch digest on candidate',async()=>{
  const f=fixture(),prefix='/repos/'+P.repository,writes=[];
  const client={
@@ -129,8 +130,7 @@ await test('trusted publisher emits complete compact batch digest on candidate',
   }
  };
  await refresh(client,{GITHUB_REPOSITORY:P.repository,GITHUB_WORKFLOW_REF:P.repository+'/'+P.deliveryWorkflow+'@refs/heads/main',GITHUB_RUN_ID:'10'});
- const published=writes.filter(s=>s.context===P.contexts.batch).at(-1);
- assert.equal(published.state,'success');assert.equal(published.description,'batch:'+batchDigest(f.state));assert.equal(published.description.length,70);assert.equal(published.route,prefix+'/statuses/'+C);
+ assert.equal(writes.filter(s=>s.context===P.contexts.batch).length,0);assert.ok(writes.every(s=>s.context===P.contexts.release));
 });
 // CR-GH-1: exercise the actual dependency loader, not only preassembled policy snapshots.
 function snapshotClient(f,{missingRuns=[]}={}){
@@ -278,7 +278,7 @@ await test('full refresh ancestry proof traverses actual transport adapter',asyn
  }});
  await refresh(api,{GITHUB_REPOSITORY:P.repository,GITHUB_WORKFLOW_REF:P.repository+'/'+P.deliveryWorkflow+'@refs/heads/main',GITHUB_RUN_ID:'10'});
  assert.deepEqual(compares.sort(),[A+'...'+C,H+'...'+M,M+'...'+C].sort());
- const published=writes.filter(s=>s.context===P.contexts.batch).at(-1);assert.equal(published.state,'success');assert.equal(published.sha,C);assert.equal(published.description,'batch:'+batchDigest(f.state));
+ assert.equal(writes.filter(s=>s.context===P.contexts.batch).length,0);assert.ok(writes.every(s=>s.context===P.contexts.release));
  assert.ok(seen.some(r=>r.route==='/graphql'));assert.ok(seen.some(r=>r.route.includes('/compare/')));
 });
 await test('workflow static security contract',()=>{
@@ -288,11 +288,21 @@ await test('workflow static security contract',()=>{
  const manual=fs.readFileSync(new URL('manual-release.yml',dir),'utf8');
  assert.match(signal,/permissions: \{\}/);assert.doesNotMatch(signal,/checkout|secrets\.|github\.token|\$\{\{/);
  for(const source of [gates,manual]){assert.doesNotMatch(source,/pull_request_target|actions\/download-artifact|git merge|ssh |deploy:/);assert.match(source,/actions\/checkout@11bd71901bbe5b1630ceea73d27597364c9af683/);assert.match(source,/ref: main/);assert.match(source,/persist-credentials: false/);}
- assert.match(gates,/workflows: \['Delivery signal', 'Manual release authorization'\]/);assert.doesNotMatch(gates,/workflow_run:[\s\S]*workflows:.*Delivery metadata gates/);assert.match(gates,/types: \[completed\]/);assert.match(manual,/environment: manual-release/);assert.match(manual,/if: github.ref == 'refs\/heads\/main'/);
+ assert.match(gates,/workflows: \['Delivery signal', 'Manual release authorization'\]/);assert.doesNotMatch(gates,/workflow_run:[\s\S]*workflows:.*Delivery metadata gates/);assert.match(gates,/types: \[completed\]/);assert.doesNotMatch(manual,/environment:/);assert.match(gates,/cancel-in-progress: true/);assert.match(gates,/github.event.issue.number == 20/);assert.match(manual,/if: github.ref == 'refs\/heads\/main'/);
  assert.match(gates,/statuses: write/);assert.match(manual,/issues: write/);assert.doesNotMatch(manual,/push:|schedule:|pull_request:/);
- assert.match(manual,/^  statuses: read\r?$/m);
+ assert.doesNotMatch(manual,/statuses: read/);
  assert.match(manual,/^  pull-requests: write\r?$/m);
 });
+
+await test('one QA record and one owner dispatch suffice without environment APIs',async()=>{
+ const f=approved(),q=readMarker(f.s.issueComments[0].body,'qa');delete q.evidence;q.summary='Focused policy checks pass; unchanged application evidence reused; no blocking findings.';
+ f.s.issueComments[0].body=marker('qa',q);delete f.s.manualRuns[7].approvals;
+ const x=snapshotClient(f),loaded=await loadSnapshot(x.client);assert.equal(releaseGate(loaded,f.release).status,'PASS');
+ assert.ok(!x.requests.some(r=>r.includes('/issues/comments/')||r.endsWith('/approvals')||r.endsWith('/statuses')));
+});
+for(const summary of ['', 'D:\\private\\data', 'Bearer '+ 'x'.repeat(25), '<script>bad</script>'])await test('single QA record rejects empty/private/executable summary '+count,()=>{const f=approved(),q=readMarker(f.s.issueComments[0].body,'qa');delete q.evidence;q.summary=summary;f.s.issueComments[0].body=marker('qa',q);assert.throws(()=>releaseGate(f.s,f.release));});
+await test('open unqueued work still prevents local QA',()=>{const f=fixture();f.s.pulls.push({...f.first,number:3,state:'open',merged:false});assert.throws(()=>assertLocalReady(f.s,{batchId:'batch-a',baseMain:A,candidate:{sha:C,tree:T},tasks:[{id:'dev-1',status:'merged',commit:H}]}),/queued/);});
+
 const dir=path.resolve(import.meta.dirname,'../storage/qa/github-delivery');
 fs.mkdirSync(dir,{recursive:true});
 const report=path.join(dir,'policy-'+Date.now()+'.json');
