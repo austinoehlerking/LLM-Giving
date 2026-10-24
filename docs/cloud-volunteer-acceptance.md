@@ -81,4 +81,14 @@ Copy this table into a private dated report under storage/qa. Initial verdict: P
 | after_stop: session stopped, eligible result preserved | PENDING |
 | Redacted screenshots; actual approvals; limitations and stopping reason | PENDING |
 
+## Required separate fixture-state coverage
+
+The normal tools/check.mjs runner (and qa-all server stage) runs the database-free Cloud contracts and runner/configuration regression. It deliberately does not invoke the operator fixture-state suite with inherited app settings: standard local llm_giving and Compose host db remain supported, while cv_guard continues to reject them for fixture mutations.
+
+Required separate batch-plan entry, from a candidate checkout with its own local runtime configured as described above:
+
+    php tests/cloud-volunteer-state.php
+
+This is required focused fixture coverage, not an optional skip and not part of the normal server-stage PASS. Use APP_ENV=local/test/testing, DB_HOST=127.0.0.1, an isolated llm_giving_cloud_qa_* database and APP_URL=http://127.0.0.1:PORT. Record the exact candidate/relevant hashes, actual database/ports, raw exit/report, and owned-resource cleanup. The coordinator must include this command in the closed-batch plan. Independent QA may explicitly accept valid unchanged developer evidence instead of rerunning it, with source/environment identity and coverage stated. A normal runner PASS alone cannot claim that this separate suite executed. Never weaken cv_guard or point the suite at the shared/default database to make it pass.
+
 Local developer checks are separate: source hygiene, pure guard/verifier contracts, local scoped setup/read-only observation/cleanup, and the other owners' focused suites after integration. The phone-guide browser mode is repository-owned UI QA, not proof of phone-launched Cloud execution. Required UI screenshots remain 1366x768, 390x844, 375x667 before interaction, plus 200% text reflow; Dev4 owns that module. No per-component complete application matrix is required.
