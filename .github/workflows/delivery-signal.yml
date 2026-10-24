@@ -1,0 +1,17 @@
+name: Delivery signal
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, reopened, synchronize, edited, closed, ready_for_review, converted_to_draft]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+  pull_request_review_comment:
+    types: [created, edited, deleted]
+permissions: {}
+jobs:
+  signal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Signal metadata refresh only
+        run: ':'
