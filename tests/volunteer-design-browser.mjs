@@ -37,7 +37,13 @@ export async function volunteerDesignQa({page,ctx,base,runPhp,check,visibleActio
   await page.getByRole('button',{name:'Connect my AI',exact:true}).click();check('Specific research and custom limits survive server review',(await page.locator('.volunteer-start > .fine').first().innerText()).includes('125 min or 7 tasks'));
   await page.goto(base+'/volunteer');await preset(page,'unlimited');await page.locator('[data-volunteer-advanced] > summary').click();
   await page.locator('[name=cause_choice][value=custom]').check();await page.locator('[name=scope_kind]').selectOption('research');await page.locator('[name=research_id]').fill(fixtures[0].id);await page.locator('[name=model]').selectOption('gpt-6-astra');await page.locator('[name=reasoning]').selectOption('max');await page.locator('[name=tool]').fill('Codex');
-  await page.getByRole('button',{name:'Connect my AI',exact:true}).click();const id=await authorize(page);
+  await page.getByRole('button',{name:'Connect my AI',exact:true}).click();
+  const consentShots=[],consentFailures=[];
+  for(const size of sizes.slice(0,3)){await page.setViewportSize(size);await page.evaluate(()=>scrollTo(0,0));consentShots.push(await shot(page,'unlimited-authorization-'+size.width+'x'+size.height));try{await visibleActions(page,'.volunteer-start .primary-actions > *','Unlimited authorization '+size.width);}catch(error){consentFailures.push(error.message);}}
+  console.log('INSPECT UNLIMITED AUTHORIZATION: '+consentShots.join(' | '));
+  if(env.QA_INSPECT_FIRST==='design')await new Promise(resolve=>{process.stdin.resume();process.stdin.once('data',()=>{process.stdin.pause();resolve();});});
+  if(consentFailures.length)throw new Error(consentFailures.join('; '));
+  await page.setViewportSize(sizes[0]);const id=await authorize(page);
   const orchestrator=await page.locator('#orchestrator-handoff').inputValue();check('Actual unlimited orchestrator handoff has null deadline/quota',orchestrator.includes('"limit_mode": "unlimited"')&&orchestrator.includes('"assignment_limit": null')&&orchestrator.includes('"expires_at_utc": null'));
   await page.getByRole('link',{name:'Open private dashboard',exact:true}).click();check('Unlimited dashboard has honest limits',(await page.locator('.session-meta').innerText()).includes('Until you press Stop')&&!await page.locator('.session-meta').innerText().then(text=>text.includes('min remaining')));
   await page.getByRole('button',{name:'Pick up next task',exact:true}).click();const handoff=await page.locator('#session-task-handoff').inputValue();check('Unlimited pickup supplies complete current worker handoff',handoff.includes('no session deadline or assignment quota')&&handoff.includes('PRIVATE SESSION WORKER PROCEDURE'));

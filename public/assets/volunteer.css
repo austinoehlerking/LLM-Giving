@@ -7,4 +7,4 @@
 
 .time-name{overflow-wrap:anywhere}
 
-@media(max-width:600px){.volunteer-design .time-card{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto auto;align-content:start}.time-name{grid-column:1/-1;grid-row:1}.time-value{grid-column:1/-1;grid-row:2}.time-task{grid-column:1/-1;grid-row:3}.time-standard .time-task{grid-column:1}.popular{position:static;grid-column:2;grid-row:3;align-self:end;justify-self:end}}
+@media(max-width:600px){.time-cards{grid-template-columns:repeat(auto-fit,minmax(min(100%,9.8em),1fr))}.volunteer-design .time-card{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto auto;align-content:start}.time-name{grid-column:1/-1;grid-row:1}.time-value{grid-column:1/-1;grid-row:2}.time-task{grid-column:1/-1;grid-row:3}.time-standard .time-task{grid-column:1}.popular{position:static;grid-column:2;grid-row:3;align-self:end;justify-self:end}}
