@@ -1,5 +1,6 @@
 <?php
 // Calculation records are inert text/data. The web application never executes submitted code.
+require_once __DIR__.'/research-derivations.php';
 function rc_instructions(array $task): string {
     $r=research($task['research_id']);$policy=calculation_policy($r);$progress=$policy['allowed']?rc_progress($task):null;
     return file_get_contents(ROOT.'/templates/calculations.txt')."\nCalculation preference: ".EXTERNAL_HELP[$policy['mode']].". Calculations permitted: ".($policy['allowed']?'yes':'no')."; execution required by the request: ".($policy['required']?'yes':'no').". This task computational flag: ".(!empty($task['computational'])?'true':'false').($progress?"\nRESUME ACCEPTED CHECKPOINT: ".$progress['id'].". Read its complete retained record in the context before continuing; set resume_from_result_id to this result.":'');
@@ -25,7 +26,7 @@ function rc_template(array $task): array {
         'software'=>[['name'=>'','version'=>'']],'files'=>[['id'=>'input','name'=>'inputs.json','role'=>'input','content'=>'','sha256'=>''],['id'=>'code','name'=>'model.txt','role'=>'code','content'=>'','sha256'=>'']],
         'inputs'=>[['id'=>'input_quantity','value'=>null,'unit'=>'','file_id'=>'input','locator'=>'','source_id'=>'s1','source_locator'=>'','extraction'=>'','provenance'=>'','derivation'=>'']],
         'outputs'=>[],'unit_checks'=>[]];
-    return ['calculations'=>!empty($task['computational'])?[$calculation]:[],'calculation_checkpoint'=>!empty($task['computational'])?['resume_from_result_id'=>'','completed'=>'','remaining'=>'','next_action'=>'','required_tools'=>'']:null,'calculation_reviews'=>$reviews];
+    return ['calculations'=>!empty($task['computational'])?[$calculation]:[],'calculation_checkpoint'=>!empty($task['computational'])?['resume_from_result_id'=>'','completed'=>'','remaining'=>'','next_action'=>'','required_tools'=>'']:null,'calculation_reviews'=>$reviews]+rd_template($task);
 }
 function rc_quantities(array $data,string $key,array $files,array $sources=[],bool $historical=false): array {
     $out=[];foreach(ra_list($data,$key,30) as $quantity){
@@ -104,7 +105,8 @@ function rc_validate(array $task,array $data,array $evidence,array $row,bool $hi
         }
     }
     if($row['outcome']==='verified'&&count($seen)!==count($targets))fail(422,'Verified review must independently reproduce every current calculation.');
-    return ['fields'=>['calculations'=>array_values($calculations),'calculation_checkpoint'=>$checkpoint,'calculation_reviews'=>$reviews],'corrections'=>$corrections];
+    $derivations=rd_validate($task,$data,$evidence,$row,$historical);
+    return ['fields'=>['calculations'=>array_values($calculations),'calculation_checkpoint'=>$checkpoint,'calculation_reviews'=>$reviews]+$derivations['fields'],'corrections'=>array_merge($corrections,$derivations['corrections'])];
 }
 function rc_read(string $rid,string $resultId): array {
     research($rid);$result=one("SELECT * FROM workflow_submissions WHERE research_id=? AND id=? AND visibility='public' AND admission='accepted'",[$rid,$resultId])??fail(404,'Calculation record unavailable.');
@@ -115,6 +117,7 @@ function rc_read(string $rid,string $resultId): array {
     return $result;
 }
 function rc_route(array $r,string $suffix,string $method): bool {
+    if(rd_route($r,$suffix,$method))return true;
     if(!preg_match('~^results/([a-f0-9]{32})/calculations/([a-z][a-z0-9_-]{0,39})/bundle\.json$~D',$suffix,$m))return false;
     if($method!=='GET')fail(405,'Calculation bundles are read-only.');$result=rc_read($r['id'],$m[1]);$evidence=json_decode($result['metadata'],true)['evidence'];
     foreach($evidence['calculations']??[] as $calculation)if($calculation['id']===$m[2]){

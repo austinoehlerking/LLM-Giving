@@ -30,7 +30,7 @@ function wf_public_data(string $rid): array {
     return ['project'=>wf_project($rid),'admission_notice'=>wf_quarantine($rid)?'Awaiting admin decision. Research submissions are paused; quarantined packets are not research evidence.':'Only accepted packets are included as research evidence.','tasks'=>array_values(array_filter(wf_tasks($rid,false),fn($t)=>$t['visibility']==='public')),'submissions'=>$submissions,
       'clarifications'=>all('SELECT * FROM workflow_clarifications WHERE research_id=? ORDER BY created_at,id',[$rid]),
       'ledger'=>wf_ledger($rid),
-      'planning_model_policy'=>wf_policy(),'provenance_notice'=>'Model, run evidence, reasoning and identity are contributor declarations, not provider authentication. Structural acceptance is not scientific verification.'];
+      'planning_model_policy'=>wf_policy(),'model_derivation_policy'=>rd_policy(),'provenance_notice'=>'Model, run evidence, reasoning and identity are contributor declarations, not provider authentication. Structural acceptance is not scientific verification.'];
 }
 function wf_snapshot(string $rid): array {
     research($rid);
