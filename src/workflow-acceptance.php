@@ -24,7 +24,7 @@ function wf_acceptance(array $t,array $d,array $row): array {
  $clean[]=['correction_response'=>$response,'task_id'=>$c['task_id'],'result_id'=>$c['result_id'],'criterion_id'=>$c['criterion_id'],'status'=>$status,'evidence_quote'=>$quote,'reason'=>$reason];$seen[$key]=true;
  }if($terminal&&count($seen)!==count($expected)){$missing=array_diff_key($labels,$seen);fail(422,'Complete every acceptance check with an evidence quote and assessment before completing this task. Missing '.count($missing).' check(s): '.implode(' | ',array_slice(array_values($missing),0,3)).(count($missing)>3?' | See the remaining criteria in the handoff.':''));}
  $targets=[];foreach($issues as $c){if($t['kind']!=='review'||$row['outcome']!=='needs_correction'||!is_array($c))fail(422,'Targeted corrections belong to a needs_correction review.');$target=wf_task($t['research_id'],text_field($c,'task_id',32,32));if($target['round_no']!=$t['round_no']||$target['visibility']!=='public'||!in_array($target['kind'],['research','synthesis'],true)||$target['state']!=='Completed'||$target['accepted_id']!==($c['result_id']??''))fail(422,'Correction target must be a current accepted research or synthesis result.');
- $criterion=text_field($c,'criterion_id',1,50);$claimId=text_field($c,'claim_id',0,40);$artifactId=text_field($c,'artifact_id',0,40);$calculationId=text_field($c,'calculation_id',0,40);$toolId=text_field($c,'tool_id',0,40);
+ $criterion=text_field($c,'criterion_id',1,50);$claimId=text_field($c,'claim_id',0,40);$artifactId=text_field($c,'artifact_id',0,40);$calculationId=text_field($c,'calculation_id',0,40);$toolId=text_field($c,'tool_id',0,40);$derivationId=$criterion==='derivation-standard'?text_field($c,'derivation_id',1,40):'';
  if($criterion==='evidence-standard'){
   $accepted=one("SELECT metadata FROM workflow_submissions WHERE id=? AND research_id=? AND visibility='public' AND admission='accepted'",[$target['accepted_id'],$t['research_id']]);
   $claims=json_decode($accepted['metadata'],true)['evidence']['claims']??[['id'=>'legacy']];
@@ -37,6 +37,10 @@ function wf_acceptance(array $t,array $d,array $row): array {
   $accepted=one("SELECT metadata FROM workflow_submissions WHERE id=? AND research_id=? AND visibility='public' AND admission='accepted'",[$target['accepted_id'],$t['research_id']]);
   $calculations=json_decode($accepted['metadata'],true)['evidence']['calculations']??[];
   if(!in_array($calculationId,array_column($calculations,'id'),true))fail(422,'Calculation correction must identify a current accepted calculation.');
+ }elseif($criterion==='derivation-standard'){
+  $accepted=one("SELECT metadata FROM workflow_submissions WHERE id=? AND research_id=? AND visibility='public' AND admission='accepted'",[$target['accepted_id'],$t['research_id']]);
+  $derivations=json_decode($accepted['metadata'],true)['evidence']['derivations']??[];
+  if(!in_array($derivationId,array_column($derivations,'id'),true))fail(422,'Derivation correction must identify current accepted model-derived arithmetic.');
  }elseif($criterion==='artifact-standard'){
   $accepted=one("SELECT metadata FROM workflow_submissions WHERE id=? AND research_id=? AND visibility='public' AND admission='accepted'",[$target['accepted_id'],$t['research_id']]);
   $artifacts=json_decode($accepted['metadata'],true)['evidence']['artifacts']??[];
@@ -44,7 +48,7 @@ function wf_acceptance(array $t,array $d,array $row): array {
  }elseif($criterion==='supporting-materials'){
   if(!isset(wf_evidence_results($t)[$target['accepted_id']]))fail(422,'Material correction needs eligible current evidence.');
  }elseif(!isset(wf_criteria($target)[$criterion]))fail(422,'Correction criterion does not belong to its task.');
- $targets[]=['task_id'=>$target['id'],'result_id'=>$target['accepted_id'],'criterion_id'=>$criterion,'claim_id'=>$claimId,'artifact_id'=>$artifactId,'calculation_id'=>$calculationId,'tool_id'=>$toolId,'reason'=>text_field($c,'reason',10,1000),'required_change'=>text_field($c,'required_change',10,3000)];
+ $entry=['task_id'=>$target['id'],'result_id'=>$target['accepted_id'],'criterion_id'=>$criterion,'claim_id'=>$claimId,'artifact_id'=>$artifactId,'calculation_id'=>$calculationId,'tool_id'=>$toolId,'reason'=>text_field($c,'reason',10,1000),'required_change'=>text_field($c,'required_change',10,3000)];if($derivationId!=='')$entry['derivation_id']=$derivationId;$targets[]=$entry;
  }if($row['outcome']==='needs_correction'&&!$targets)fail(422,'Select at least one task, accepted result and criterion requiring correction.');
  return ['acceptance_checks'=>$clean,'corrections'=>$targets];
 }

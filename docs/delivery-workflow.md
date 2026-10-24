@@ -6,7 +6,7 @@ Task branch → independent Code Review → merge to develop → one closed-batc
 
 One coordinator integrates work, one reviewer accepts code, and one QA owner accepts the batch. Issue #20 is the public batch; storage/orchestration/batch-state.json is its local mirror and private evidence index.
 
-Message another task only with a concrete executable handoff or a blocker it can resolve. No preparation notices, success broadcasts, acknowledgements, polling loops or self-wakeups. Idle chats are not active development tasks. Record routine progress in the ledger/PR. A worker ends its turn when finished or waiting on a named dependency.
+Developers route questions, dependency requests, tooling/permission rejections and ready PR handoffs only to the coordinator. The coordinator routes concrete Dev/Code Review/QA work and asks the human only for a consolidated, unavoidable human-only action after checking alternatives. Developers do not ask the human or dispatch peers directly. If reporting is denied, preserve the exact rejection and concrete next action in the shared task outbox; do not bypass the denial or open an approval card. Message another task only through this routing with a concrete executable handoff or a blocker it can resolve. No preparation notices, success broadcasts, acknowledgements, polling loops or self-wakeups. Idle chats are not active development tasks. Record routine progress in the ledger/PR. A worker ends its turn when finished or waiting on a named dependency.
 
 ## Development and review
 

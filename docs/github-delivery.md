@@ -8,6 +8,8 @@ Register work in issue #20 and include this PR-body marker:
 
     <!-- llm-delivery-task {"batchId":"BATCH_ID","taskId":"TASK_ID"} -->
 
+Developers send ready PRs, questions, dependency requests and tooling/permission blockers to the coordinator, who dispatches independent Code Review and routes findings. Only the coordinator consolidates unavoidable questions for the human; developers do not dispatch peers or ask the human directly. This routing adds no review or QA gate.
+
 Code Review publishes its current-head verdict once:
 
     <!-- llm-delivery-review {"schemaVersion":1,"sha":"FULL_HEAD_SHA","verdict":"pass","taskId":"TASK_ID","reviewerThread":"01a15bda-b64c-7540-9a89-261c5349b451"} -->
