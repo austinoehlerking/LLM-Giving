@@ -223,6 +223,64 @@ await test('CR-GH-1 new owner-approved workflow can replace missing prior run',a
 await test('CR-GH-1 skipping prior-run dependencies never grants release permission',async()=>{
  const f=approved(),x=snapshotClient(f),s=await loadSnapshot(x.client,{includeManualRuns:false});assert.deepEqual(s.manualRuns,{});assert.throws(()=>releaseGate(s,f.release),/workflow run identity/);
 });
+await test('compare transport accepts exact full-SHA same-repository route',async()=>{
+ const route='/repos/'+P.repository+'/compare/'+A+'...'+C,seen=[];
+ const api=createClient({token:null,fetchImpl:async(url)=>{seen.push(url);return new Response('{"status":"ahead"}',{status:200});}});
+ assert.equal((await api.request(route)).status,'ahead');assert.deepEqual(seen,['https://api.github.com'+route]);
+});
+const compare='/repos/'+P.repository+'/compare/'+A+'...'+C;
+const badCompareRoutes=[
+ compare+'?per_page=100',compare+'?redirect=https://evil.invalid',compare+'&page=1',compare+'#fragment',compare+'/../pulls',compare+'/./',compare+'/',compare+'\n',compare+'\r',compare+'\t',compare+'\0',
+ '/repos/'+P.repository+'/compare?base='+A+'&head='+C,
+ '/repos/'+P.repository+'/compare/main...develop',
+ '/repos/'+P.repository+'/compare/'+A.slice(0,7)+'...'+C,
+ '/repos/'+P.repository+'/compare/'+A+'..'+C,
+ '/repos/'+P.repository+'/compare/'+A+'....'+C,
+ '/repos/'+P.repository+'/compare/'+A+'%2e%2e%2e'+C,
+ '/repos/'+P.repository+'/compare/%2e%2e/pulls',
+ '/repos/'+P.repository+'/compare/'+A.toUpperCase()+'...'+C,
+ '/repos/'+P.repository+'/../foreign/compare/'+A+'...'+C,
+ '/repos/'+P.repository+'/compare/'+A+'...'+C+'%3fextra=1',
+ '/repos/stranger/other/compare/'+A+'...'+C,
+ '/repos/'+P.repository+'-foreign/compare/'+A+'...'+C,
+ 'https://api.github.com'+compare,
+ '//evil.invalid'+compare,
+ '/repos/'+P.repository+'/compare/'+A+'...'+C+'\\..\\pulls'
+];
+for(const [index,route]of badCompareRoutes.entries())await test('compare transport rejects suspicious route '+index,async()=>{
+ let calls=0;const api=createClient({token:null,fetchImpl:async()=>{calls++;return new Response('{}',{status:200});}});
+ await assert.rejects(()=>api.request(route),/Untrusted API route/);assert.equal(calls,0);
+});
+await test('full refresh ancestry proof traverses actual transport adapter',async()=>{
+ const f=fixture(),prefix='/repos/'+P.repository,seen=[],writes=[],compares=[];
+ const api=createClient({token:null,fetchImpl:async(url,options)=>{
+  const u=new URL(url),route=u.pathname;seen.push({route,method:options.method});let data;
+  assert.equal(u.origin,'https://api.github.com');assert.equal(options.redirect,'error');
+  if(route==='/graphql'){
+   const query=JSON.parse(options.body).query,kind=query.includes('reviewThreads(')?'reviewThreads':'reviews';
+   data={data:{repository:{pullRequest:{[kind]:{nodes:[],pageInfo:{hasNextPage:false,endCursor:null}}}}}};
+  }else if(options.method==='POST'&&route.startsWith(prefix+'/statuses/')){writes.push({sha:route.slice((prefix+'/statuses/').length),...JSON.parse(options.body)});data={id:writes.length};}
+  else if(route===prefix)data=repo;
+  else if(route===prefix+'/issues/20')data=f.s.issue;
+  else if(route===prefix+'/branches/main')data={commit:{sha:A}};
+  else if(route===prefix+'/branches/develop')data={commit:{sha:C}};
+  else if(route===prefix+'/git/commits/'+A)data={sha:A,tree:{sha:X}};
+  else if(route===prefix+'/git/commits/'+C)data={sha:C,tree:{sha:T}};
+  else if(route===prefix+'/pulls'){assert.equal(u.searchParams.get('state'),'open');assert.equal(u.searchParams.get('page'),'1');data=[f.release];}
+  else if(route===prefix+'/pulls/1')data=f.first;
+  else if(route===prefix+'/pulls/2')data=f.release;
+  else if(route===prefix+'/issues/1/comments')data=f.s.prData[1].comments;
+  else if(route===prefix+'/issues/2/comments'||route===prefix+'/issues/20/comments'||route.endsWith('/reviews')||route===prefix+'/commits/'+C+'/statuses')data=[];
+  else if(route.startsWith(prefix+'/compare/')){
+   assert.equal(u.search,'');const key=route.slice((prefix+'/compare/').length),proof=f.s.ancestry[key];assert.ok(proof);compares.push(key);data={status:'ahead',base_commit:{sha:proof.base},merge_base_commit:{sha:proof.base}};
+  }else throw new Error('Unexpected real-adapter mock request '+route);
+  return new Response(JSON.stringify(data),{status:200});
+ }});
+ await refresh(api,{GITHUB_REPOSITORY:P.repository,GITHUB_WORKFLOW_REF:P.repository+'/'+P.deliveryWorkflow+'@refs/heads/main',GITHUB_RUN_ID:'10'});
+ assert.deepEqual(compares.sort(),[A+'...'+C,H+'...'+M,M+'...'+C].sort());
+ const published=writes.filter(s=>s.context===P.contexts.batch).at(-1);assert.equal(published.state,'success');assert.equal(published.sha,C);assert.equal(published.description,'batch:'+batchDigest(f.state));
+ assert.ok(seen.some(r=>r.route==='/graphql'));assert.ok(seen.some(r=>r.route.includes('/compare/')));
+});
 await test('workflow static security contract',()=>{
  const dir=new URL('../.github/workflows/',import.meta.url);
  const signal=fs.readFileSync(new URL('delivery-signal.yml',dir),'utf8');
