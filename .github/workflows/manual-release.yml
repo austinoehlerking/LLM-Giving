@@ -20,13 +20,11 @@ permissions:
   pull-requests: write
   issues: write
   actions: read
-  statuses: read
 jobs:
   authorize:
     if: github.ref == 'refs/heads/main'
-    environment: manual-release
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 2
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # official v4.2.2
         with:
