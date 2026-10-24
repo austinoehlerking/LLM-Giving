@@ -148,6 +148,7 @@ function wf_correction_label(?array $task,string $criterion): string {
     if($criterion==='supporting-materials')return 'Supporting material completeness and reproducibility';
     if($criterion==='tool-standard')return 'Research tool: reproducible tests and scientific assumptions';
     if($criterion==='calculation-standard')return 'Calculation reproducibility, output values and unit consistency';
+    if($criterion==='derivation-standard')return 'Model-derived arithmetic: sources, units and worked steps; not computational reproduction';
     if($criterion==='artifact-standard')return 'Visual artifact: data fidelity, evidence links, assumptions and limitations';
     if($criterion==='evidence-standard')return 'Research evidence: source support, uncertainty and scope of conclusions';
     return $task?(wf_criteria($task)[$criterion]??'Historical criterion'):'Criterion text is no longer publicly available';

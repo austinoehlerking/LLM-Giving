@@ -23,6 +23,7 @@ require __DIR__.'/backup.php';
 require __DIR__.'/workflow.php';
 require __DIR__.'/workflow-routes.php';
 require __DIR__.'/research-forks.php';
+require __DIR__.'/volunteer-profiles.php';
 require __DIR__.'/volunteer-sessions.php';
 require __DIR__.'/volunteer-queue.php';
 require __DIR__.'/volunteer-routes.php';

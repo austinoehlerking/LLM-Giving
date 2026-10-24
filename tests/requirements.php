@@ -4,6 +4,16 @@ session_start_safe();$_SESSION['admin']=1;$ids=[];$checks=[];
 function req_ok(bool $v,string $s):void{global $checks;if(!$v)throw new RuntimeException($s);$checks[]=$s;}
 function req_deny(callable $f,int $status,string $s):void{try{$f();}catch(HttpError $e){req_ok($e->status===$status,$s);return;}throw new RuntimeException($s);}
 try{
+ $legacy=['model'=>'','mode'=>'none','effort'=>''];$reordered=['mode'=>'none','model'=>'','effort'=>''];
+ req_ok(rq_same_requirements($legacy,$reordered),'Requirement object key order is not a semantic change');
+ foreach(['model'=>'gpt-6-astra','mode'=>'exact','effort'=>'max'] as $key=>$value){$changed=$legacy;$changed[$key]=$value;req_ok(!rq_same_requirements($legacy,$changed),'Changed '.$key.' remains a real requirement change');}
+ foreach([null,'{}',[],['none'],['model'=>'','mode'=>'none'],['model'=>'','mode'=>'none','effort'=>'','extra'=>true],['model'=>'','mode'=>'none','effort'=>false]] as $malformed)req_ok(!rq_same_requirements($malformed,$legacy),'Missing, extra, malformed or differently typed values never compare equal');
+ $v2=['version'=>2,'models'=>['gpt-6-astra','claude-fable-5-1'],'efforts'=>[['level'=>'max','or_higher'=>false]],'modes'=>[],'registry'=>['gpt-6-astra'=>['efforts'=>['low','max','ultra'],'modes'=>[]]]];
+ $v2Reordered=['registry'=>['gpt-6-astra'=>['modes'=>[],'efforts'=>['low','max','ultra']]],'modes'=>[],'efforts'=>[['or_higher'=>false,'level'=>'max']],'models'=>['gpt-6-astra','claude-fable-5-1'],'version'=>2];
+ $before=json_encode($v2Reordered);req_ok(rq_same_requirements($v2,$v2Reordered),'Nested version2 registry and effort-object key order is ignored');req_ok(json_encode($v2Reordered)===$before,'Comparison does not mutate captured requirements');
+ $changed=$v2;$changed['efforts'][0]['or_higher']=0;req_ok(!rq_same_requirements($v2,$changed),'Boolean effort policy is not coerced to an integer');
+ $changed=$v2;$changed['registry']['gpt-6-astra']['efforts']=['max','low','ultra'];req_ok(!rq_same_requirements($v2,$changed),'Effort scale list ordering remains significant');
+ $changed=$v2;$changed['version']='2';req_ok(!rq_same_requirements($v2,$changed),'Requirement version type remains significant');
  req_deny(fn()=>rq_parse(['required_model'=>'invented-model']),422,'Unknown model rejected');
  req_deny(fn()=>rq_parse(['reasoning_rule'=>'exact','required_reasoning'=>'medium']),422,'Incompatible exact reasoning rejected before topic creation');
  req_deny(fn()=>rq_parse(['required_model'=>'claude-opus-5-5','reasoning_rule'=>'exact','required_reasoning'=>'ultra']),422,'Incompatible model and effort rejected');
@@ -11,6 +21,11 @@ try{
  $old=wf_test_payload($rid,$task);
  req_deny(fn()=>rq_update($rid,['reasoning_rule'=>'none']),403,'Only requester capability can update requirements');
  redeem($rid,parse_url($created['link'],PHP_URL_FRAGMENT));
+ $reorderedText=json_encode(['effort'=>'high','mode'=>'minimum','model'=>'gpt-6-astra']);query('UPDATE research SET ai_requirements=? WHERE id=?',[$reorderedText,$rid]);
+ $beforeNoop=[one('SELECT context_version FROM research WHERE id=?',[$rid])['context_version'],one('SELECT COUNT(*) n FROM audit_events WHERE research_id=?',[$rid])['n']];
+ rq_update($rid,['required_model'=>'gpt-6-astra','reasoning_rule'=>'minimum','required_reasoning'=>'high']);
+ req_ok($beforeNoop===[one('SELECT context_version FROM research WHERE id=?',[$rid])['context_version'],one('SELECT COUNT(*) n FROM audit_events WHERE research_id=?',[$rid])['n']]&&one('SELECT ai_requirements FROM research WHERE id=?',[$rid])['ai_requirements']===$reorderedText,'Reordered unchanged requirements do not rewrite history, context or audit');
+ req_ok(wf_test_submit($rid,$task['id'],$old,str_repeat('a',64),true)==='','Existing snapshot accepts reordered semantically unchanged current requirements');
  rq_update($rid,['required_model'=>'gpt-6-astra','reasoning_rule'=>'minimum','required_reasoning'=>'max']);
  req_deny(fn()=>wf_test_submit($rid,$task['id'],$old,str_repeat('a',64)),409,'Changed requirements invalidate old handoffs');
  $d=wf_test_payload($rid,$task);$d['metadata']['model']='gpt-6.1-sol';req_deny(fn()=>wf_test_submit($rid,$task['id'],$d,str_repeat('a',64)),422,'Wrong exact model rejected');

@@ -18,7 +18,7 @@ function vs_scope_matches(array $session, array $r): bool {
 }
 function vs_task_eligible(array $session, array $r, array $task): void {
     vs_assert_active($session);
-    if (!vs_scope_matches($session,$r) || !vs_configuration_matches($session,$r,$task)) fail(409,'This assignment does not match your session scope, software consent or worker configuration.');
+    if (!vs_scope_matches($session,$r) || !vs_configuration_matches($session,$r,$task)) fail(409,'This assignment does not match your authorized session profile, scope, software consent or worker configuration.');
     wr_eligible($r['id'],$task['id'],(int)$task['revision'],$session['actor_hash']);
     // A child worker uses this same immutable actor; a different browser does not make it independent.
     if ($task['kind']==='review' && one('SELECT id FROM workflow_submissions WHERE research_id=? AND actor_hash=? LIMIT 1',[$r['id'],$session['actor_hash']])) {
@@ -107,7 +107,7 @@ function vs_claim_next(string $id): array {
                 return vs_issue_assignment($session,$r,$task,$reservation);
             }
         } while (count($candidates)===50);
-        fail(409,'No eligible unreserved task matches this scope, software consent and worker configuration. Work may be reserved, waiting, completed or held. Nothing was assigned.');
+        fail(409,'No eligible unreserved task matches this authorized profile, scope, software consent and worker configuration. Work may be reserved, waiting, completed or held. Nothing was assigned.');
     });
 }
 /** Called by ar_validate only for a trusted stored scope carrying volunteer_session_id. */
@@ -195,5 +195,5 @@ function vs_handoff(string $id,string $assignmentId): string {
     $secret=vs_return_secret($grant['id']);
     if (!hash_equals($grant['secret_hash'],hash('sha256',$secret))) fail(409,'The private delivery key changed. Use your session dashboard; do not invent authorization.');
     $link=rtrim(env('APP_URL'),'/').'/research/'.$r['slug'].'/return/'.$grant['id'].'#'.$secret;
-    return $archive['body']."\n\nPRIVATE VOLUNTEER SESSION ASSIGNMENT — not part of the public archive.\nThis assignment is authorized by the volunteer's session ".vs_permission_end($session).". The original volunteer identity and captured consent are preserved. This worker may perform this assignment, repair validation errors and return it through the private link below. A session deadline or Stop revokes ongoing permission even if a task reservation would otherwise last longer. Unchanged copying and operational browser permission are not scientific influence. Report later scientific input independently. No purchases, installations, unrelated work or account access are authorized.\nPrivate return link: ".$link."\nKeep this link and its credential out of research packets, public archives, citations, screenshots shared publicly, analytics and final public answers. Inspect the recorded receipt before retrying an uncertain response. Stop this worker after this assignment and return its recorded outcome to the session controller.\n".vo_assignment_instructions();
+    return $archive['body']."\n\nPRIVATE VOLUNTEER SESSION ASSIGNMENT — not part of the public archive.\nThis assignment is authorized by the volunteer's session ".vs_permission_end($session).". The original volunteer identity and captured consent are preserved. This worker may perform this assignment, repair validation errors and return it through the private link below. A session deadline or Stop revokes ongoing permission even if a task reservation would otherwise last longer. Unchanged copying and operational browser permission are not scientific influence. Report later scientific input independently. No purchases, installations, unrelated work or account access are authorized.\nPrivate return link: ".$link."\nKeep this link and its credential out of research packets, public archives, citations, screenshots shared publicly, analytics and final public answers. Inspect the recorded receipt before retrying an uncertain response. Stop this worker after this assignment and return its recorded outcome to the session controller.\n".vo_assignment_instructions($session);
 }
