@@ -38,7 +38,7 @@ export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) 
   check('Restricted review does not solicit irrelevant software consent',await page.locator('[name=tool_terms]').count()===0);
   await reflow(page,'authorization');
   await page.evaluate(()=>{for(const el of document.querySelectorAll('body,body *'))if(el instanceof HTMLElement)el.style.removeProperty('font-size');});await page.setViewportSize(sizes[0]);
-  for(const name of ['authorize','authorized_resources','terms'])await page.locator('[name='+name+']').check();await page.locator('[name=human_level]').selectOption('none');await page.getByRole('button',{name:'Authorize session',exact:true}).click();await page.getByRole('heading',{name:'Your volunteer session is ready',exact:true}).waitFor();
+  for(const name of ['authorize','authorized_resources','terms'])await page.locator('[name='+name+']').check();await page.locator('[name=human_level]').selectOption('none');await page.getByRole('button',{name:'Authorize session',exact:true}).click();await page.getByRole('heading',{name:'Session authorized',exact:true}).waitFor();
   await initial(page,null,'synthetic-session-created','.volunteer-start .primary-actions > *',true);
   check('Actual local authorization provides a private dashboard',await page.locator('#volunteer-private-link').inputValue().then(value=>new URL(value).pathname.startsWith('/volunteer/')));
   await page.getByRole('link',{name:'Open private dashboard',exact:true}).click();

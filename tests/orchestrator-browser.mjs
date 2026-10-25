@@ -1,3 +1,4 @@
+import {startupQa} from './volunteer-startup-browser.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -14,7 +15,7 @@ export async function orchestratorQa({page,ctx,base,check,visibleActions}) {
   check('Session consent begins unchecked',await p.locator('[name=authorize],[name=authorized_resources],[name=terms]').evaluateAll(es=>es.length===3&&es.every(e=>!e.checked)));
   check('No orchestrator copy control precedes actual authorization',await p.locator('[data-copy-orchestrator]').count()===0);
   for(const name of ['authorize','authorized_resources','terms'])await p.locator('[name='+name+']').check();
-  await p.locator('[name=human_level]').selectOption('none');
+  if(await p.locator('[name=human_level]').count())await p.locator('[name=human_level]').selectOption('none');
   await p.getByRole('button',{name:/^Authorize (?:volunteer )?session$/}).click();
   await p.locator('#orchestrator-handoff').waitFor({state:'attached'});
   return p.locator('.volunteer-start > .primary-actions a').getAttribute('href');
@@ -22,6 +23,7 @@ export async function orchestratorQa({page,ctx,base,check,visibleActions}) {
  const referenceResponse=await page.request.get(base+'/volunteer/orchestrator.txt');
  const publicText=await referenceResponse.text();
  check('Public orchestrator guidance is reference only without a private supplement',referenceResponse.status()===200&&publicText.includes('PUBLIC REFERENCE ONLY')&&!publicText.includes('PRIVATE VOLUNTEER SESSION SUPPLEMENT'));
+ await startupQa({page,ctx,base,check,visibleActions});
  const dashboard=await authorize(page);
  for(const size of sizes){
   await page.setViewportSize(size);await page.evaluate(()=>scrollTo(0,0));
@@ -30,10 +32,10 @@ export async function orchestratorQa({page,ctx,base,check,visibleActions}) {
  }
  const text=await page.locator('#orchestrator-handoff').inputValue();
  const reference=fs.readFileSync(path.join(root,'templates/volunteer-orchestrator.txt'),'utf8').replaceAll('\r\n','\n');
- check('Actual authorized handoff retains complete reusable instructions',text.startsWith(reference+'\nPRIVATE VOLUNTEER SESSION SUPPLEMENT'));
+ check('Actual authorized handoff retains complete reusable instructions',text.startsWith('Please start my LLM.Giving volunteer session')&&text.includes(reference+'\nPRIVATE VOLUNTEER SESSION SUPPLEMENT'));
  check('Private delivery contains exact session limits and original authorization',text.includes('RECORDED SESSION SCOPE')&&text.includes('"assignment_limit": 3')&&text.includes('"assignments_used": 0'));
  await page.getByRole('button',{name:'Copy orchestrator handoff',exact:true}).click();
- await page.locator('[data-orchestrator-status]').filter({hasText:'Copied the complete'}).waitFor();
+ await page.locator('[data-orchestrator-status]').filter({hasText:'Copied your launch request'}).waitFor();
  check('Clipboard contains complete actual handoff',await page.evaluate(()=>navigator.clipboard.readText()).then(v=>v.replaceAll('\r\n','\n')===text));
  await page.evaluate(()=>Object.defineProperty(navigator.clipboard,'writeText',{configurable:true,value:async()=>{throw new DOMException('Synthetic permission denial','NotAllowedError');}}));
  await page.getByRole('button',{name:'Copy orchestrator handoff',exact:true}).click();
