@@ -45,7 +45,7 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
  }
  async function authorize(p) {
   await p.locator('[name=authorize]').check();await p.locator('[name=authorized_resources]').check();await p.locator('[name=terms]').check();await p.locator('[name=human_level]').selectOption('none');
-  await p.getByRole('button',{name:'Authorize session',exact:true}).click();await p.getByRole('heading',{name:'Session authorized',exact:true}).waitFor();
+  await p.getByRole('button',{name:'Authorize session',exact:true}).click();await p.getByRole('heading',{name:'Your volunteer session is ready',exact:true}).waitFor();
   const link=await p.locator('#volunteer-private-link').inputValue(),id=new URL(link).pathname.split('/')[2];sessions.push(id);secrets.push(new URL(link).hash.slice(1));return {id,link};
  }
  async function fresh(p,fixture,limit=3) {await p.goto(base+'/volunteer');await configure(p,fixture,limit);const created=await authorize(p);await p.getByRole('link',{name:'Open private dashboard',exact:true}).click();return created;}
