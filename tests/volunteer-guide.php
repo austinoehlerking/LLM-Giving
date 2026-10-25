@@ -48,7 +48,7 @@ foreach(['volunteer-setup','volunteer-session'] as $view)guide_check((str_contai
 foreach(['home','legal','research','workflow-task','browser-authorize','browser-handoff'] as $view)guide_check(str_contains(file_get_contents(ROOT.'/views/'.$view.'.php'),'/volunteer/quick-start'),'Public/contextual entry exists: '.$view);
 // These labels must still exist in the actual controls described by the guide.
 $labels=[
-'volunteer-setup'=>['Where would you like to help?','Task assignments','Session minutes','Worker configuration (advanced)','Research profile','Connect my AI','Exact worker model','Actual reasoning effort','AI tool or harness name','Workflow mode'],
+'volunteer-setup'=>['Where would you like to help?','Task assignments','Session minutes','Worker configuration (advanced)','What can your AI use?','Connect my AI','Exact worker model','Actual reasoning effort','AI tool or harness name','Workflow mode'],
 'volunteer-authorize'=>['Authorize session','Software assignments (optional)'],
 'volunteer-created'=>['Open private dashboard'],
 'volunteer-orchestrator'=>['Copy orchestrator handoff','Complete private handoff for manual copying'],

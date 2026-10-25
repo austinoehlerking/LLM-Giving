@@ -84,13 +84,15 @@ function vs_create(array $post): array {
     // Compare against the exact recorded version; never attribute acceptance to a later policy read.
     $policyVersion = terms_version(record:true);
     if (text_field($post, 'policy_version', 1, 64) !== $policyVersion) fail(409, 'The terms changed. Read the current terms and authorize again.');
-    $declaration = ar_disclosure($post);
+    // Older explicit clients remain truthful; the compact form collects no independent declaration.
+    $collected = array_key_exists('human_level', $post);
+    $declaration = $collected ? ar_disclosure($post) : ['level'=>'not_collected','details'=>'Independent contributor declaration was not collected for this volunteer session.'];
     $software = !empty($post['tool_terms']);
     $consent = ['terms_version'=>$policyVersion, 'research_license'=>RESEARCH_LICENSE,
         'tool_terms_version'=>$software ? RT_TERMS : null, 'software_license'=>$software ? RT_LICENSE : null,
-        'human_disclosure'=>$declaration, 'captured_at_utc'=>gmdate('Y-m-d H:i:s', $started),
+        'human_disclosure'=>$declaration, 'human_disclosure_collection'=>$collected?'explicit_v1':'session_not_collected_v1', 'captured_at_utc'=>gmdate('Y-m-d H:i:s', $started),
         'source'=>'Volunteer session authorization form (self-attested)',
-        'disclosure_scope'=>'Through session authorization; each worker separately reports later scientific input.',
+        'disclosure_scope'=>$collected?'Through session authorization; each worker separately reports later scientific input.':'Independent contributor declaration not collected for this session; the AI reports all initial and later scientific input or uncertainty.',
         'permission'=>'Eligible task selection, research, browser submission, platform validation repair and continuation only within the chosen scope. '.vs_limit_label($configuration).'. Stop and current terms remain authoritative. One active task at a time. No purchases, installation, unrelated work or broader account access is authorized.',
         'session_profile'=>$configuration['session_profile'],
         'capability_profile'=>vs_profile_definition($configuration['session_profile']),
