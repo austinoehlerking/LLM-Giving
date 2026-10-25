@@ -21,7 +21,7 @@ if($path==='/admin/workflow-policy'){
 }
 if($path==='/admin/logout' && $method==='POST') { $_SESSION=[]; session_regenerate_id(true); redirect('/'); }
 if($path==='/admin/moderate' && $method==='POST') {
-    moderate(text_field($_POST,'type'),text_field($_POST,'id'),text_field($_POST,'state'),text_field($_POST,'reason',1),text_field($_POST,'exception'));
+    moderate(text_field($_POST,'type'),text_field($_POST,'id'),text_field($_POST,'state'),moderation_reason($_POST),text_field($_POST,'exception'));
     flash('Moderation decision saved.');
     $back=(string)($_POST['back']??'/admin'); redirect(preg_match('~^/admin(?:/research/[a-f0-9]{32})?$~',$back)?$back:'/admin');
 }

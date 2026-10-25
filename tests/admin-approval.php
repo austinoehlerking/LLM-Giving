@@ -1,0 +1,20 @@
+<?php
+require __DIR__.'/bootstrap.php';require_once ROOT.'/src/view.php';
+session_start_safe();$_SESSION['admin']=1;$checks=[];$ids=[];
+function aa_check(bool $value,string $label):void{global $checks;if(!$value)throw new RuntimeException($label);$checks[]=$label;}
+function aa_deny(callable $fn,string $label):void{try{$fn();}catch(HttpError $e){aa_check($e->status===422,$label);return;}throw new RuntimeException($label);}
+try{
+ $routine=['type'=>'request','state'=>'Approved','request_review'=>'1','reason'=>ADMIN_APPROVAL_REASON];aa_check(moderation_reason($routine)===ADMIN_APPROVAL_REASON,'Routine approval records an honest publication rationale');
+ aa_check(moderation_reason(['reason'=>'x'])==='x','Existing generic moderation validation remains unchanged');
+ foreach(['Changes Requested','Rejected','Removed','Needs Additional Review'] as $state){$input=$routine;$input['state']=$state;foreach(['','short']as$reason){$input['reason']=$reason;aa_deny(fn()=>moderation_reason($input),'Nonroutine '.$state.' requires an entered meaningful reason');}$input['reason']='Please narrow the research scope and explain the evidence.';aa_check(moderation_reason($input)===$input['reason'],'Meaningful reason retained for '.$state);}
+ $bad=$routine;$bad['type']='contribution';aa_deny(fn()=>moderation_reason($bad),'Concise request form cannot replace contribution exception validation');$bad=$routine;$bad['request_review']='invalid';aa_deny(fn()=>moderation_reason($bad),'Unknown review form rejected');
+ $created=create_research(['title'=>'[QA] Simple approval '.uid(),'question'=>'A synthetic brief with <script>unsafe text</script>; never real scientific research.','context'=>'Synthetic context retained for review.','constraints_text'=>'Retain the existing constraints without inventing new requirements.','category_id'=>1,'terms'=>1]);$ids[]=$created['id'];$r=research($created['id'],false);ob_start();include ROOT.'/views/admin-research.php';$html=ob_get_clean();
+ aa_check(strpos($html,'data-quick-approve')<strpos($html,'id="request-brief"'),'Approve is directly available before long brief content');aa_check(str_contains($html,'data-request-changes')&&str_contains($html,'value="Changes Requested"'),'Request changes uses the existing moderation state');
+ aa_check(!str_contains($html,'<script>unsafe text</script>')&&str_contains($html,'&lt;script&gt;'),'Untrusted brief remains escaped');aa_check(str_contains($html,'Synthetic context retained for review.')&&str_contains($html,'Retain the existing constraints'),'Full brief and constraints preserved');
+ aa_check(!str_contains($html,'Attachments (')&&!str_contains($html,'Contributions & independent reviews (')&&!str_contains($html,'Malware scanning is unavailable'),'Empty panels and irrelevant warnings omitted');
+ foreach(['Edit request content','Categories & tags','Associate a duplicate','Supersede a contribution','Send a request-related notice','Permanently purge','Manage findings','Record details & audit','Status & resolution']as$label)aa_check(str_contains($html,$label),'Advanced operation retained: '.$label);
+ moderate('request',$r['id'],'Approved',moderation_reason($routine));aa_check(research($r['id'],false)['moderation']==='Approved'&&(bool)wf_project($r['id']),'Normal approval publishes request and starts its existing workflow');
+ $note='Please narrow the requested study and explain its success criteria.';moderate('request',$r['id'],'Changes Requested',moderation_reason(['type'=>'request','state'=>'Changes Requested','request_review'=>'1','reason'=>$note]));
+ $saved=research($r['id'],false);aa_check($saved['moderation']==='Changes Requested'&&$saved['moderation_reason']===$note,'Requested changes retains state and entered reason');aa_check((bool)one("SELECT id FROM audit_events WHERE research_id=? AND action='Moderation decision'",[$r['id']]),'Existing moderation audit remains');
+ echo json_encode(['pass'=>true,'checks'=>$checks],JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR)."\n";
+}finally{foreach($ids as$id)purge_request($id,$id);}

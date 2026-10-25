@@ -1,3 +1,4 @@
+import {revealAdminControls} from './admin-controls.mjs';
 import {reservationPickup} from './reservation-browser-support.mjs';
 import {authorizedHandoff} from './browser-authorization.mjs';
 import fs from 'node:fs';
@@ -24,7 +25,7 @@ export async function handoffQa({page,ctx,base,runPhp,check,visibleActions,passw
  try{
   runPhp(['bin/console.php','admin','browser-qa@example.invalid'],password);
   await ap.goto(base+'/admin/login');await ap.getByLabel('Email').fill('browser-qa@example.invalid');await ap.getByLabel('Password').fill(password);await ap.getByRole('button',{name:'Sign in',exact:true}).click();
-  await ap.goto(base+'/admin/research/'+f.id);const mod=ap.locator('form.moderate').filter({has:ap.locator('[name=type][value=request]')});await mod.locator('[name=state]').selectOption('Approved');await mod.locator('[name=reason]').fill('Approve synthetic V1 prompt-alteration safeguards test.');await mod.getByRole('button',{name:'Save moderation decision'}).click();
+  await ap.goto(base+'/admin/research/'+f.id);const mod=ap.locator('form.moderate').filter({has:ap.locator('[name=type][value=request]')});await revealAdminControls(mod);await mod.locator('[name=state]').selectOption('Approved');await mod.locator('[name=reason]').fill('Approve synthetic V1 prompt-alteration safeguards test.');await mod.getByRole('button',{name:'Save moderation decision'}).click();
   await viewports(url,'ready','.research-heading .primary-actions > *');
   for(const [name,ai,human,details] of scenarios){
    await page.goto(url);
