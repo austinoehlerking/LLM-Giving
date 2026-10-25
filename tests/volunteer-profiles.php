@@ -67,7 +67,7 @@ try {
     vp_check(str_contains($text,'AUTHORIZED CAPABILITY PROFILE: restricted_web_v1')&&str_contains($text,'not a technical sandbox'),'Private handoff carries honest actual profile restrictions');
     vp_check(str_contains($text,'explicitly release')&&str_contains($text,'scientific blocked/needs_clarification'),'Hidden incompatibility instructions avoid falsely blocking research');
     vp_check(!str_contains($archive['body'],$id)&&!str_contains($archive['body'],$g['id']),'Public archive excludes private session binding');
-    $controller=vo_handoff($id,$created['link']);vp_check(str_contains($controller,'"session_profile": "restricted_web_v1"')&&str_contains($controller,'compatibility is unverified'),'Controller uses server profile without claiming Cloud compatibility');
+    $controller=vo_handoff($id,$created['link']);vp_check(str_contains($controller,'"session_profile": "restricted_web_v1"')&&str_contains($controller,'not a technical sandbox')&&str_contains($controller,'never provider-verified'),'Controller uses server profile without claiming sandboxing or provider verification');
     $draft=vs_form_draft(['session_profile'=>'restricted_web_v1','session_secret'=>'not retained']);vp_check($draft===['session_profile'=>'restricted_web_v1'],'Profile draft allowlist excludes private credentials');
     $packet=vp_packet($session,$a);$packet['session_profile']='general';$packet['capabilities']=['execute_code'=>true];
     foreach(['calculations','calculation_reviews','tool_builds','tool_reviews','calculation_checkpoint'] as $field){$forged=$packet;$forged['evidence'][$field]=[['status'=>'executed','verdict'=>'reproduced']];vp_denied(fn()=>vs_record($id,$a['id'],$forged,true),422,'Forged packet profile cannot expand '.$field);}

@@ -8,6 +8,7 @@ Read the [setup guide](../../docs/cloud-volunteer-setup.md), then use:
 
 - [setup.json](setup.json): versioned LLM.Giving instruction/checklist data, not a provider import API, network configuration or sandbox.
 - [initialization.txt](initialization.txt): credential-free instructions to check the actual Dot's capabilities before providing a separate authorized handoff.
+- [launch-preflight.mjs](launch-preflight.mjs): a pure controller-side consistency diagnostic for native request/admission projections. It performs no I/O or research, authenticates neither record origin nor provider settings, and does not replace website policy.
 
 The recorded [synthetic accepted result](https://llm.giving/research/qa-dot-native-cloud-browser-submission-proof-2026-10-24-dotqa20261024a01-0242a1b38a/results/cec5f4649f0446fc6b7622ddad933f97) demonstrates browser source reading, validation repair, Check without recording, explicit submission and same-receipt recovery without duplicates. It does not verify a handset launch, the multi-task restricted controller, model-derived arithmetic or Dot-to-Codex workers. Actual model/effort are unavailable, so their observed values remain null in this checklist; those values are not a submission packet.
 

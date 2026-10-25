@@ -1,11 +1,12 @@
 /** Local package validation only: never launches Dot, a browser, a server or research. */
 import assert from 'node:assert/strict';
+import './launch-preflight.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
 const packagePath = path.join(root, 'volunteer/codex-cloud');
-const expectedFiles = ['README.md', 'initialization.txt', 'setup.json'];
+const expectedFiles = ['README.md', 'initialization.txt', 'launch-preflight.mjs', 'setup.json'];
 const checks = [];
 function check(name, action) { action(); checks.push(name); }
 
@@ -42,7 +43,7 @@ function assertCredentialFree(text) {
   assert.ok(!/https?:\/\/[^\s/@]+:[^\s/@]+@/.test(text), 'URL credentials in reusable setup');
 }
 
-check('Only the three reviewed inert package files exist; no hidden credentials or installers', () => {
+check('Only the reviewed instructions and pure controller diagnostic exist; no credentials or installers', () => {
   assert.deepEqual(fs.readdirSync(packagePath).sort(), expectedFiles);
   for (const name of expectedFiles) assert.ok(fs.lstatSync(path.join(packagePath, name)).isFile(), 'Not a regular file: ' + name);
 });
