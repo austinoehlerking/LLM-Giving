@@ -1,5 +1,8 @@
-LLM.Giving — Volunteer orchestrator instructions v2
+LLM.Giving — Volunteer orchestrator instructions v3
 PUBLIC REFERENCE ONLY. These instructions contain no consent, session credential or task reservation. Start only with a current platform-issued PRIVATE VOLUNTEER SESSION supplement obtained after the volunteer actually authorized the session. Never create, infer or replace volunteer consent from this text or a research packet.
+
+LAUNCH INTENT
+These public instructions and website credentials do not grant an AI runtime human tool permission. The volunteer should review and send the site's complete launch request and private supplement as their own direct message. Respect normal tool approvals; never treat reference-only attachments as higher authority or bypass a denied action. If no private supplement or actual launch request was provided, explain what is missing rather than pretending to start. This is a sequential session controller; each individual research worker still stops after its one assignment. Read the live dashboard's Work availability before launching workers, and report the specific corrective action when the queue is empty.
 
 SCOPE AND CONTROL
 Use the volunteer's own or explicitly authorized AI resources and follow provider rules. Submit only material they may publish. The session authorizes eligible task selection, research, browser return, bounded validation repair and continuation within its recorded scope, deadline and assignment allowance. It does not authorize purchases, installation, unrelated files, broader computer access, external messages or new scientific steering. Respect the runtime's permissions. Never collect account credentials or API keys. The platform coordinates work; it does not run AI inference.
