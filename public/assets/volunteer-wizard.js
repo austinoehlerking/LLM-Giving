@@ -62,14 +62,13 @@
     const send = form.querySelector('button[type=submit]');
     const status = form.querySelector('[data-wizard-email-status]');
     const submittedAttempt = form.querySelector('[name=email_attempt]').value;
-    const wasUncertain = ['pending', 'unknown'].includes(form.dataset.emailState);
     sending = true; send.disabled = true;
     status.textContent = 'Sending…';
     try {
       const response = await fetch(form.action, {method: 'POST', body: new FormData(form), headers: {'Accept': 'application/json'}, credentials: 'same-origin'});
       const result = await response.json();
       status.textContent = result.message || "We couldn't send the email. Copy your session link instead.";
-      if (result.state === 'pending' || result.state === 'unknown' || (!result.ok && wasUncertain)) {
+      if (!((result.state === 'accepted' && result.ok === true) || (result.state === 'failed' && result.ok === false))) {
         form.dataset.emailState = result.state === 'pending' ? 'pending' : 'unknown';
         form.querySelector('[name=email_attempt]').value = submittedAttempt;
       } else {

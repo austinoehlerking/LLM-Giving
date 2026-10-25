@@ -51,10 +51,10 @@ export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) 
   await page.goto(base+'/volunteer/quick-start');await page.locator('[data-guide-actions] a[href="/volunteer"]').click();check('Guide primary action opens actual general setup',new URL(page.url()).pathname==='/volunteer');
   await initial(page,'/volunteer','general-setup','.volunteer-profile-choice label,.time-card,.connect-ai');
   check('Existing default stays general',await page.locator('[name=session_profile]:checked').inputValue()==='general');
-  await page.getByRole('button',{name:'Connect my AI',exact:true}).click();check('Existing general path retains server review',await page.locator('input[name=session_profile]').inputValue()==='general'&&await page.locator('[name=tool_terms]').count()===1);
+  await page.getByRole('button',{name:'Connect my AI',exact:true}).click();check('Existing general path retains server review',await page.locator('[data-volunteer-consent] input[name=session_profile]').inputValue()==='general'&&await page.locator('[name=tool_terms]').count()===1);
   await page.goto(base+'/volunteer?session_profile=restricted_web_v1');await reflow(page,'restricted-setup');
   native=await ctx.browser().newContext({javaScriptEnabled:false,viewport:sizes[0]});const np=await native.newPage();await np.goto(base+'/volunteer?session_profile=restricted_web_v1');
-  check('Native setup preserves server preselection',await np.locator('[name=session_profile]:checked').inputValue()==='restricted_web_v1');await np.getByRole('button',{name:'Connect my AI',exact:true}).click();check('Native configure retains the exact profile',await np.locator('input[name=session_profile]').inputValue()==='restricted_web_v1');
+  check('Native setup preserves server preselection',await np.locator('[name=session_profile]:checked').inputValue()==='restricted_web_v1');await np.getByRole('button',{name:'Connect my AI',exact:true}).click();check('Native configure retains the exact profile',await np.locator('[data-volunteer-consent] input[name=session_profile]').inputValue()==='restricted_web_v1');
   check('Configuring never issues a private session',await np.locator('#volunteer-private-link').count()===0);
   report.consoleErrors=errors;check('No guide/setup script or console errors',errors.length===0);
   report.scope='Local rendered guide/setup/review/navigation evidence only. Synthetic local authorization/Stop only; no actual handset, new Dot research or accepted-result claim. The separate earlier single-task Dot proof is not re-executed by this suite.';
