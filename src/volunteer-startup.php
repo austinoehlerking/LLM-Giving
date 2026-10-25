@@ -2,7 +2,7 @@
 /** Advisory reads only. Pickup/recording always run the canonical live eligibility checks again. */
 function vs_startup_reasons(): array {
     return [
-        'planning_configuration'=>['message'=>'Planning needs confirmed worker settings.','action'=>'Set the exact model and effort your research worker will actually use. The current planning policy is shown below.'],
+        'planning_configuration'=>['message'=>'Needs Research Plan tasks need an eligible Max/Ultra worker.','action'=>'Set the exact model and effort your research worker will actually use. The current planning policy is shown below.'],
         'requester_requirements'=>['message'=>'The declared worker does not match requester model, effort or mode requirements.','action'=>'Check the task requirements against your actual worker settings, or deliberately choose another scope.'],
         'profile'=>['message'=>'Some work needs tools outside this session profile.','action'=>'Choose work within your authorized capabilities. Do not install tools or expand permission to force a match.'],
         'software_terms'=>['message'=>'Software assignments need separate software-publication consent.','action'=>'Use ordinary research, or review the optional software terms yourself when starting a session.'],
@@ -44,7 +44,7 @@ function vs_startup_preflight(array $configuration,bool $software=false): array 
         elseif($task['state']==='Waiting')$code='dependencies';
         elseif($task['state']!=='Ready'||in_array($r['status'],['Solved','Review Complete'],true))$code='finished';
         elseif(!vs_profile_compatible($session,$r,$task))$code='profile';
-        elseif(rt_is_tool($r)&&$session['consent']['tool_terms_version']!==RT_TERMS)$code='software_terms';
+        elseif(vs_task_software_consent($r,$task)&&$session['consent']['tool_terms_version']!==RT_TERMS)$code='software_terms';
         elseif(!rq_matches(rq_requirements($r),$session['capabilities']['model'],$session['capabilities']['reasoning'],$session['capabilities']['workflow_mode'],$session['capabilities']['tool']))$code='requester_requirements';
         elseif(!vs_configuration_matches($session,$r,$task))$code='planning_configuration';
         else{
@@ -53,7 +53,7 @@ function vs_startup_preflight(array $configuration,bool $software=false): array 
             if($code===''&&$actor&&$task['kind']==='review'&&one('SELECT id FROM workflow_submissions WHERE research_id=? AND actor_hash=? LIMIT 1',[$rid,$actor]))$code='reviewer';
             if($code===''&&($live=wr_live($rid,$task['id']))){$code='reserved';$expiries[]=$live['expires_at'];}
         }
-        if(in_array($code,['planning_configuration','requester_requirements'],true)&&count($requirements[$code]??[])<3)$requirements[$code][]=['title'=>$task['title'],'url'=>'/research/'.$r['slug'].'/tasks/'.$task['id'],'requirements'=>rq_description(rq_requirements($r))];
+        if(in_array($code,['profile','software_terms','planning_configuration','requester_requirements'],true)&&count($requirements[$code]??[])<3)$requirements[$code][]=['title'=>$task['title'],'url'=>'/research/'.$r['slug'].'/tasks/'.$task['id'],'requirements'=>vs_task_requirements_description($r,$task).' '.rq_description(rq_requirements($r))];
         if($code!==''){$reasons[$code]=($reasons[$code]??0)+1;continue;}
         $eligible++;if(count($examples)<3)$examples[]=['title'=>$task['title'],'kind'=>$task['kind'],'url'=>'/research/'.$r['slug'].'/tasks/'.$task['id']];
     }

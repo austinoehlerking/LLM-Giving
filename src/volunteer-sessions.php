@@ -45,7 +45,27 @@ function vs_permission_end(array $session): string {
     return vs_unlimited($session)?'until you press Stop (no session deadline or assignment quota)': 'until '.$session['expires_at'].' UTC';
 }
 
+const VS_WORKERS = [
+    'sol_max'=>['model'=>'gpt-6.1-sol','reasoning'=>'max','tool'=>'Codex','workflow_mode'=>''],
+    'astra_max'=>['model'=>'gpt-6-astra','reasoning'=>'max','tool'=>'Codex','workflow_mode'=>''],
+];
+function vs_worker_input(array $post): array {
+    $choice=text_field($post,'worker_choice',0,24);
+    if($choice!=='' && $choice!=='custom') {
+        if(!isset(VS_WORKERS[$choice]))fail(422,'Choose an available research worker.');
+        foreach(VS_WORKERS[$choice] as $field=>$value)$post[$field]=$value;
+    }
+    return $post;
+}
+function vs_worker_ready(array $configuration): bool {
+    foreach(['model','reasoning','tool'] as $key)if(($configuration['capabilities'][$key]??'')==='')return false;
+    return true;
+}
+function vs_require_worker(array $configuration): void {
+    if(!vs_worker_ready($configuration))fail(422,'Choose the research worker model, reasoning effort and tool you will launch before continuing. These are requested settings, not provider verification.');
+}
 function vs_configuration(array $post): array {
+    $post=vs_worker_input($post);
     $profile=text_field($post,'session_profile',0,32)?:'general';
     vs_profile_definition($profile);
     $post=vs_scope_input($post);
@@ -77,6 +97,7 @@ function vs_configuration(array $post): array {
 function vs_create(array $post): array {
     throttle('volunteer-session-start', 10);
     $configuration = vs_configuration($post);
+    vs_require_worker($configuration);
     $started = vs_now();
     if (empty($post['authorize']) || empty($post['terms']) || empty($post['authorized_resources'])) {
         fail(422, 'Confirm session authorization, public-content terms and authorized resource use.');
@@ -95,10 +116,15 @@ function vs_create(array $post): array {
         'disclosure_scope'=>$collected?'Through session authorization; each worker separately reports later scientific input.':'Independent contributor declaration not collected for this session; the AI reports all initial and later scientific input or uncertainty.',
         'permission'=>'Eligible task selection, research, browser submission, platform validation repair and continuation only within the chosen scope. '.vs_limit_label($configuration).'. Stop and current terms remain authoritative. One active task at a time. No purchases, installation, unrelated work or broader account access is authorized.',
         'session_profile'=>$configuration['session_profile'],
+        'worker_settings_source'=>'volunteer_requested_v1',
         'capability_profile'=>vs_profile_definition($configuration['session_profile']),
         'session_limits'=>['mode'=>$configuration['limit_mode'],'assignment_limit'=>$configuration['assignment_limit'],'minutes'=>$configuration['minutes']],
         'resource_confirmation'=>CONTRIBUTOR_RESOURCE_CONFIRMATION,
         'authorized_resources'=>'Volunteer confirmed own or explicitly authorized resources, provider rules and permission for public publication.'];
+    // Recheck current public work before creating a session identity or capability.
+    // The preview reserves nothing; pickup rechecks any subsequent queue change.
+    $preview=vs_startup_preflight($configuration,$software);
+    if(!$preview['eligible'])fail(409,$preview['summary'].' '.implode(' ',array_map(fn($reason)=>$reason['message'].' '.$reason['action'],array_slice($preview['reasons'],0,2))).' No session was created.');
     $id = uid();
     $secret = bin2hex(random_bytes(32));
     $row = ['id'=>$id, 'secret_hash'=>hash('sha256', $secret), 'actor_hash'=>wf_actor(),
@@ -142,7 +168,7 @@ function vs_assert_active(array $session, bool $claim=false): void {
 function vs_configuration_matches(array $session, array $research, array $task): bool {
     if (!vs_profile_compatible($session,$research,$task)) return false;
     $capability = $session['capabilities'];
-    if (rt_is_tool($research) && $session['consent']['tool_terms_version'] !== RT_TERMS) return false;
+    if (vs_task_software_consent($research,$task) && $session['consent']['tool_terms_version'] !== RT_TERMS) return false;
     if (!rq_matches(rq_requirements($research), $capability['model'], $capability['reasoning'], $capability['workflow_mode'], $capability['tool'])) return false;
     if ($task['kind'] === 'planning') {
         foreach (wf_policy() as $policy) {

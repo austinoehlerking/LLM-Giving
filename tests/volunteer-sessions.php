@@ -41,6 +41,8 @@ try {
             vsd(fn()=>vs_configuration($bad), 422, 'Invalid bounded '.$field.' rejected: '.json_encode($value));
         }
     }
+    $seed=create_research(['title'=>'[QA] Session unit available work '.uid(),'question'=>'Synthetic Ready planning task supporting session authorization boundary tests.','category_id'=>1,'terms'=>1]);
+    moderate('request',$seed['id'],'Approved','Synthetic available work for authorization.');
     $GLOBALS['vs_test_now']=strtotime('2026-10-22 16:00:00 UTC');
     // Use a new test namespace after deliberate invalid authorization attempts.
     putenv('RATE_LIMIT_NAMESPACE=volunteer-session-valid-'.uid());
@@ -109,7 +111,9 @@ try {
     $lower=$session; $lower['capabilities']['reasoning']='high';
     vsc(!vs_configuration_matches($lower,$research,$task), 'Queue cannot bypass platform planning effort');
     $toolResearch=$research; $toolResearch['project_type']='research_tool';
-    vsc(!vs_configuration_matches($session,$toolResearch,$task), 'Absent separate software consent excludes tool assignments');
+    vsc(vs_configuration_matches($session,$toolResearch,$task), 'Narrative planning in a tool project needs no software-publication consent');
+    $task['kind']='research';$task['builds_tool']=1;
+    vsc(!vs_configuration_matches($session,$toolResearch,$task), 'Actual build task needs separate software consent');
     $withSoftware=$session; $withSoftware['consent']['tool_terms_version']=RT_TERMS;
     vsc(vs_configuration_matches($withSoftware,$toolResearch,$task), 'Current explicit software consent permits otherwise matching tool assignment');
     $restricted=$research; $restricted['ai_requirements']=json_encode(['model'=>'claude-opus-5-5','mode'=>'exact','effort'=>'max']);

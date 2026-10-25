@@ -19,6 +19,7 @@ if(setup){
   setup.querySelector('[data-volunteer-summary]').textContent=time+' · '+place;
  };
  setup.addEventListener('input',event=>{
+  if(['model','reasoning','tool','workflow_mode'].includes(event.target.name))setup.elements.worker_choice.value='custom';
   if(['minutes','assignment_limit'].includes(event.target.name))select('session_preset','custom');
   if(['scope_kind','category_id','research_id'].includes(event.target.name)){select('cause_choice','custom');if(event.target===category)scope.value='category';if(event.target===research)scope.value='research';}
   update();

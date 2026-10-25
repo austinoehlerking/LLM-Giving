@@ -7,11 +7,12 @@ function ve_check(string $name,bool $pass): void { global $count; if(!$pass) thr
 function ve_deny(string $name,int $status,callable $fn): void { try{$fn();}catch(HttpError $e){ve_check($name,$e->status===$status);return;}throw new RuntimeException($name.' allowed'); }
 function ve_create(string $preset='standard'): array {
     global $ids;
-    $created=vs_create(['scope_kind'=>'all','session_preset'=>$preset,'authorize'=>1,'terms'=>1,'authorized_resources'=>1,'policy_version'=>terms_version(),'human_level'=>'none','human_details'=>'']);
+    $created=vs_create(['model'=>'gpt-6-astra','reasoning'=>'max','tool'=>'Codex','scope_kind'=>'all','session_preset'=>$preset,'authorize'=>1,'terms'=>1,'authorized_resources'=>1,'policy_version'=>terms_version(),'human_level'=>'none','human_details'=>'']);
     $ids[]=$created['id'];return $created;
 }
 function ve_post(array $c,string $email='wizard-synthetic@example.invalid'): array { return ['csrf'=>$_SESSION['csrf'],'session_secret'=>explode('#',$c['link'])[1],'email'=>$email,'email_attempt'=>uid(),'url'=>'https://attacker.invalid/ignored']; }
 try {
+    $_SESSION['admin']=1;$veSeed=create_research(['title'=>'[QA] Email session available work '.uid(),'question'=>'Synthetic Ready planning work permits a valid email-session authorization.','category_id'=>1,'terms'=>1]);moderate('request',$veSeed['id'],'Approved','Synthetic email authorization fixture.');
     $_SERVER['REMOTE_ADDR']='127.0.0.71';
     $c=ve_create();$post=ve_post($c);
     $counts=[one('SELECT COUNT(*) n FROM research')['n'],one('SELECT COUNT(*) n FROM emails')['n'],one('SELECT COUNT(*) n FROM task_reservations')['n'],one('SELECT COUNT(*) n FROM workflow_handoffs')['n']];
@@ -73,6 +74,7 @@ try {
     ve_check('Rate and attempt store contains only hashed keys',array_reduce(all('SELECT bucket FROM rate_limits'),fn($ok,$row)=>$ok&&(bool)preg_match('/^[a-f0-9]{64}$/D',$row['bucket']),true));
     echo $count." volunteer email/transport authorization checks passed.\n";
 } finally {
+    if(isset($veSeed))purge_request($veSeed['id'],$veSeed['id']);
     foreach($ids as $id)query('DELETE FROM volunteer_sessions WHERE id=?',[$id]);
     foreach(array_diff(glob(storage('mail/volunteer-*.json'))?:[],$beforeFiles) as $file)unlink($file);
     set_setting('mail_driver',$driver);$_SESSION=$original;

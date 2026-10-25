@@ -1,4 +1,4 @@
-import {readyDashboard} from './session-wizard-actions.mjs';
+import {connectVolunteer,readyDashboard} from './session-wizard-actions.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -41,7 +41,7 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
   await p.locator('[name=research_id]').fill(fixture.id);
   await p.locator('[name=session_preset][value=custom]').check();await p.locator('[name=assignment_limit]').fill(String(limit));
   await p.locator('[name=model]').selectOption('gpt-6-astra');await p.locator('[name=reasoning]').selectOption('max');await p.locator('[name=tool]').fill('Codex');
-  await p.getByRole('button',{name:'Connect my AI',exact:true}).click();
+  await connectVolunteer(p);
   await p.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();
  }
  async function authorize(p) {

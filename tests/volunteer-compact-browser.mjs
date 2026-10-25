@@ -1,4 +1,5 @@
-import {readyDashboard} from './session-wizard-actions.mjs';
+import {privateControllerInstructions} from './session-wizard-actions.mjs';
+import {connectVolunteer,readyDashboard} from './session-wizard-actions.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {root,env} from '../tools/runtime.mjs';
@@ -13,7 +14,7 @@ export async function volunteerCompactQa({page,ctx,base,runPhp,check,visibleActi
  async function initial(p,label,selector,url=null){const shots=[],failures=[];for(const size of sizes){await p.setViewportSize(size);if(url)await p.goto(url);await p.evaluate(()=>scrollTo(0,0));shots.push(await shot(p,label+'-'+size.width+'x'+size.height));try{check(label+' starts at zero '+size.width,await p.evaluate(()=>scrollY===0));await visibleActions(p,selector,label+' '+size.width);if(size.width===1366)check(label+' default desktop has no vertical scrolling',await p.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1));}catch(e){failures.push(e.message);}}await pause(label,shots);if(failures.length)throw Error(failures.join('; '));await p.setViewportSize(sizes[0]);}
  async function reflow(p,label){for(const size of [sizes[0],sizes[2]]){await p.setViewportSize(size);await p.evaluate(()=>{window.__compactFonts=[...document.querySelectorAll('body,body *')].filter(el=>el instanceof HTMLElement).map(el=>[el,el.style.fontSize,parseFloat(getComputedStyle(el).fontSize)]);for(const[el,,n]of window.__compactFonts)if(Number.isFinite(n))el.style.fontSize=n*2+'px';scrollTo(0,0);});await shot(p,label+'-200-'+size.width);check(label+' 200% text reflows '+size.width,await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await p.evaluate(()=>{for(const[el,before]of window.__compactFonts)el.style.fontSize=before;delete window.__compactFonts;});}await p.setViewportSize(sizes[0]);}
  const state=id=>JSON.parse(runPhp(['tests/volunteer-state.php','state',id]));
- async function configure(p,fixture){await p.locator('[data-volunteer-advanced] > summary').click();await p.locator('[name=cause_choice][value=custom]').check();await p.locator('[name=scope_kind]').selectOption('research');await p.locator('[name=research_id]').fill(fixture.id);await p.locator('[name=model]').selectOption('gpt-6-astra');await p.locator('[name=reasoning]').selectOption('max');await p.locator('[name=tool]').fill('Codex');await p.locator('[data-volunteer-advanced] > summary').click();await p.getByRole('button',{name:'Connect my AI',exact:true}).click();await p.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();}
+ async function configure(p,fixture){await p.locator('[data-volunteer-advanced] > summary').click();await p.locator('[name=cause_choice][value=custom]').check();await p.locator('[name=scope_kind]').selectOption('research');await p.locator('[name=research_id]').fill(fixture.id);await p.locator('[name=model]').selectOption('gpt-6-astra');await p.locator('[name=reasoning]').selectOption('max');await p.locator('[name=tool]').fill('Codex');await p.locator('[data-volunteer-advanced] > summary').click();await connectVolunteer(p);await p.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();}
  try{
   let scenario=0;
   for(const js of [true,false])for(const profile of ['general','restricted_web_v1']){
@@ -36,7 +37,7 @@ export async function volunteerCompactQa({page,ctx,base,runPhp,check,visibleActi
    if(js)await reflow(p,label+'-authorization');
    await p.getByRole('button',{name:'Authorize session',exact:true}).click();check(label+' unchecked required permission cannot start session',await p.locator('#orchestrator-handoff').count()===0&&await p.locator('[name=authorize]').evaluate(el=>!el.checkValidity()));
    for(const name of ['authorize','authorized_resources','terms'])await p.locator('[name='+name+']').check();await p.getByRole('button',{name:'Authorize session',exact:true}).click();await p.getByRole('heading',{name:'Your session is ready',exact:true}).waitFor();
-   const privateLink=await p.locator('#volunteer-private-link').inputValue(),id=new URL(privateLink).pathname.split('/')[2];sessions.push(id);const handoff=await p.locator('#orchestrator-handoff').inputValue();
+   const privateLink=await p.locator('#volunteer-private-link').inputValue(),id=new URL(privateLink).pathname.split('/')[2];sessions.push(id);const handoff=await privateControllerInstructions(p,id);
    check(label+' actual stored session honestly records not-collected provenance',state(id).collection==='session_not_collected_v1'&&state(id).declaration.level==='not_collected'&&state(id).profile===profile);
    check(label+' private orchestrator handoff requires all initial/later AI disclosure',handoff.includes('ALL initial and later scientific steering')&&handoff.includes('"level": "not_collected"')&&!handoff.includes('The captured volunteer declaration covers input through authorization'));
    await readyDashboard(p);

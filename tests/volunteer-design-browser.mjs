@@ -1,4 +1,4 @@
-import {readyDashboard} from './session-wizard-actions.mjs';
+import {connectVolunteer,readyDashboard,privateControllerInstructions} from './session-wizard-actions.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {root,env} from '../tools/runtime.mjs';
@@ -24,28 +24,28 @@ export async function volunteerDesignQa({page,ctx,base,runPhp,check,visibleActio
   check('Cause pills use real taxonomy and no placeholder labels',await page.locator('.cause-pills').innerText().then(text=>!text.includes('Cause area')&&text.includes('Wherever needed')));
   for(const [key,summary]of [['quick','15 min or 1 task'],['standard','60 min or 3 tasks'],['long','180 min or 10 tasks'],['unlimited','Until Stop']]){
    await page.goto(base+'/volunteer');await preset(page,key);check('Live summary follows '+key,(await page.locator('[data-volunteer-summary]').innerText()).includes(summary));
-   await page.getByRole('button',{name:'Connect my AI',exact:true}).click();await page.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();
+   await connectVolunteer(page);await page.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();
    check('Real authorization reviews '+key,await page.locator('.volunteer-start > .fine').first().innerText().then(text=>text.includes(key==='unlimited'?'no session time or task limit':summary)));
    check('Consent is unchecked before '+key+' authorization',await page.locator('[name=authorize],[name=terms],[name=authorized_resources]').evaluateAll(elements=>elements.length===3&&elements.every(el=>!el.checked)));
   }
-  await page.goto(base+'/volunteer');const cause=page.locator('.cause-pill').nth(1);const causeName=await cause.locator('input').getAttribute('data-cause-label');await cause.click();check('Cause pill updates live summary',(await page.locator('[data-volunteer-summary]').innerText()).includes(causeName));await page.getByRole('button',{name:'Connect my AI',exact:true}).click();check('Cause pill is reflected in real server authorization',(await page.locator('.volunteer-start > .fine').first().innerText()).includes('Category: '+causeName));
+  await page.goto(base+'/volunteer');const cause=page.locator('.cause-pill').nth(1);const causeName=await cause.locator('input').getAttribute('data-cause-label');await cause.click();check('Cause pill updates live summary',(await page.locator('[data-volunteer-summary]').innerText()).includes(causeName));await connectVolunteer(page);check('Cause pill is reflected in real server authorization',(await page.locator('.volunteer-start > .fine').first().innerText()).includes('Category: '+causeName));
   await page.goto(base+'/volunteer');await page.locator('[name=session_preset][value=standard]').focus();await page.keyboard.press('ArrowRight');check('Time presets support native keyboard arrow selection',await page.locator('[name=session_preset][value=long]').isChecked());
   await page.getByRole('button',{name:'Connect my AI',exact:true}).focus();check('Primary action receives keyboard focus',await page.getByRole('button',{name:'Connect my AI',exact:true}).evaluate(el=>el===document.activeElement));await shot(page,'keyboard-focus');
   await page.goto(base+'/volunteer');await page.locator('[data-volunteer-advanced] > summary').click();await page.locator('[name=session_preset][value=custom]').check();
   await page.locator('[name=assignment_limit]').fill('7');await page.locator('[name=minutes]').fill('125');check('Advanced custom limits update live summary',(await page.locator('[data-volunteer-summary]').innerText()).includes('125 min or 7 tasks'));
   await page.locator('[name=cause_choice][value=custom]').check();await page.locator('[name=scope_kind]').selectOption('research');await page.locator('[name=research_id]').fill(fixtures[0].id);
   await page.locator('[name=model]').selectOption('gpt-6-astra');await page.locator('[name=reasoning]').selectOption('max');await page.locator('[name=tool]').fill('Codex');
-  await page.getByRole('button',{name:'Connect my AI',exact:true}).click();check('Specific research and custom limits survive server review',(await page.locator('.volunteer-start > .fine').first().innerText()).includes('125 min or 7 tasks'));
+  await connectVolunteer(page);check('Specific research and custom limits survive server review',(await page.locator('.volunteer-start > .fine').first().innerText()).includes('125 min or 7 tasks'));
   await page.goto(base+'/volunteer');await preset(page,'unlimited');await page.locator('[data-volunteer-advanced] > summary').click();
   await page.locator('[name=cause_choice][value=custom]').check();await page.locator('[name=scope_kind]').selectOption('research');await page.locator('[name=research_id]').fill(fixtures[0].id);await page.locator('[name=model]').selectOption('gpt-6-astra');await page.locator('[name=reasoning]').selectOption('max');await page.locator('[name=tool]').fill('Codex');
-  await page.getByRole('button',{name:'Connect my AI',exact:true}).click();
+  await connectVolunteer(page);
   const consentShots=[],consentFailures=[];
   for(const size of sizes.slice(0,3)){await page.setViewportSize(size);await page.evaluate(()=>scrollTo(0,0));consentShots.push(await shot(page,'unlimited-authorization-'+size.width+'x'+size.height));try{await visibleActions(page,'.volunteer-authorization > .form-panel > .primary-actions > *, .volunteer-authorization > .form-panel > .check','Unlimited authorization '+size.width);}catch(error){consentFailures.push(error.message);}}
   console.log('INSPECT UNLIMITED AUTHORIZATION: '+consentShots.join(' | '));
   if(env.QA_INSPECT_FIRST==='design')await new Promise(resolve=>{process.stdin.resume();process.stdin.once('data',()=>{process.stdin.pause();resolve();});});
   if(consentFailures.length)throw new Error(consentFailures.join('; '));
   await page.setViewportSize(sizes[0]);const id=await authorize(page);
-  const orchestrator=await page.locator('#orchestrator-handoff').inputValue();check('Actual unlimited orchestrator handoff has null deadline/quota',orchestrator.includes('"limit_mode": "unlimited"')&&orchestrator.includes('"assignment_limit": null')&&orchestrator.includes('"expires_at_utc": null'));
+  const orchestrator=await privateControllerInstructions(page,id);check('Actual unlimited orchestrator handoff has null deadline/quota',orchestrator.includes('"limit_mode": "unlimited"')&&orchestrator.includes('"assignment_limit": null')&&orchestrator.includes('"expires_at_utc": null'));
   await readyDashboard(page);check('Unlimited dashboard has honest limits',(await page.locator('.session-meta').innerText()).includes('Until you press Stop')&&!await page.locator('.session-meta').innerText().then(text=>text.includes('min remaining')));
   await page.getByRole('button',{name:'Pick up next task',exact:true}).click();const handoff=await page.locator('#session-task-handoff').inputValue();check('Unlimited pickup supplies complete current worker handoff',handoff.includes('no session deadline or assignment quota')&&handoff.includes('PRIVATE SESSION WORKER PROCEDURE'));
   const returnLink=handoff.match(/Private return link: (http[^\s]+)/)[1];
@@ -53,8 +53,8 @@ export async function volunteerDesignQa({page,ctx,base,runPhp,check,visibleActio
   const packet=runPhp(['tests/volunteer-state.php','packet',id]);await wp.locator('[name=payload]').fill(packet);await wp.getByRole('button',{name:'Check packet',exact:true}).click();await wp.locator('[data-workflow-error]').getByText('Packet checks passed.',{exact:false}).waitFor();
   await wp.getByRole('button',{name:'Submit task result',exact:true}).click();check('Separate unlimited worker records actual accepted receipt',(await wp.locator('body').innerText()).includes('Submission accepted'));await shot(wp,'unlimited-recorded-receipt');
   await page.goto(base+'/volunteer/'+id);await page.getByRole('button',{name:'Stop session',exact:true}).click();check('Unlimited Stop revokes future pickup',await page.getByText('Session stopped — existing receipts remain available',{exact:true}).isVisible()&&await page.getByRole('button',{name:'Pick up next task',exact:true}).count()===0);
-  const native=await ctx.browser().newContext({javaScriptEnabled:false,viewport:sizes[2]});contexts.push(native);const np=await native.newPage();await np.goto(base+'/volunteer');await preset(np,'unlimited');await np.getByRole('button',{name:'Connect my AI',exact:true}).click();const nativeId=await authorize(np);
-  check('No-JS unlimited handoff retains real private authorization',(await np.locator('#orchestrator-handoff').inputValue()).includes('"assignment_limit": null'));await readyDashboard(np);await np.getByRole('button',{name:'Stop session',exact:true}).click();check('No-JS unlimited Stop works',await np.getByText('Session stopped — existing receipts remain available',{exact:true}).isVisible());
+  const native=await ctx.browser().newContext({javaScriptEnabled:false,viewport:sizes[2]});contexts.push(native);const np=await native.newPage();await np.goto(base+'/volunteer');await preset(np,'unlimited');await connectVolunteer(np);const nativeId=await authorize(np);
+  check('No-JS unlimited handoff retains real private authorization',(await privateControllerInstructions(np,nativeId)).includes('"assignment_limit": null'));await readyDashboard(np);await np.getByRole('button',{name:'Stop session',exact:true}).click();check('No-JS unlimited Stop works',await np.getByText('Session stopped — existing receipts remain available',{exact:true}).isVisible());
   await page.goto(base+'/volunteer');await page.setViewportSize(sizes[2]);
   await page.evaluate(()=>{window.__qaFonts=[...document.querySelectorAll('body,body *')].filter(el=>el instanceof HTMLElement).map(el=>[el,el.style.fontSize,parseFloat(getComputedStyle(el).fontSize)]);for(const [el,,size]of window.__qaFonts)if(Number.isFinite(size))el.style.fontSize=size*2+'px';});
   await shot(page,'reflow-200-percent-375x667');check('Approved page reflows at 200% text without horizontal page overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));

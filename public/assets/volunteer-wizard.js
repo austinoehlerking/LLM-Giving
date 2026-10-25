@@ -49,7 +49,7 @@
     try {
       if (!text.value.trim()) throw new Error('Missing private text');
       await navigator.clipboard.writeText(text.value);
-      status.textContent = kind === 'link' ? 'Session link copied. Save it somewhere private if you want to return later.' : 'Copied the complete AI instructions. Paste them into your AI and press Send.';
+      status.textContent = kind === 'link' ? 'Session link copied. Save it somewhere private if you want to return later.' : 'Start message copied. Paste this one message into Dot and press Send.';
     } catch {
       wizard.querySelector(kind === 'link' ? '[data-wizard-link-manual]' : '[data-wizard-instructions-manual]').open = true;
       text.focus({preventScroll: true}); text.select();

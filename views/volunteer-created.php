@@ -1,7 +1,8 @@
 <?php
 $wizardHandoff=vo_handoff($created['id'],$created['link']);
+$wizardStartMessage=vo_start_message($wizardHandoff);
 $wizardSecret=substr($created['link'],strrpos($created['link'],'#')+1);
-$wizardTitles=['Save your private link','Copy the AI instructions','Paste into your AI and send','Open your dashboard'];
+$wizardTitles=['Save your private link','Copy start message','Paste into Dot and send','Open your dashboard'];
 ?>
 <div class="volunteer-wizard" data-volunteer-wizard data-email-interacted="<?=!empty($emailOpen)?'true':'false'?>">
 <h1>Your session is ready</h1>
@@ -26,16 +27,17 @@ $wizardTitles=['Save your private link','Copy the AI instructions','Paste into y
 <div class="wizard-actions"><button type="button" data-wizard-next="2" hidden>I've saved it — Next <span aria-hidden="true">→</span></button><noscript><a class="button" href="#wizard-step-2">I've saved it — Next →</a></noscript></div>
 </section>
 <section id="wizard-step-2" data-wizard-pane="2" aria-labelledby="wizard-title-2">
-<p class="wizard-step-count">Step 2 of 4</p><h2 id="wizard-title-2" tabindex="-1">Copy the AI instructions</h2>
-<p>Click Copy AI instructions to copy the complete instructions and your session access.</p>
-<button type="button" data-wizard-copy="instructions" hidden>Copy AI instructions</button>
+<p class="wizard-step-count">Step 2 of 4</p><h2 id="wizard-title-2" tabindex="-1">Copy start message</h2>
+<p>Copy one short start message. Dot opens your private session and reads the full AI instructions there.</p>
+<button type="button" data-wizard-copy="instructions" hidden>Copy start message</button>
 <p class="wizard-feedback" data-wizard-copy-status="instructions" role="status" aria-live="polite"></p>
-<details class="wizard-manual" data-wizard-instructions-manual><summary>Copy not working? Show the full text</summary><label for="orchestrator-handoff">Complete AI instructions with private session authorization</label><textarea id="orchestrator-handoff" readonly rows="10" spellcheck="false" autocomplete="off"><?=e($wizardHandoff)?></textarea></details>
+<details class="wizard-manual" data-wizard-instructions-manual><summary>Copy not working? Show start message</summary><label for="orchestrator-handoff">Short start message with private session authorization</label><textarea id="orchestrator-handoff" readonly rows="10" spellcheck="false" autocomplete="off"><?=e($wizardStartMessage)?></textarea></details>
 <div class="wizard-actions"><button type="button" class="secondary" data-wizard-back="1" hidden>Back</button><button type="button" class="secondary" data-wizard-next="3" hidden>Next →</button><noscript><a class="button secondary" href="#wizard-step-3">Next →</a></noscript></div>
 </section>
 <section id="wizard-step-3" data-wizard-pane="3" aria-labelledby="wizard-title-3">
-<p class="wizard-step-count">Step 3 of 4</p><h2 id="wizard-title-3" tabindex="-1">Paste into your AI and send</h2>
-<p>Open a new chat in your eligible AI tool with browser control enabled. Paste the complete copied instructions into the message box, then press <strong>Send</strong>.</p>
+<p class="wizard-step-count">Step 3 of 4</p><h2 id="wizard-title-3" tabindex="-1">Paste into Dot and send</h2>
+<p>Open a new chat in <strong>Dot</strong> with browser control enabled. Paste the <strong>one copied start message</strong> into the message box and press <strong>Send</strong>.</p>
+<p>No second paste or attachment is needed. Dot reads the complete instructions from your private session.</p>
 <p>Your AI starts after you send the instructions. Copying here does not launch AI or connect an account.</p>
 <div class="wizard-actions"><button type="button" class="secondary" data-wizard-back="2" hidden>Back</button><button type="button" data-wizard-next="4" hidden>Next →</button><noscript><a class="button" href="#wizard-step-4">Next →</a></noscript></div>
 </section>
