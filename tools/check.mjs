@@ -18,6 +18,7 @@ console.log(count+' PHP files passed syntax validation.');
 process.stdout.write(runPhp(['tests/google.php']));
 process.stdout.write(runPhp(['tests/legal-policy.php']));
 process.stdout.write(runPhp(['tests/integration.php']));
+process.stdout.write(runPhp(['tests/admin-approval.php']));
 process.stdout.write(runPhp(['tests/discovery.php']));
 process.stdout.write(runPhp(['tests/blog.php']));
 process.stdout.write(runPhp(['tests/workflow.php']));

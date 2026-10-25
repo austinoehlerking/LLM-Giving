@@ -1,3 +1,4 @@
+import {revealAdminControls} from './admin-controls.mjs';
 import {reservationPickup} from './reservation-browser-support.mjs';
 import {authorizedHandoff} from './browser-authorization.mjs';
 import fs from 'node:fs';
@@ -21,7 +22,7 @@ export async function quarantineQa({page,ctx,base,runPhp,check,visibleActions,pa
  try{
   runPhp(['bin/console.php','admin','browser-qa@example.invalid'],password);
   await ap.goto(base+'/admin/login');await ap.getByLabel('Email').fill('browser-qa@example.invalid');await ap.getByLabel('Password').fill(password);await ap.getByRole('button',{name:'Sign in',exact:true}).click();
-  await ap.goto(base+'/admin/research/'+fixture.id);const f=ap.locator('form.moderate').filter({has:ap.locator('[name=type][value=request]')});await f.locator('[name=state]').selectOption('Approved');await f.locator('[name=reason]').fill('Approve clearly labeled synthetic quarantine UI test.');await f.getByRole('button',{name:'Save moderation decision'}).click();
+  await ap.goto(base+'/admin/research/'+fixture.id);const f=ap.locator('form.moderate').filter({has:ap.locator('[name=type][value=request]')});await revealAdminControls(f);await f.locator('[name=state]').selectOption('Approved');await f.locator('[name=reason]').fill('Approve clearly labeled synthetic quarantine UI test.');await f.getByRole('button',{name:'Save moderation decision'}).click();
   let t=await plan();
   await viewports(page,url,'ready','.research-heading .primary-actions > *');
   check('Ready handoff copied',(await authorizedHandoff(page)).includes('handoff_code'));

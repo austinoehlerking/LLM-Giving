@@ -76,10 +76,18 @@ function prose(string $text): string { return '<div class="prose">'.nl2br(e($tex
 function profile_links(string $json): void {
     foreach(json_decode($json,true)??[] as $label=>$url) echo '<a href="'.e($url).'" rel="nofollow noopener noreferrer" target="_blank">'.e(ucfirst($label)).'</a> ';
 }
-function moderation_form(string $type,string $id,string $state,string $back): void {
+const ADMIN_APPROVAL_REASON='Approved for publication by an administrator.';
+/** Concise request decisions keep the existing endpoint and require a substantive nonroutine note. */
+function moderation_reason(array $post): string {
+    if (!isset($post['request_review'])) return text_field($post,'reason',1);
+    if (($post['request_review']!=='1' && $post['request_review']!==1) || ($post['type']??'')!=='request') fail(422,'Invalid request review form.');
+    return text_field($post,'reason',($post['state']??'')==='Approved'?1:10);
+}
+function moderation_form(string $type,string $id,string $state,string $back,bool $requestReview=false): void {
     echo '<form method="post" action="/admin/moderate" class="moderate">'.csrf().'<input type="hidden" name="type" value="'.e($type).'"><input type="hidden" name="id" value="'.e($id).'"><input type="hidden" name="back" value="'.e($back).'">';
     select_field('Moderation decision','state',array_combine(MODERATION,MODERATION),$state);
-    field('Decision reason (private)','reason','','textarea',true);
+    if ($requestReview) echo '<input type="hidden" name="request_review" value="1"><label for="other-decision-reason">Decision reason (private)</label><textarea id="other-decision-reason" name="reason" required minlength="10"></textarea>';
+    else field('Decision reason (private)','reason','','textarea',true);
     if($type==='contribution') field('Explicit metadata exception rationale, if needed','exception');
     echo '<button>Save moderation decision</button></form>';
 }

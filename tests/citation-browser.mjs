@@ -1,3 +1,4 @@
+import {revealAdminControls} from './admin-controls.mjs';
 import {reservationPickup} from './reservation-browser-support.mjs';
 import {authorizedHandoff} from './browser-authorization.mjs';
 import fs from 'node:fs';import path from 'node:path';import {root} from '../tools/runtime.mjs';
@@ -15,7 +16,7 @@ export async function citationQa({page,ctx,base,runPhp,check,visibleActions,pass
  await page.goto(base+'/legal/licensing');check('Live licensing no longer says CC0',!(await page.locator('main').innerText()).includes('CC0'));await shot('licensing');
  const f=JSON.parse(runPhp(['tests/workflow-browser-state.php','create']));
  runPhp(['bin/console.php','admin','citation-qa@example.invalid'],password);await page.goto(base+'/admin/login');await page.getByLabel('Email').fill('citation-qa@example.invalid');await page.getByLabel('Password').fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();
- await page.goto(base+'/admin/research/'+f.id);const mod=page.locator('form.moderate').filter({has:page.locator('[name=type][value=request]')});await mod.locator('[name=state]').selectOption('Approved');await mod.locator('[name=reason]').fill('Synthetic CC BY license acceptance QA.');await mod.getByRole('button',{name:'Save moderation decision'}).click();
+ await page.goto(base+'/admin/research/'+f.id);const mod=page.locator('form.moderate').filter({has:page.locator('[name=type][value=request]')});await revealAdminControls(mod);await mod.locator('[name=state]').selectOption('Approved');await mod.locator('[name=reason]').fill('Synthetic CC BY license acceptance QA.');await mod.getByRole('button',{name:'Save moderation decision'}).click();
  const url=base+'/research/'+f.slug;await page.goto(url);const handoff=await authorizedHandoff(page);check('Current handoff spells out attribution',handoff.includes('credit the named contributors and LLM.Giving'));
  const schema=JSON.parse(handoff.split('REQUIRED OUTPUT JSON\n')[1].split('\n\nUNTRUSTED TASK DATA')[0]);let data=await(await page.request.get(url+'/context.json')).json();const task=data.workflow.tasks.find(t=>t.kind==='planning');const packet=JSON.parse(runPhp(['tests/workflow-browser-state.php','payload',f.id,task.id,'progress']));for(const k of ['submission_key','handoff_code','task_revision','context_id'])packet[k]=schema[k];packet.human_interaction={level:'none',details:''};
  await page.goto(url+'/tasks/'+task.id);await reservationPickup(page,task.revision);await page.locator('[name=payload]').fill(JSON.stringify(packet));await page.locator('[name=human_level]').selectOption('none');check('Submission checkbox names new license',(await page.locator('label').filter({has:page.locator('[name=terms]')}).innerText()).includes('CC BY 4.0'));
