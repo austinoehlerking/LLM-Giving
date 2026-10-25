@@ -1,3 +1,4 @@
+import {revealAdminControls} from './admin-controls.mjs';
 import {authorizedHandoff} from './browser-authorization.mjs';
 import fs from 'node:fs';import path from 'node:path';import {root} from '../tools/runtime.mjs';
 export async function launchQa({page,ctx,base,runPhp,check,visibleActions,password}){
@@ -15,7 +16,7 @@ export async function launchQa({page,ctx,base,runPhp,check,visibleActions,passwo
  await page.goto(base+'/admin/login');await page.getByLabel('Email').fill('launch-qa@example.invalid');await page.getByLabel('Password').fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();
  await page.goto(base+'/admin/system');await page.getByRole('button',{name:'Clean up expired unused handoffs'}).click();check('Admin retention action completed',page.url().includes('/admin/system'));await page.getByRole('heading',{name:'AI handoff archive retention'}).scrollIntoViewIfNeeded();await shot('archive-maintenance');
  const f=JSON.parse(runPhp(['tests/workflow-browser-state.php','create']));
- await page.goto(base+'/admin/research/'+f.id);const mod=page.locator('form.moderate').filter({has:page.locator('[name=type][value=request]')});await mod.locator('[name=state]').selectOption('Approved');await mod.locator('[name=reason]').fill('Synthetic archive limit QA fixture.');await mod.getByRole('button',{name:'Save moderation decision'}).click();
+ await page.goto(base+'/admin/research/'+f.id);const mod=page.locator('form.moderate').filter({has:page.locator('[name=type][value=request]')});await revealAdminControls(mod);await mod.locator('[name=state]').selectOption('Approved');await mod.locator('[name=reason]').fill('Synthetic archive limit QA fixture.');await mod.getByRole('button',{name:'Save moderation decision'}).click();
  const url=base+'/research/'+f.slug;await page.goto(url);
  const copied=await authorizedHandoff(page);const archiveHref=await page.locator('[data-issued-archive]').getAttribute('href'),id=archiveHref.split('/').pop();const issued=await page.request.get(base+archiveHref),original=await issued.body();check('Copy succeeds below quota',issued.status()===200);check('Private handoff preserves public archive bytes',copied.split('\n\nPRIVATE VOLUNTEER AUTHORIZATION SUPPLEMENT')[0]===original.toString('utf8'));await page.goto(url);await shot('copy-success');
  for(let i=1;i<60;i++){const r=await page.request.get(url+'/handoff.md');check('Copy quota allows issuance '+(i+1),r.status()===200);}

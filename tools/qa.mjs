@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {revealAdminControls} from '../tests/admin-controls.mjs';
 import {navigationGeometry} from '../tests/navigation-layout.mjs';
 import {resourcesQa} from '../tests/resources-browser.mjs';
 import {forkQa} from '../tests/fork-browser.mjs';
@@ -54,7 +55,7 @@ async function visibleActions(page,selector,name){
 async function goto(page,url){const res=await page.goto(url.startsWith('http')?url:base+url);assert.ok(res.status()<400,'GET '+url+' returned '+res.status());if(await page.locator('.giving-art img').count())await page.locator('.giving-art img').evaluate(img=>img.decode());}
 async function moderate(page,type,id,reason='Reviewed local synthetic test fixture',exception=''){
  const form=page.locator('form.moderate').filter({has:page.locator('input[name="type"][value="'+type+'"]')}).filter({has:page.locator('input[name="id"][value="'+id+'"]')});
- await form.locator('[name=state]').selectOption('Approved');await form.locator('[name=reason]').fill(reason);
+ await revealAdminControls(form);await form.locator('[name=state]').selectOption('Approved');await form.locator('[name=reason]').fill(reason);
  if(exception)await form.locator('[name=exception]').fill(exception);
  await form.getByRole('button',{name:'Save moderation decision'}).click();await page.waitForLoadState();
  check('Moderation saved for '+type,(await page.locator('body').innerText()).includes('Moderation decision saved.'));
@@ -80,7 +81,7 @@ try{
  }
  const page=await ctx.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
  if(mode==='pickups')await manualPickupQa({page,ctx,base,runPhp,check,visibleActions});
- if(mode!=='volunteers'&&mode!=='phone-guide') {
+ if(mode!=='volunteers'&&mode!=='phone-guide'&&mode!=='admin-approval') {
  const sample=JSON.parse(runPhp(['tests/qa-state.php','preview']));
  for(const size of [{width:1366,height:768},{width:390,height:844},{width:375,height:667},{width:768,height:1024}]){
   await page.setViewportSize(size);await goto(page,'/');await shot(page,'home-'+size.width+'x'+size.height);await visibleActions(page,'.hero .primary-actions > *','Home '+size.width);
@@ -116,7 +117,8 @@ try{
  // 200% browser zoom equivalent: reduced CSS viewport plus text scaling checks.
  await page.setViewportSize({width:683,height:384});await goto(page,'/');await page.evaluate(()=>{document.body.style.fontSize='200%';});await shot(page,'home-enlarged-text');check('Enlarged text reflow without horizontal clipping',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  }
- if(mode==='phone-guide'){const {phoneGuideQa}=await import('../tests/phone-guide-browser.mjs');await phoneGuideQa({page,ctx,base,runPhp,check,visibleActions,report});}
+ if(mode==='admin-approval'){const {adminApprovalQa}=await import('../tests/admin-approval-browser.mjs');await adminApprovalQa({page,ctx,base,runPhp,check,visibleActions,report,password});}
+ else if(mode==='phone-guide'){const {phoneGuideQa}=await import('../tests/phone-guide-browser.mjs');await phoneGuideQa({page,ctx,base,runPhp,check,visibleActions,report});}
  else if(mode==='volunteer-design'){await volunteerDesignQa({page,ctx,base,runPhp,check,visibleActions,report});}
  else if(mode==='volunteers'){await volunteerQa({page,ctx,base,runPhp,check,visibleActions,report});}
  else if(mode==='viewport'){check('No browser script exceptions',errors.length===0);console.log('Initial viewport screenshots and '+report.checks.length+' checks captured. Inspect screenshots before full workflow QA.');}
@@ -246,7 +248,7 @@ try{
   }
   await mp.getByLabel('Status',{exact:true}).selectOption('Withdrawn');await mp.getByLabel('Why are you changing the status?').fill('Withdraw this synthetic research from all public routes.');await mp.getByRole('button',{name:'Save request status'}).click();
   for(const route of ['/research/'+rid,'/research/'+slug+'/context.json','/research/'+slug+'/prompt.md','/research/'+slug+'/review/'+cid+'/prompt.md','/files/'+aid])check('Withdrawal isolates '+route,(await anon.request.get(base+route)).status()===404);
-  await goto(ap,'/admin/research/'+rid);const restore=ap.locator('form').filter({has:ap.locator('input[name=action][value=status]')});await restore.locator('[name=status]').selectOption('Still Unsolved');await restore.locator('[name=reason]').fill('Restore this synthetic request for verification.');await restore.getByRole('button').click();
+  await goto(ap,'/admin/research/'+rid);const restore=ap.locator('form').filter({has:ap.locator('input[name=action][value=status]')});await revealAdminControls(restore);await restore.locator('[name=status]').selectOption('Still Unsolved');await restore.locator('[name=reason]').fill('Restore this synthetic request for verification.');await restore.getByRole('button').click();
   check('Administrator restoration restores public context',(await anon.request.get(base+'/research/'+rid+'/context.json')).status()===200);
   // Material edits remain private until approved, and preserve prior published content.
   await goto(mp,'/manage/'+rid);await mp.getByText('Propose an update or add context',{exact:true}).click();

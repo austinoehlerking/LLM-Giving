@@ -1,3 +1,4 @@
+import {revealAdminControls} from './admin-controls.mjs';
 import {reservationPickup} from './reservation-browser-support.mjs';
 import {authorizedHandoff} from './browser-authorization.mjs';
 import fs from 'node:fs';
@@ -29,7 +30,7 @@ export async function workflowQa({page,ctx,base,runPhp,check,visibleActions,pass
   await ap.goto(base+'/admin/login');await ap.getByLabel('Email').fill('browser-qa@example.invalid');await ap.getByLabel('Password').fill(password);await ap.getByRole('button',{name:'Sign in',exact:true}).click();
   await ap.goto(base+'/admin/research/'+fixture.id);
   const moderation=ap.locator('form.moderate').filter({has:ap.locator('[name=type][value=request]')});
-  await moderation.locator('[name=state]').selectOption('Approved');await moderation.locator('[name=reason]').fill('Approve the disposable topic once to test autonomous follow-up.');
+  await revealAdminControls(moderation);await moderation.locator('[name=state]').selectOption('Approved');await moderation.locator('[name=reason]').fill('Approve the disposable topic once to test autonomous follow-up.');
   await moderation.getByRole('button',{name:'Save moderation decision'}).click();
   check('Approval creates planning stage',(await data()).research.status==='Needs Research Plan');
   let plan=await task('planning');
