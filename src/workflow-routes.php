@@ -57,7 +57,7 @@ function wf_route(array $r,string $suffix,string $method,?array $grant=null): bo
                 }
                 if($checkOnly){
                     $checked=true;
-                    if($jsonCheck){header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode(['ok'=>true,'message'=>'Packet checks passed. Nothing has been submitted. Submit the unchanged packet and inspect its recorded receipt; check success alone is not submission.','influence_review'=>wf_influence($d)['review_status']==='needed']);return true;}
+                    if($jsonCheck){header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode(['ok'=>true,'message'=>'Packet checks passed. Nothing has been submitted. Submit the unchanged packet and inspect its recorded receipt; check success alone is not submission.','influence_review'=>wf_influence($d,$grant['consent']??null)['review_status']==='needed']);return true;}
                 }else{flash('Packet recorded. See its acceptance or quarantine status below.');redirect($base.'/results/'.$id);}
             }catch(HttpError $e){
                 http_response_code($e->status);$error=$e->getMessage();// Only ar_read()'s stored private grant selects prose; packet fields never select this mode.
