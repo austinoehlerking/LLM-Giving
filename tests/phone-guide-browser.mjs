@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {root,env} from '../tools/runtime.mjs';
-/** Local UI evidence only. Never claims actual phone launch or Cloud execution. */
+/** Local UI evidence only. Never claims actual handset launch or a new Dot execution. */
 export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) {
  const out=path.join(root,'storage/qa/phone-guide');fs.mkdirSync(out,{recursive:true});
  const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}],errors=[];
@@ -15,19 +15,24 @@ export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) 
  try{
   await initial(page,'/volunteer/quick-start','guide','[data-guide-actions] > a,[data-phone-entry]');
   check('Guide has real content and correct title',(await page.title()).includes('Volunteer quick start')&&await page.locator('article[data-unavailable]').count()===0&&await page.locator('#quick-start-title').isVisible());
-  check('Phone prerequisites clearly mark Cloud unsupported and unverified',(await page.locator('[data-cloud-status]').innerText()).includes('unsupported')&&(await page.locator('[data-cloud-status]').innerText()).includes('unverified'));
+  check('Dot guide bounds verified browser proof and untested phone/controller operation',(await page.locator('[data-cloud-status]').innerText()).includes('one accepted synthetic task')&&(await page.locator('[data-cloud-status]').innerText()).includes('Phone initiation and multi-task operation are untested'));
+  check('Guide separates prepared controller/worker setup from native-Dot-only mode',(await page.locator('[data-phone-guide]').innerText()).includes('ChatGPT mobile app')&&(await page.locator('[data-phone-guide]').innerText()).includes('prepared private cloud-worker configuration')&&(await page.locator('[data-phone-guide]').innerText()).includes('Dot-native-only mode needs no Codex worker environment'));
+  check('Public proof links exactly the accepted result',await page.locator('[data-cloud-status] a').getAttribute('href')==='https://llm.giving/research/qa-dot-sol-high-cloud-worker-packet-and-browser-receipt-2026-10-24-dotsol20261024b01-3c1bb7ce8f/results/bc0c24cfcf533ac4804135d6b2c637e2');
   check('Guide contains no private session or return material',!await page.locator('input,textarea,form').count()&&!new RegExp('/return/[a-f0-9]{32}|#session:','i').test(await page.locator('article').innerText()));
   await reflow(page,'guide');await page.goto(base+'/volunteer/quick-start');
-  await page.locator('[data-phone-entry]').click();check('Phone entry opens the actual integrated section',new URL(page.url()).hash==='#phone-cloud'&&await page.locator('#phone-cloud').isVisible());
+  await page.locator('[data-phone-entry]').click();check('Phone entry opens the actual integrated section',new URL(page.url()).hash==='#phone-cloud'&&await page.locator('#phone-cloud').isVisible());await page.evaluate(()=>{window.__llmGivingQaAnchorScroll={y:scrollY,stable:0};});await page.waitForFunction(()=>{const s=window.__llmGivingQaAnchorScroll,y=scrollY;s.stable=Math.abs(y-s.y)<0.25?s.stable+1:0;s.y=y;const r=document.getElementById('phone-cloud')?.getBoundingClientRect();return s.stable>=6&&r&&r.top>=0&&r.bottom<=innerHeight;},{},{timeout:10000});await page.evaluate(()=>{delete window.__llmGivingQaAnchorScroll;});report.phoneAnchorGeometry=await page.locator('#phone-cloud').evaluate(el=>{const r=el.getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:r.height,viewportHeight:innerHeight};});await screenshot(page,'dot-guide-section');await visibleActions(page,'[data-phone-guide-actions] > a','Phone guide section after navigation');
   await page.locator('[data-phone-guide-actions] a[href^="/volunteer?"]').click();check('Restricted settings action opens exact preselection',new URL(page.url()).search==='?session_profile=restricted_web_v1');
   await initial(page,'/volunteer?session_profile=restricted_web_v1','restricted-setup','.volunteer-profile-choice select,.time-card,.connect-ai');
   check('Restricted profile preselection is real',await page.locator('[name=session_profile]').inputValue()==='restricted_web_v1');
-  check('Restricted setup exposes the actual Cloud capability warning',await page.locator('[data-volunteer-profile-note]').isVisible());
+  check('Restricted setup exposes accurate Dot proof limits',await page.locator('[data-volunteer-profile-note]').isVisible()&&(await page.locator('[data-volunteer-profile-note]').innerText()).includes('phone start untested'));
   await page.locator('[name=session_profile]').selectOption('general');check('General choice hides restricted-only help',await page.locator('[data-volunteer-profile-note]').isHidden());
-  await page.locator('[name=session_profile]').selectOption('restricted_web_v1');check('Restricted choice restores the warning',await page.locator('[data-volunteer-profile-note]').isVisible());
+  await page.locator('[name=session_profile]').selectOption('restricted_web_v1');check('Restricted choice restores proof limits',await page.locator('[data-volunteer-profile-note]').isVisible());
+  await page.locator('[data-volunteer-advanced] > summary').click();await page.getByLabel('Exact worker model',{exact:true}).selectOption('gpt-6.1-sol');await page.getByLabel('Actual reasoning effort',{exact:true}).selectOption('high');await page.getByLabel('AI tool or harness name',{exact:true}).fill('Codex cloud worker; Dot browser controller');await page.locator('[data-volunteer-advanced] > summary').click();
+  check('Guide worker configuration is selectable without expanding consent',await page.locator('[name=model]').inputValue()==='gpt-6.1-sol'&&await page.locator('[name=reasoning]').inputValue()==='high');
   await page.getByRole('button',{name:'Connect my AI',exact:true}).click();await page.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();
   await initial(page,null,'restricted-authorization','.volunteer-start .primary-actions > *');
   check('Server review retains one validated restricted profile',await page.locator('input[name=session_profile]').count()===1&&await page.locator('input[name=session_profile]').inputValue()==='restricted_web_v1');
+  check('Server review preserves declared6.1Sol/high selection without claiming effective verification',await page.locator('input[name=model]').inputValue()==='gpt-6.1-sol'&&await page.locator('input[name=reasoning]').inputValue()==='high');
   check('Authorization remains unchecked and separate',await page.locator('[name=authorize],[name=authorized_resources],[name=terms]').evaluateAll(els=>els.length===3&&els.every(el=>!el.checked))&&await page.locator('[name=human_level]').inputValue()==='');
   check('Review displays the server-derived restricted label',(await page.locator('.volunteer-profile-details > summary').innerText()).includes('Restricted web research'));
   check('Restricted review does not solicit irrelevant software consent',await page.locator('[name=tool_terms]').count()===0);
@@ -50,6 +55,6 @@ export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) 
   check('Native setup preserves server preselection',await np.locator('[name=session_profile]').inputValue()==='restricted_web_v1');await np.getByRole('button',{name:'Connect my AI',exact:true}).click();check('Native configure retains the exact profile',await np.locator('input[name=session_profile]').inputValue()==='restricted_web_v1');
   check('Configuring never issues a private session',await np.locator('#volunteer-private-link').count()===0);
   report.consoleErrors=errors;check('No guide/setup script or console errors',errors.length===0);
-  report.scope='Local rendered guide/setup/review/navigation evidence only. Synthetic local authorization/Stop only; no actual handset, Codex Cloud research or accepted-result claim.';
+  report.scope='Local rendered guide/setup/review/navigation evidence only. Synthetic local authorization/Stop only; no actual handset, new Dot research or accepted-result claim. The separate earlier single-task Dot proof is not re-executed by this suite.';
  } finally {await native?.close();}
 }

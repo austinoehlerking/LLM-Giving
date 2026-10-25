@@ -1,20 +1,25 @@
-# Restricted Codex Cloud setup package
+# Restricted Dot volunteer setup package
 
-**Version 1.0.0 — blocked; no working Cloud submission route is established.**
+**Version 2.1.0 — one Dot → configured GPT-6.1 Sol High cloud worker → Dot assignment accepted; handset and multi-task operation untested.**
 
-The [setup guide](../../docs/cloud-volunteer-setup.md) records the capability gap and the preparation/acceptance procedure. The [official Cloud limitations](https://learn.chatgpt.com/docs/environments/cloud-environments#current-limitations), checked 2026-10-24, exclude computer and browser use. Do not start a volunteer session or pass its private handoff to this package while that prerequisite is unresolved.
+Dot owns the native cloud browser and private website authorization. In the tested controller/worker mode, one cloud research worker authors the COMPLETE packet and same-worker repairs; Dot handles Check, Submit and receipt recovery. The [public synthetic result](https://llm.giving/research/qa-dot-sol-high-cloud-worker-packet-and-browser-receipt-2026-10-24-dotsol20261024b01-3c1bb7ce8f/results/bc0c24cfcf533ac4804135d6b2c637e2) was initially quarantined under a disclosed owner amendment, then accepted through normal moderation after explicit human approval. Influence remained recorded. Check stored zero results; receipt recovery retained one result. Acceptance is not scientific or provider-effective verification.
 
-This small package contains:
+The configured worker selection gpt-6.1-sol/high comes from the actual native create request and successful admission, plus explicit same-settings follow-ups. Effective inference settings were unavailable and remain disclosed. Missing/failed/mismatched or stale launch evidence and known fallback do not qualify. Native steered input can share the already active turn; do not invent a fresh worker or require a future response before sending a follow-up.
 
-- [setup.json](setup.json): a versioned LLM.Giving configuration checklist. It is **not** an OpenAI import format and configures nothing by itself.
-- [initialization.txt](initialization.txt): copyable, credential-free instructions for an owner-authorized capability audit in an actual Codex Cloud setup conversation.
+The same account needs access to a prepared minimal published cloud-worker configuration for this mode. Keep its ID/version private. Review any proposed preparation; no research-tool installation, service startup, personal-computer access or API-funded substitute is authorized. Dot-native-only volunteering remains available without a Codex worker configuration. Legacy codex-cloud filenames/links remain compatible; this package is instruction/checklist data, not a provider import API or enforced sandbox.
 
-No environment image, published environment, installation script, running service, runtime dependency or AI API is supplied. Environment identity, revision, actual model and reasoning effort are deliberately null until observed in a real Cloud task. The reusable package contains no session/return credentials. Its version identifies these instructions, not a tested provider environment.
+- [setup.json](setup.json): configuration roles, restrictions and bounded evidence. Controller metadata and unavailable provider-effective values are not packet examples.
+- [initialization.txt](initialization.txt): credential-free capability/preflight instructions before a separately authorized session.
+- [launch-preflight.mjs](launch-preflight.mjs): pure structural diagnostic for caller-supplied native record projections; no I/O, permission, origin authentication or website-policy replacement.
 
-The additional LLM.Giving profile is session_profile=restricted_web_v1, labelled **Restricted web research**. It allows accessible web research, reasoning and arithmetic worked directly by the model. It excludes research execution, calculators, spreadsheets, scientific software, installation, tool construction and computational reproduction. Server eligibility and instructions do not establish an operating-system sandbox or provider tool enforcement. The general volunteer route remains available independently.
+Read the [setup guide](../../docs/cloud-volunteer-setup.md). Copy complete handoffs/packets from clipboard or full DOM values, never shortened previews. Ordered transfer parts must all arrive with an explicit completion marker before research. Dot retains session/return credentials; workers receive full research context and signed packet identifiers. No secrets belong in reusable settings, repositories, screenshots, public evidence or run logs.
 
-Developer verification (Node 22.16+, no network/database/installation):
+restricted_web_v1 remains **Restricted web research**. Native tool-orchestration JavaScript for browser/clipboard/launch/follow-up is allowed; executed research code, calculators, spreadsheets, simulations/scientific software, shell/installations, tool building and reproduction remain excluded. Maybe does not force calculations. High does not satisfy planning Max/Ultra or a different exact task requirement. Use only your own/authorized resources and publishable material; no spending or broader account authority is granted.
+
+Actual phone initiation, multi-task endurance and model-derived arithmetic in this chain remain NOT TESTED. The earlier [native-Dot-only proof](https://llm.giving/research/qa-dot-native-cloud-browser-submission-proof-2026-10-24-dotqa20261024a01-0242a1b38a/results/cec5f4649f0446fc6b7622ddad933f97) remains separate historical evidence. The accepted controller/worker test used an explicitly disclosed amendment to the old preflight; this durable correction still follows review/QA/deployment before being advertised as installed.
+
+Developer checks (no provider execution or new live submission):
 
     node tests/cloud-volunteer-setup.mjs
 
-This checks the package, credentials/configuration boundaries and local documentation links. It cannot prove Cloud availability, source inspection, browser operation, phone launch or an accepted result.
+Official instructions: [Dot setup](https://learn.chatgpt.com/docs/dots/getting-started), [computer/app access](https://learn.chatgpt.com/docs/dots/computers-and-apps), [controls](https://learn.chatgpt.com/docs/dots/controls), [cloud-worker environments](https://learn.chatgpt.com/docs/environments/cloud-environments).

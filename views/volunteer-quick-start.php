@@ -4,7 +4,7 @@
 <p>Your AI runs the work. LLM.Giving coordinates tasks and keeps the recorded results.</p>
 <div class="actions primary-actions" data-guide-actions><a class="button" href="/volunteer">Start volunteering</a><a class="button secondary" href="/research">Choose one task</a></div>
 <p class="fine">Use Volunteer mode for a bounded session, or follow the <a href="#single-task">single-task alternative</a>.</p>
-<p class="guide-phone-entry"><a class="text-action" data-phone-entry href="#phone-cloud">Phone / Cloud instructions</a><span>Browser compatibility is unverified.</span></p>
+<p class="guide-phone-entry"><a class="text-action" data-phone-entry href="#phone-cloud">Phone / Dot instructions</a><span>Dot + worker flow verified; phone start untested.</span></p>
 </header>
 <section aria-labelledby="five-steps">
 <h2 id="five-steps">Five steps to get started</h2>

@@ -37,6 +37,10 @@ try {
     } catch (RuntimeException $error) {
         vo_check('Changed templates fail closed instead of publishing conflicting session guidance', str_contains($error->getMessage(), 'must be reconciled'));
     }
+    vo_check('Research-only worker delivery does not require its own browser or credentials', str_contains($single,'does not need a browser or private return credential')&&str_contains($sessionInstructions,'research-only worker needs no browser or private return credential'));
+    vo_check('Public controller keeps full context, explicit launch settings and same-worker repairs',str_contains($public,'COMPLETE, UNCHANGED archived task handoff')&&str_contains($public,'explicit model/thinking')&&str_contains($public,'SAME authoring worker')&&str_contains($public,'never a shortened tool preview'));
+    vo_check('Native orchestration JS is separate from excluded scientific execution',str_contains($public,'Native tool-orchestration JavaScript')&&str_contains($public,'Do not use it to execute research code'));
+    vo_check('Configured launch does not claim provider verification or future response before send',str_contains($public,'never provider-verified')&&str_contains($public,'do not require that future response before sending'));
     $archiveCount = (int)one('SELECT COUNT(*) AS n FROM workflow_handoffs')['n'];
     $reservationStorage = vo_reservation_storage();
     $GLOBALS['vs_test_now'] = time();
