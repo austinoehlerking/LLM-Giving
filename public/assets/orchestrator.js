@@ -11,7 +11,7 @@ if (orchestratorButton) {
     try {
       if (!text.value.trim()) throw new Error('Missing handoff');
       await navigator.clipboard.writeText(text.value);
-      status.textContent = 'Copied the complete orchestrator handoff. Paste it privately into your AI.';
+      status.textContent = 'Copied your launch request and complete private handoff. Review and send it as your own message to your AI.';
     } catch {
       details.open = true;
       text.focus();

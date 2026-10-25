@@ -107,7 +107,7 @@ function vs_claim_next(string $id): array {
                 return vs_issue_assignment($session,$r,$task,$reservation);
             }
         } while (count($candidates)===50);
-        fail(409,'No eligible unreserved task matches this authorized profile, scope, software consent and worker configuration. Work may be reserved, waiting, completed or held. Nothing was assigned.');
+        fail(409,vs_startup_no_work($session));
     });
 }
 /** Called by ar_validate only for a trusted stored scope carrying volunteer_session_id. */

@@ -53,8 +53,8 @@ try {
     $secret = substr($created['link'], strpos($created['link'], '#')+1);
     $before = vs_read($id);
     $text = vo_handoff($id, $created['link']);
-    vo_check('Complete reusable instructions precede the private supplement', str_starts_with($text, $public."\nPRIVATE VOLUNTEER SESSION SUPPLEMENT"));
-    vo_check('Private link is exact service-issued authorization', substr_count($text, $created['link']) === 1);
+    vo_check('Complete reusable instructions precede the private supplement', str_starts_with($text,'Please start my LLM.Giving volunteer session') && str_contains($text, $public."\nPRIVATE VOLUNTEER SESSION SUPPLEMENT"));
+    vo_check('Direct request and private supplement retain the same exact issued link', substr_count($text, $created['link']) === 2);
     vo_check('Public reference instructions have no session credential', !str_contains($public, $secret) && !str_contains($public, $id));
     vo_check('Supplement does not disclose actor or stored credential hash', !str_contains($text, $before['actor_hash']) && !str_contains($text, $before['secret_hash']));
     vo_check('Repeated handoff does not mutate session or extend its deadline', vo_handoff($id, $created['link']) === $text && vs_read($id) === $before);

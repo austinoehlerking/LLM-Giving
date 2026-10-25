@@ -68,7 +68,7 @@ const payload=(kind='Original research',target=null)=>{const d={
 };d.evidence=JSON.parse(runPhp(['tests/qa-state.php','evidence',d.body,d.methodology,d.sources]));return d;};
 try{
  await ready(base+'/',server);
- if(mode!=='phone-guide'&&mode!=='google'&&mode!=='viewport'&&mode!=='quarantine'&&mode!=='handoffs'&&mode!=='launch'&&mode!=='legal'&&mode!=='artifacts'&&mode!=='citations'&&mode!=='requirements'&&mode!=='tools'&&mode!=='setup')runPhp(['tests/qa-state.php','cleanup']);
+ if(mode!=='session-wizard'&&mode!=='phone-guide'&&mode!=='google'&&mode!=='viewport'&&mode!=='quarantine'&&mode!=='handoffs'&&mode!=='launch'&&mode!=='legal'&&mode!=='artifacts'&&mode!=='citations'&&mode!=='requirements'&&mode!=='tools'&&mode!=='setup')runPhp(['tests/qa-state.php','cleanup']);
  const pw=await playwright();
  const executable=browserExecutable();
  browser=await pw.chromium.launch({headless:true,executablePath:executable,env,args:['--no-sandbox'],downloadsPath:path.join(output,'downloads')});
@@ -81,7 +81,7 @@ try{
  }
  const page=await ctx.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
  if(mode==='pickups')await manualPickupQa({page,ctx,base,runPhp,check,visibleActions});
- if(mode!=='volunteers'&&mode!=='phone-guide'&&mode!=='admin-approval') {
+ if(mode!=='session-wizard'&&mode!=='volunteers'&&mode!=='phone-guide'&&mode!=='admin-approval'&&mode!=='volunteer-compact') {
  const sample=JSON.parse(runPhp(['tests/qa-state.php','preview']));
  for(const size of [{width:1366,height:768},{width:390,height:844},{width:375,height:667},{width:768,height:1024}]){
   await page.setViewportSize(size);await goto(page,'/');await shot(page,'home-'+size.width+'x'+size.height);await visibleActions(page,'.hero .primary-actions > *','Home '+size.width);
@@ -117,7 +117,9 @@ try{
  // 200% browser zoom equivalent: reduced CSS viewport plus text scaling checks.
  await page.setViewportSize({width:683,height:384});await goto(page,'/');await page.evaluate(()=>{document.body.style.fontSize='200%';});await shot(page,'home-enlarged-text');check('Enlarged text reflow without horizontal clipping',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  }
- if(mode==='admin-approval'){const {adminApprovalQa}=await import('../tests/admin-approval-browser.mjs');await adminApprovalQa({page,ctx,base,runPhp,check,visibleActions,report,password});}
+ if(mode==='session-wizard'){const {sessionWizardQa}=await import('../tests/session-wizard-browser.mjs');await sessionWizardQa({page,ctx,base,runPhp,check,visibleActions,report});}
+ else if(mode==='volunteer-compact'){const {volunteerCompactQa}=await import('../tests/volunteer-compact-browser.mjs');await volunteerCompactQa({page,ctx,base,runPhp,check,visibleActions,report});}
+ else if(mode==='admin-approval'){const {adminApprovalQa}=await import('../tests/admin-approval-browser.mjs');await adminApprovalQa({page,ctx,base,runPhp,check,visibleActions,report,password});}
  else if(mode==='phone-guide'){const {phoneGuideQa}=await import('../tests/phone-guide-browser.mjs');await phoneGuideQa({page,ctx,base,runPhp,check,visibleActions,report});}
  else if(mode==='volunteer-design'){await volunteerDesignQa({page,ctx,base,runPhp,check,visibleActions,report});}
  else if(mode==='volunteers'){await volunteerQa({page,ctx,base,runPhp,check,visibleActions,report});}

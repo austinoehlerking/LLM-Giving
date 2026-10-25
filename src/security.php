@@ -76,17 +76,22 @@ function text_field(array $data,string $key,int $min=0,int $max=0): string {
 function suspicious(string $s): bool {
     return (bool)preg_match('/ignore.{0,40}(instructions|previous)|system\s*:?\s*role|environment.variable|exfiltrat|private.key|base64|<script|javascript:|execute.{0,20}(command|shell)/is',$s);
 }
+/** Shared configured transport. Callers provide a server-generated private sink name. */
+function mail_deliver(string $to,string $subject,string $body,string $sink): void {
+    if (strlen($to)>254 || preg_match('/[\r\n\x00]/',$to) || !filter_var($to,FILTER_VALIDATE_EMAIL) || strlen($subject)>180 || preg_match('/[\r\n\x00]/',$subject) || !preg_match('/^(?:[0-9]+|volunteer-[a-f0-9]{32})$/D',$sink)) throw new RuntimeException('Mail transport unavailable.');
+    $driver=setting('mail_driver',env('MAIL_DRIVER','file'));
+    if ($driver==='file') {
+        if (@file_put_contents(storage('mail/'.$sink.'.json'),json_encode(['to'=>$to,'subject'=>$subject,'body'=>$body],JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR),LOCK_EX)===false) throw new RuntimeException('Mail transport unavailable.');
+    } elseif ($driver==='mail') {
+        $from=setting('mail_from',env('MAIL_FROM'));
+        if (preg_match('/[\r\n\x00]/',$from) || !filter_var($from,FILTER_VALIDATE_EMAIL) || !@mail($to,$subject,$body,['From'=>$from])) throw new RuntimeException('Mail transport unavailable.');
+    } else throw new RuntimeException('Mail transport unavailable.');
+}
 function mail_notice(string $rid,string $subject,string $body): void {
     $r=one('SELECT email FROM research WHERE id=?',[$rid]); if(empty($r['email'])) return;
     $id=insert('emails',['research_id'=>$rid,'subject'=>$subject,'status'=>'queued','created_at'=>now()]);
     try {
-        if(setting('mail_driver',env('MAIL_DRIVER','file'))==='file') {
-            // Intentionally private sink: recovery/management links are delivered here, never to application logs.
-            if(file_put_contents(storage('mail/'.$id.'.json'),json_encode(['to'=>$r['email'],'subject'=>$subject,'body'=>$body],JSON_PRETTY_PRINT))===false) throw new RuntimeException();
-        } elseif(setting('mail_driver',env('MAIL_DRIVER'))==='mail') {
-            $from=setting('mail_from',env('MAIL_FROM'));
-            if(!filter_var($from,FILTER_VALIDATE_EMAIL) || !mail($r['email'],$subject,$body,['From'=>$from])) throw new RuntimeException();
-        } else throw new RuntimeException();
+        mail_deliver($r['email'],$subject,$body,$id);
         query("UPDATE emails SET status='sent' WHERE id=?",[$id]);
     } catch(Throwable) { query("UPDATE emails SET status='failed' WHERE id=?",[$id]); }
 }

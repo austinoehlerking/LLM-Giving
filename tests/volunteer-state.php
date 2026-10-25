@@ -34,7 +34,7 @@ if($action==='create') {
         query('UPDATE volunteer_sessions SET expires_at=? WHERE id=?',[wr_stamp(wr_time()-1),$session['id']]);echo 'expired';
     } elseif($action==='state') {
         $lease=$assignment?wr_live($assignment['research_id'],$assignment['task_id']):null;
-        echo json_encode(['used'=>(int)$session['assignments_used'],'state'=>vs_state($session),'current'=>$assignment['id']??null,
+        echo json_encode(['collection'=>$session['consent']['human_disclosure_collection']??'historical_explicit','declaration'=>$session['consent']['human_disclosure'],'profile'=>vs_profile_id($session),'used'=>(int)$session['assignments_used'],'state'=>vs_state($session),'current'=>$assignment['id']??null,
             'task'=>$assignment['task_id']??null,'research'=>$assignment['research_id']??null,'lease_expiry'=>$lease['expires_at']??null,
             'deadline'=>$session['expires_at'],'outcomes'=>array_column(all('SELECT outcome FROM volunteer_assignments WHERE session_id=? ORDER BY created_at,id',[$session['id']]),'outcome'),
             'lineage_preserved'=>!(bool)one('SELECT a.id FROM volunteer_assignments a JOIN browser_returns b ON b.id=a.return_id WHERE a.session_id=? AND b.actor_hash<>? LIMIT 1',[$session['id'],$session['actor_hash']]),

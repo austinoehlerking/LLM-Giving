@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__.'/volunteer-email.php';
 function vs_scope_label(array $configuration): string {
     if ($configuration['scope_kind']==='category') return 'Category: '.(one('SELECT name FROM categories WHERE id=?',[$configuration['scope_id']])['name']??'Unavailable');
     if ($configuration['scope_kind']==='research') {
@@ -102,7 +103,7 @@ function vs_assignment_page(array $session,array $assignment,string $method): vo
                 if ($jsonCheck) {
                     $analysis=$packet; $analysis['human_disclosure']=$grant['consent']['human_disclosure'];
                     header('Content-Type: application/json'); header('Cache-Control: no-store');
-                    echo json_encode(['ok'=>true,'message'=>'Packet checks passed. Nothing has been submitted. Submit the unchanged packet and inspect its recorded receipt.','influence_review'=>wf_influence($analysis)['review_status']==='needed','session_reacquire'=>false]);
+                    echo json_encode(['ok'=>true,'message'=>'Packet checks passed. Nothing has been submitted. Submit the unchanged packet and inspect its recorded receipt.','influence_review'=>wf_influence($analysis,$grant['consent'])['review_status']==='needed','session_reacquire'=>false]);
                     return;
                 }
             } else fail(422,'Choose check, submit or explicit reacquisition.');
@@ -126,6 +127,7 @@ function vs_assignment_page(array $session,array $assignment,string $method): vo
         'can'=>$can,'error'=>$error,'repair'=>$repair,'checked'=>$checked,'input'=>$input,'reservationText'=>$item['reservation_text'],'reacquire'=>$item['reacquire']]);
 }
 function vs_route(string $path,string $method): bool {
+    if (vs_email_route($path,$method)) return true;
     if ($path==='/volunteer/orchestrator.txt') {
         if ($method!=='GET') fail(405,'Use GET for public reference instructions.');
         header('Content-Type: text/plain; charset=UTF-8');

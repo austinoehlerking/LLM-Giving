@@ -110,13 +110,13 @@ function ar_record(array $r,array $grant,array $d,bool $checkOnly): string {
         else{
             if(($d['target_id']??null)!==$g['scope']['target_id']||($d['kind']??'')!==$g['scope']['contribution_kind'])fail(409,'Contribution kind or target differs from this authorization.');
         }
-        // A packet cannot replace the independently captured volunteer declaration or consent.
+        // A packet cannot replace server-captured consent or its declaration collection status.
         $d['human_disclosure']=$g['consent']['human_disclosure'];
         $d['terms']=1;
         $d['tool_terms']=rt_is_tool($r)?1:null;
         if($g['task_id'])$id=wf_submit($r['id'],$g['task_id'],$d,$g['actor_hash'],$checkOnly,'ai_browser',$g['consent']);
         else{
-            $d['human_influence']=wf_influence($d);
+            $d['human_influence']=wf_influence($d,$g['consent']);
             $d['human_influence']['authorization']=$g['consent'];
             $d['submission_method']='ai_browser';
             $id=create_contribution($r['id'],$d,$checkOnly);
