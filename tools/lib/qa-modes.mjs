@@ -1,6 +1,7 @@
 /** One catalogue shared by the single-suite and complete-suite runners. */
 export const qaReports = Object.freeze({
   'session-wizard': 'session-wizard/browser-report.json',
+  'volunteer-compact': 'volunteer-compact/browser-report.json',
   'admin-approval': 'admin-approval/browser-report.json',
   volunteers: 'volunteers/browser-report.json',
   'phone-guide': 'phone-guide/browser-report.json',

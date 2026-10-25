@@ -10,3 +10,85 @@
 @media(max-width:600px){.volunteer-profile-choice{margin-top:10px;gap:8px}.volunteer-start .volunteer-profile-choice label{font-size:13px}.volunteer-profile-choice select{font-size:14px;padding:8px}.volunteer-design .volunteer-profile-note{font-size:12px}.volunteer-design:has(.volunteer-profile-note:not([hidden])) .time-settings{margin-top:8px}.volunteer-landing .container{padding-top:4px}.volunteer-design .cause-settings{margin-top:10px}.volunteer-finish{margin-top:8px}.volunteer-guide section{margin-top:20px}.phone-cloud-status{padding:12px}.volunteer-authorization .check{margin:6px 0}.volunteer-authorization h1{margin-bottom:6px}}
 
 @media(max-width:600px){.time-cards{grid-template-columns:repeat(auto-fit,minmax(min(100%,9.8em),1fr))}.volunteer-design .time-card{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto auto;align-content:start}.time-name{grid-column:1/-1;grid-row:1}.time-value{grid-column:1/-1;grid-row:2}.time-task{grid-column:1/-1;grid-row:3}.time-standard .time-task{grid-column:1}.popular{position:static;grid-column:2;grid-row:3;align-self:end;justify-self:end}}
+
+/* Compact setup and authorization: normal document flow, native controls, no clipping. */
+.volunteer-landing .volunteer-header{max-width:1000px;min-height:64px;padding:10px 24px}
+.volunteer-landing .container{max-width:1000px;padding:12px 24px 8px}
+.volunteer-landing .volunteer-start{margin:0;max-width:none}
+.volunteer-landing .volunteer-start h1{font-size:32px;line-height:1.2;margin:0 0 6px}
+.volunteer-design .volunteer-subtitle{font-size:16px;line-height:1.4}
+.volunteer-design .volunteer-profile-choice{display:block;margin:14px 0 0}
+.volunteer-profile-choice .profile-options{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.volunteer-profile-choice .profile-options label{display:flex;position:relative;align-items:center;justify-content:center;min-height:44px;min-width:120px;padding:8px 16px;border:1px solid #344a65;border-radius:6px;cursor:pointer;font-size:15px}
+.profile-options input{position:absolute;width:1px;height:1px;min-height:0!important;opacity:0;margin:0;padding:0}
+.profile-options label:has(input:checked){background:#9bbcf5;color:#101c2a;border-color:#9bbcf5}
+.profile-options label:has(input:focus-visible){outline:3px solid #e6edff;outline-offset:3px}
+.volunteer-profile-choice p{font-size:14px;line-height:1.4;margin:5px 0 0}
+.volunteer-design legend{font-size:16px;line-height:1.4}
+.volunteer-design .time-settings,.volunteer-design .cause-settings{margin-top:14px}
+.volunteer-design .time-explanation{font-size:14px;line-height:1.4;margin:3px 0 8px}
+.time-cards{gap:10px}
+.volunteer-design .time-card{min-height:100px;padding:12px;border-radius:9px}
+.volunteer-design .time-card:has(input:checked){padding:11px}
+.volunteer-design .time-icon{position:absolute;right:10px;top:10px;width:26px;height:26px;margin:0;border-radius:7px}
+.volunteer-design .time-icon svg{width:18px;height:18px}
+.volunteer-design .time-name{font-size:15px;line-height:1.3;padding-right:30px}
+.volunteer-design .time-value{font-size:26px;line-height:1.2;margin-top:4px}
+.volunteer-design .time-task{font-size:14px;line-height:1.4;margin-top:3px}
+.volunteer-design .cause-pills{gap:8px;padding:8px 2px 4px}
+.volunteer-design .cause-pill{font-size:14px;padding:9px 12px;min-height:44px}
+.volunteer-finish{margin-top:14px;column-gap:20px}
+.volunteer-design .session-summary strong{font-size:16px}
+.volunteer-design .session-summary>span{font-size:12px}
+.volunteer-finish .connect-ai{min-width:240px;min-height:52px;font-size:18px;padding:6px 8px 6px 20px}
+.volunteer-design .connect-ai>span{width:36px;height:36px;flex-basis:36px}
+.volunteer-design .volunteer-permission-note{font-size:14px;line-height:1.4;margin:12px 0 0}
+.volunteer-landing .volunteer-compact-footer{display:block;max-width:1000px;margin:8px auto 0;padding:0 24px 8px;border:0}
+.volunteer-compact-footer nav{justify-content:flex-start;gap:4px 20px}
+.volunteer-compact-footer a{display:inline-flex;align-items:center;min-height:44px;font-size:14px}
+.volunteer-landing .volunteer-authorization{max-width:780px;margin:0 auto}
+.volunteer-authorization>.fine{font-size:14px;line-height:1.4;margin:0 0 12px}
+.volunteer-authorization .form-panel{padding:18px;margin:0}
+.volunteer-authorization .check{font-size:15px;line-height:1.4;margin:8px 0;min-height:44px}
+.volunteer-authorization .primary-actions{margin:12px 0 0}
+.volunteer-authorization details{margin-top:12px;padding:0;border:0}
+.volunteer-authorization summary{font-size:14px;min-height:44px}
+.volunteer-landing input,.volunteer-landing select,.volunteer-landing textarea{min-width:0;max-width:100%}
+@media(max-width:600px){
+ .volunteer-landing .volunteer-header{min-height:60px;padding:8px 16px;flex-wrap:wrap}
+ .volunteer-landing .container{padding:8px 16px}
+ .volunteer-landing .volunteer-start h1{font-size:26px}
+ .volunteer-design .volunteer-subtitle{font-size:14px}
+ .volunteer-design .volunteer-profile-choice{margin-top:10px}
+ .volunteer-profile-choice .profile-options label{flex:1;min-width:0;font-size:14px;padding:8px}
+ .volunteer-profile-choice p{font-size:13px}
+ .volunteer-design .time-settings,.volunteer-design .cause-settings{margin-top:10px}
+ .volunteer-design .time-explanation{font-size:13px;margin-bottom:6px}
+ .time-cards{gap:8px}
+ .volunteer-design .time-card{min-height:82px;padding:9px 10px}
+ .volunteer-design .time-card:has(input:checked){padding:8px 9px}
+ .volunteer-design .time-name{font-size:14px}
+ .volunteer-design .time-value{font-size:23px}
+ .volunteer-design .time-task{font-size:13px}
+ .volunteer-design .cause-pill{font-size:13px}
+ .volunteer-finish{margin-top:8px;column-gap:10px}
+ .volunteer-design .session-summary strong{font-size:14px}
+ .volunteer-advanced>summary{font-size:13px}
+ .volunteer-finish .connect-ai{min-height:48px;min-width:0;font-size:18px}
+ .volunteer-design .volunteer-permission-note{font-size:13px;margin-top:10px}
+ .volunteer-landing .volunteer-compact-footer{margin-top:0;padding:0 16px 8px}
+ .volunteer-authorization .form-panel{padding:12px}
+ .volunteer-authorization .check{font-size:14px;margin:8px 0;line-height:1.4}
+ .volunteer-authorization>.fine{font-size:13px;margin-bottom:10px}
+}
+
+@media(max-width:600px){
+ .volunteer-design .volunteer-profile-choice{margin-top:8px}
+ .volunteer-design .time-settings,.volunteer-design .cause-settings{margin-top:8px}
+ .volunteer-design .time-card{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 6px;min-height:74px;padding:8px 10px}
+ .volunteer-design .time-card:has(input:checked){padding:7px 9px}
+ .volunteer-design .time-name{grid-column:1/-1}
+ .volunteer-design .time-value{grid-column:1;grid-row:2;margin:0}
+ .volunteer-design .time-task{grid-column:2;grid-row:2;margin:0;align-self:center;justify-self:end;text-align:right;max-width:80px}
+ .volunteer-finish{margin-top:6px}
+}

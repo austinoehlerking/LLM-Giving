@@ -14,7 +14,7 @@ export async function orchestratorQa({page,ctx,base,check,visibleActions}) {
   check('Session consent begins unchecked',await p.locator('[name=authorize],[name=authorized_resources],[name=terms]').evaluateAll(es=>es.length===3&&es.every(e=>!e.checked)));
   check('No orchestrator copy control precedes actual authorization',await p.locator('[data-copy-orchestrator]').count()===0);
   for(const name of ['authorize','authorized_resources','terms'])await p.locator('[name='+name+']').check();
-  await p.locator('[name=human_level]').selectOption('none');
+
   await p.getByRole('button',{name:/^Authorize (?:volunteer )?session$/}).click();
   await p.locator('#orchestrator-handoff').waitFor({state:'attached'});
   return p.locator('.volunteer-start > .primary-actions a').getAttribute('href');

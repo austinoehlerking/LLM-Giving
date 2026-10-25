@@ -44,7 +44,7 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
   await p.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();
  }
  async function authorize(p) {
-  await p.locator('[name=authorize]').check();await p.locator('[name=authorized_resources]').check();await p.locator('[name=terms]').check();await p.locator('[name=human_level]').selectOption('none');
+  await p.locator('[name=authorize]').check();await p.locator('[name=authorized_resources]').check();await p.locator('[name=terms]').check();
   await p.getByRole('button',{name:'Authorize session',exact:true}).click();await p.getByRole('heading',{name:'Your volunteer session is ready',exact:true}).waitFor();
   const link=await p.locator('#volunteer-private-link').inputValue(),id=new URL(link).pathname.split('/')[2];sessions.push(id);secrets.push(new URL(link).hash.slice(1));return {id,link};
  }
@@ -61,7 +61,7 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
   check('No account credentials or API keys are requested',await page.locator('input[type=password]').count()===0);
   await configure(page,fixtures[0],2);await capture(page,'authorization','.volunteer-start .primary-actions > *');
   check('Authorization and legal confirmations start unchecked',!await page.locator('[name=authorize]').isChecked()&&!await page.locator('[name=terms]').isChecked()&&!await page.locator('[name=authorized_resources]').isChecked());
-  check('Human declaration has no invented default',await page.locator('[name=human_level]').inputValue()==='');
+  check('Session does not request an upfront independent declaration',await page.locator('[name=human_level],[name=human_details]').count()===0);
   const first=await authorize(page);await capture(page,'created','.volunteer-start > .primary-actions > *');
   check('Private authorization response contains no analytics loader',await page.locator('[data-google-analytics]').count()===0);
   await page.getByRole('link',{name:'Open private dashboard',exact:true}).click();await capture(page,'dashboard-empty','[data-session-actions] button');

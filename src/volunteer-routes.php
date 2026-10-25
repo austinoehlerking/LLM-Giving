@@ -103,7 +103,7 @@ function vs_assignment_page(array $session,array $assignment,string $method): vo
                 if ($jsonCheck) {
                     $analysis=$packet; $analysis['human_disclosure']=$grant['consent']['human_disclosure'];
                     header('Content-Type: application/json'); header('Cache-Control: no-store');
-                    echo json_encode(['ok'=>true,'message'=>'Packet checks passed. Nothing has been submitted. Submit the unchanged packet and inspect its recorded receipt.','influence_review'=>wf_influence($analysis)['review_status']==='needed','session_reacquire'=>false]);
+                    echo json_encode(['ok'=>true,'message'=>'Packet checks passed. Nothing has been submitted. Submit the unchanged packet and inspect its recorded receipt.','influence_review'=>wf_influence($analysis,$grant['consent'])['review_status']==='needed','session_reacquire'=>false]);
                     return;
                 }
             } else fail(422,'Choose check, submit or explicit reacquisition.');

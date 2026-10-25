@@ -152,7 +152,7 @@ function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnl
         $validationPacket['corrections']=array_merge($d['corrections'],$evidence['corrections']);
         $assessment=wf_acceptance($t,$validationPacket,$row);
         $assessment['evidence']=$evidence['evidence'];
-        $influence=wf_influence($d);
+        $influence=wf_influence($d,$consent);
         $meta['human_influence']=$influence;
         if($consent)$meta['human_influence']['volunteer_declaration_scope']=$consent['disclosure_scope'];
         $meta['task_revision']=(int)$t['revision'];

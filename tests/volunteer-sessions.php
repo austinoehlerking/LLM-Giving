@@ -29,7 +29,7 @@ try {
     vsc(vs_configuration($post+['cause_choice'=>'category:1'])['scope_id']==='1','Cause pill supplies the actual validated category');
     vsd(fn()=>vs_configuration($post+['cause_choice'=>'category:2147483647']),422,'Invented cause pill cannot bypass taxonomy');
 
-    foreach (['authorize','terms','authorized_resources','human_level'] as $field) {
+    foreach (['authorize','terms','authorized_resources'] as $field) {
         $bad=$post; unset($bad[$field]);
         vsd(fn()=>vs_create($bad), 422, 'Missing '.$field.' cannot authorize a session');
     }
