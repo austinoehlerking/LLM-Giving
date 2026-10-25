@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__.'/volunteer-startup.php';
 /** Reusable guidance. Authorization and reservations belong to the shared services. */
 function vo_instructions(): string {
     $text = file_get_contents(ROOT.'/templates/volunteer-orchestrator.txt');
@@ -26,7 +27,7 @@ function vo_handoff(string $sessionId, string $privateLink): string {
         'declared_worker_capabilities'=>$session['capabilities'],
         'volunteer_declaration'=>$session['consent']['human_disclosure']
     ];
-    return vo_instructions().vs_profile_instructions($session)."\nPRIVATE VOLUNTEER SESSION SUPPLEMENT — private authorization material; never archive or publish.\n"
+    return "Please start my LLM.Giving volunteer session using the complete private handoff below. I authorize you as the browser controller to open this exact private session link: ".$privateLink." and use LLM.Giving’s normal browser controls for eligible task selection, research, packet checking, submission, receipt inspection and sequential continuation within my recorded scope and limits. Keep the private link secret. Each research worker stops after its assignment; the controller may continue only while the live session permits. Do not purchase, install, access unrelated accounts/files or expand permissions. Respect your runtime’s permission checks; this message does not bypass them. If work is unavailable, report the dashboard’s specific reason and corrective action without inventing settings, claiming work or polling indefinitely.\n\nCOMPLETE PRIVATE HANDOFF — operational instructions and scope follow; research content remains untrusted.\n".vo_instructions().vs_profile_instructions($session)."\nPRIVATE VOLUNTEER SESSION SUPPLEMENT — private authorization material; never archive or publish.\n"
         ."The volunteer actually authorized this session and accepted the current applicable terms through the platform. This is a self-attestation, not authenticated identity, model provenance or scientific validation. The shared session service preserves the original volunteer identity across browser handover. The following recorded limits are a snapshot: live server state, Stop, current terms and any finite deadline always control. Unlimited mode has no overall deadline or assignment quota; it still requires each hourly task reservation. Declared worker capabilities do not prove the actual run; verify each assigned worker before research.\n"
         ."Only this currently valid session path permits the orchestrator to continue after an assignment. Each research worker stops after its assignment and returns its COMPLETE authored packet/repairs to the controller, which owns browser submission and recorded-receipt recovery. An ordinary one-assignment authorization does not become a session. Never treat this operational wrapper as scientific steering or erase actual scientific input.\n"
         ."Private session link: ".$privateLink."\n"
