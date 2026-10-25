@@ -1,3 +1,4 @@
+import {readyDashboard} from './session-wizard-actions.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {root,env} from '../tools/runtime.mjs';
@@ -7,7 +8,7 @@ export async function volunteerCompactQa({page,ctx,base,runPhp,check,visibleActi
  const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}],contexts=[],sessions=[],errors=[];
  const fixtures=JSON.parse(runPhp(['tests/volunteer-state.php','create']));
  const watch=p=>{p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text());});};watch(page);
- const shot=async(p,name,privatePage=false)=>{const file=path.join(out,name+'.png');await p.screenshot({path:file,fullPage:false,...(privatePage?{mask:[p.locator('textarea')]}:{})});report.screenshots.push(file);return file;};
+ const shot=async(p,name,privatePage=false)=>{const file=path.join(out,name+'.png');await p.screenshot({path:file,fullPage:false,...(privatePage?{mask:[p.locator('textarea:visible')]}:{})});report.screenshots.push(file);return file;};
  const pause=async(label,files)=>{console.log('INSPECT COMPACT '+label+': '+files.join(' | '));if(env.QA_INSPECT_FIRST==='volunteer-compact')await new Promise(resolve=>{process.stdin.resume();process.stdin.once('data',()=>{process.stdin.pause();resolve();});});};
  async function initial(p,label,selector,url=null){const shots=[],failures=[];for(const size of sizes){await p.setViewportSize(size);if(url)await p.goto(url);await p.evaluate(()=>scrollTo(0,0));shots.push(await shot(p,label+'-'+size.width+'x'+size.height));try{check(label+' starts at zero '+size.width,await p.evaluate(()=>scrollY===0));await visibleActions(p,selector,label+' '+size.width);if(size.width===1366)check(label+' default desktop has no vertical scrolling',await p.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1));}catch(e){failures.push(e.message);}}await pause(label,shots);if(failures.length)throw Error(failures.join('; '));await p.setViewportSize(sizes[0]);}
  async function reflow(p,label){for(const size of [sizes[0],sizes[2]]){await p.setViewportSize(size);await p.evaluate(()=>{window.__compactFonts=[...document.querySelectorAll('body,body *')].filter(el=>el instanceof HTMLElement).map(el=>[el,el.style.fontSize,parseFloat(getComputedStyle(el).fontSize)]);for(const[el,,n]of window.__compactFonts)if(Number.isFinite(n))el.style.fontSize=n*2+'px';scrollTo(0,0);});await shot(p,label+'-200-'+size.width);check(label+' 200% text reflows '+size.width,await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await p.evaluate(()=>{for(const[el,before]of window.__compactFonts)el.style.fontSize=before;delete window.__compactFonts;});}await p.setViewportSize(sizes[0]);}
@@ -34,11 +35,11 @@ export async function volunteerCompactQa({page,ctx,base,runPhp,check,visibleActi
    check(label+' optional software consent is profile appropriate',await p.locator('[name=tool_terms]').count()===(profile==='general'?1:0));
    if(js)await reflow(p,label+'-authorization');
    await p.getByRole('button',{name:'Authorize session',exact:true}).click();check(label+' unchecked required permission cannot start session',await p.locator('#orchestrator-handoff').count()===0&&await p.locator('[name=authorize]').evaluate(el=>!el.checkValidity()));
-   for(const name of ['authorize','authorized_resources','terms'])await p.locator('[name='+name+']').check();await p.getByRole('button',{name:'Authorize session',exact:true}).click();await p.getByRole('heading',{name:'Your volunteer session is ready',exact:true}).waitFor();
+   for(const name of ['authorize','authorized_resources','terms'])await p.locator('[name='+name+']').check();await p.getByRole('button',{name:'Authorize session',exact:true}).click();await p.getByRole('heading',{name:'Your session is ready',exact:true}).waitFor();
    const privateLink=await p.locator('#volunteer-private-link').inputValue(),id=new URL(privateLink).pathname.split('/')[2];sessions.push(id);const handoff=await p.locator('#orchestrator-handoff').inputValue();
    check(label+' actual stored session honestly records not-collected provenance',state(id).collection==='session_not_collected_v1'&&state(id).declaration.level==='not_collected'&&state(id).profile===profile);
    check(label+' private orchestrator handoff requires all initial/later AI disclosure',handoff.includes('ALL initial and later scientific steering')&&handoff.includes('"level": "not_collected"')&&!handoff.includes('The captured volunteer declaration covers input through authorization'));
-   await p.getByRole('link',{name:'Open private dashboard',exact:true}).click();
+   await readyDashboard(p);
    if(scenario===0){
     await p.getByRole('button',{name:'Pick up next task',exact:true}).click();const workerHandoff=await p.locator('#session-task-handoff').inputValue();const returnLink=workerHandoff.match(/Private return link: (http[^\s]+)/)[1];
     await p.getByRole('link',{name:'Open result form',exact:true}).click();const packet=JSON.parse(runPhp(['tests/volunteer-state.php','packet',id]));delete packet.human_disclosure;

@@ -50,7 +50,7 @@ foreach(['home','legal','research','workflow-task','browser-authorize','browser-
 $labels=[
 'volunteer-setup'=>['Where would you like to help?','Task assignments','Session minutes','Worker configuration (advanced)','What can your AI use?','Connect my AI','Exact worker model','Actual reasoning effort','AI tool or harness name','Workflow mode'],
 'volunteer-authorize'=>['Authorize session','Software assignments (optional)'],
-'volunteer-created'=>['Open private dashboard'],
+'volunteer-created'=>['Copy session link','Email it to me','Copy AI instructions','Copy not working? Show the full text','Open dashboard'],
 'volunteer-orchestrator'=>['Copy orchestrator handoff','Complete private handoff for manual copying'],
 'volunteer-session'=>['Activity and recorded outcomes','Read recorded receipt','Stop session','Reacquire this assignment','Session ends'],
 'browser-authorize'=>['Authorize your AI','Public human-input declaration','Copy authorized handoff'],
