@@ -48,10 +48,9 @@ foreach(['volunteer-setup','volunteer-session'] as $view)guide_check((str_contai
 foreach(['home','legal','research','workflow-task','browser-authorize','browser-handoff'] as $view)guide_check(str_contains(file_get_contents(ROOT.'/views/'.$view.'.php'),'/volunteer/quick-start'),'Public/contextual entry exists: '.$view);
 // These labels must still exist in the actual controls described by the guide.
 $labels=[
-'volunteer-setup'=>['Where would you like to help?','Task assignments','Session minutes','Worker configuration (advanced)','What can your AI use?','Connect my AI','Exact worker model','Actual reasoning effort','AI tool or harness name','Workflow mode'],
+'volunteer-setup'=>['Where would you like to help?','Task assignments','Session minutes','Research worker','What can your AI use?','Connect my AI','Exact worker model','Actual reasoning effort','AI tool or harness name','Workflow mode'],
 'volunteer-authorize'=>['Authorize session','Software assignments (optional)'],
-'volunteer-created'=>['Copy session link','Email it to me','Copy AI instructions','Copy not working? Show the full text','Open dashboard'],
-'volunteer-orchestrator'=>['Copy orchestrator handoff','Complete private handoff for manual copying'],
+'volunteer-created'=>['Copy session link','Email it to me','Copy start message','Copy not working? Show start message','Open dashboard'],
 'volunteer-session'=>['Activity and recorded outcomes','Read recorded receipt','Stop session','Reacquire this assignment','Session ends'],
 'browser-authorize'=>['Authorize your AI','Public human-input declaration','Copy authorized handoff'],
 'browser-handoff'=>['Copy AI handoff','Complete handoff with private authorization supplement'],
