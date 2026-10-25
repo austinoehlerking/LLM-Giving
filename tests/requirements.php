@@ -42,9 +42,20 @@ try{
  $ctx=context_data($rid);req_ok($ctx['requester_ai_requirements']['model']==='gpt-6-astra','Context records exact requester requirement');
  req_ok(str_contains(wf_prompt($rid,$research['id']),'Reasoning: at least max'),'Task prompt contains precise minimum');
  req_ok(str_contains(wf_handoff_text($rid),'Reasoning: at least max'),'Copy handoff contains precise minimum');
+ $launchReq=['model'=>'gpt-6.1-sol','mode'=>'exact','effort'=>'high'];
+ $launchSnapshot=['package_json'=>json_encode(['requester_ai_requirements'=>$launchReq,'workflow'=>['planning_model_policy'=>wf_policy()]])];
+ $launchMeta=['provider'=>'OpenAI','model'=>'gpt-6.1-sol','reasoning'=>'high','tool'=>'Codex cloud worker; Dot browser controller','run_id'=>'synthetic-bound-worker-turn','run_at_utc'=>gmdate('Y-m-d\TH:i:s\Z'),'run_evidence'=>'Controller-recorded original explicit model/thinking and successful task/turn-bound admission; same-settings follow-up. Provider-effective readback unavailable; no provider verification.'];
+ $launchOut=wf_metadata(['metadata'=>$launchMeta],$launchSnapshot,false);
+ req_ok($launchOut['model']==='gpt-6.1-sol'&&$launchOut['reasoning']==='high'&&str_contains($launchOut['provenance'],'Self-reported')&&str_contains($launchOut['provenance'],'not authenticated'),'Recorded6.1Sol/high basis accepted as self-reported research metadata without provider readback');
+ foreach(['model','reasoning','run_id'] as $field){$missing=$launchMeta;unset($missing[$field]);req_deny(fn()=>wf_metadata(['metadata'=>$missing],$launchSnapshot,false),422,'Missing required metadata '.$field.' remains rejected');}
+ foreach(['model'=>'gpt-6-sol','reasoning'=>'max'] as $field=>$value){$mismatch=$launchMeta;$mismatch[$field]=$value;req_deny(fn()=>wf_metadata(['metadata'=>$mismatch],$launchSnapshot,false),422,'Launch description cannot bypass exact '.$field);}
+ req_deny(fn()=>wf_metadata(['metadata'=>$launchMeta],$launchSnapshot,true),422,'Recorded high launch cannot bypass planning Max/Ultra policy');
+ $forged=$launchMeta+['provenance'=>'Provider-verified','provider_verified'=>true];$out=wf_metadata(['metadata'=>$forged],$launchSnapshot,false);
+ req_ok(str_starts_with($out['provenance'],'Self-reported')&&!isset($out['provider_verified']),'Packet-supplied provider-verification flags cannot promote server provenance');
  $pre=rq_preflight(['model'=>'gpt-6-astra','mode'=>'exact','effort'=>'max'],wf_policy(),'planning');
  req_ok(str_contains($pre,'gpt-6-astra / max')&&!str_contains($pre,'gpt-6.1-sol /')&&!str_contains($pre,'gpt-6-astra / ultra'),'Preflight lists only qualifying exact planning configurations');
  foreach(['BLOCKED — AI CONFIGURATION','unknown, unverifiable','STOP IMMEDIATELY','OVERRIDES every JSON-only','Required:','Actual:','Problem:','Fix:','Re-run:','NEW conversation/run','ENTIRE fresh handoff unchanged','Do not upload this blocker message','Never relabel'] as $phrase)req_ok(str_contains($pre,$phrase),'Preflight contract: '.$phrase);
+ foreach(['successful native controller launch record','SAME-WORKER CONTINUATION','does NOT block','not provider-authenticated','future admission response','does not need browser tools'] as $phrase)req_ok(str_contains($pre,$phrase),'Launch/role preflight contract: '.$phrase);
  foreach([wf_prompt($rid,$research['id']),wf_handoff_text($rid),prompt_text($rid),wf_repair_prompt(research($rid),$research,'Synthetic mismatch')] as $i=>$prompt)req_ok(str_contains($prompt,'MANDATORY AI CONFIGURATION PREFLIGHT')&&str_contains($prompt,'Reasoning: at least max'),'Preflight in prompt surface '.$i);
  echo count($checks)." requester AI requirement checks passed.\n";
 }finally{foreach($ids as $id)purge_request($id,$id);}

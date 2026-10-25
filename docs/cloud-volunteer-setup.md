@@ -1,63 +1,72 @@
 # Restricted Dot volunteer setup
 
-**Version 2.0.0, checked 24 October 2026.** Dot's native cloud browser completed one accepted synthetic LLM.Giving task. The [public result](https://llm.giving/research/qa-dot-native-cloud-browser-submission-proof-2026-10-24-dotqa20261024a01-0242a1b38a/results/cec5f4649f0446fc6b7622ddad933f97) is a bounded NASA source-reading proof: a real validation omission was repaired, Check stored zero results, Submit recorded one accepted completed AI browser result, and reopening the receipt retained that same single result. It is not proof of scientific correctness, handset initiation, model-derived arithmetic, a multi-task restricted controller or Dot-to-Codex delegation.
+**Version 2.1.0, checked 24 October 2026 (Central).** One real **Dot → configured gpt-6.1-sol/high cloud research worker → Dot** assignment completed the full source/packet/repair/browser path. The [public synthetic result](https://llm.giving/research/qa-dot-sol-high-cloud-worker-packet-and-browser-receipt-2026-10-24-dotsol20261024b01-3c1bb7ce8f/results/bc0c24cfcf533ac4804135d6b2c637e2) is accepted, task revision1 is Completed, and direct observation found zero rows after Check and one after receipt recovery. A disclosed owner amendment to the old preflight produced quarantine; normal moderation accepted that exact result after explicit human approval, retaining influence. Acceptance is not scientific verification. This durable patch still requires its normal review/QA/deployment; the test used the disclosed amendment.
 
-This guide and [reusable instruction package](../volunteer/codex-cloud/README.md) now describe **ChatGPT Dot**. Existing cloud-volunteer and volunteer/codex-cloud links remain compatible; their names are historical. The old published Codex Cloud environment procedure is retired for this route. No repository or published Codex Cloud environment is needed. Do not run the LLM.Giving application, development setup, database or tests as volunteer research.
+The worker's selection was controller-recorded, not provider-authenticated effective inference. Actual phone initiation, multi-task endurance and model-derived arithmetic were not tested. The earlier [native-Dot-only result](https://llm.giving/research/qa-dot-native-cloud-browser-submission-proof-2026-10-24-dotqa20261024a01-0242a1b38a/results/cec5f4649f0446fc6b7622ddad933f97) remains separate evidence. Existing cloud-volunteer/codex-cloud paths and #phone-cloud links remain compatible.
 
-## A. Prepare Dot once
+## A. Prepare your account once
 
-Use the current ChatGPT mobile app, a desktop app or desktop browser to set up/access your Dot. Continue with the same account and Dot on your phone. Dot mobile web is unsupported, and access depends on account/workspace availability. [Official getting started](https://learn.chatgpt.com/docs/dots/getting-started)
+Use the latest ChatGPT mobile app, desktop app or desktop browser to access the same account's Dot. Dot mobile web is unsupported; account/workspace availability varies. [Official Dot setup](https://learn.chatgpt.com/docs/dots/getting-started)
 
-Use Dot's own cloud browser, which can work while your personal computer is off. Connecting your computer is optional and outside this route; do not grant personal-file or desktop access. The cloud browser has separate sessions from your personal browser. If needed, inspect it through Dot's profile under Computers; Take over and Return control transfer interaction explicitly. [Official computers and apps](https://learn.chatgpt.com/docs/dots/computers-and-apps)
+Dot uses its own cloud computer/browser, independent of your personal browser sign-ins. Your computer can remain off. Local-computer connection is optional and outside this restricted route. [Official computers and apps](https://learn.chatgpt.com/docs/dots/computers-and-apps)
 
-Read [setup.json](../volunteer/codex-cloud/setup.json) and provide [initialization.txt](../volunteer/codex-cloud/initialization.txt) to check the actual Dot. These are instruction/checklist data, not an OpenAI import API, enforced sandbox or configurable network policy. No installations, services, API keys, production/admin access or connected-computer permission are requested. Verify source reading and interactive form capability independently; search or a page fetch is insufficient. Use only task-relevant accessible destinations and retain genuine permission checks. The earlier successful Dot is not an attestation for every account/session.
+For **controller/worker mode**, the account needs a dedicated minimal published cloud-worker configuration accessible to Dot; the actual test used LLM.Giving research worker. Prepare/review that setup on web/desktop before phone use, following the [cloud environment instructions](https://learn.chatgpt.com/docs/environments/cloud-environments). Review proposed repository/tool preparation: do not approve research installations, service startup, shell/scientific software or unrestricted access. Keep configuration IDs/version references private. If suitable configuration/native launch controls are unavailable, report that prerequisite; do not silently switch accounts, model or worker type. No configuration is created by this package.
 
-## B. Start a volunteer session from a phone
+**Dot-native-only mode** remains available with a compatible Dot; no Codex worker environment is required for that alternative. Codex workers need not supply an interactive browser: Dot owns browser pickup, leases, Check/Submit and receipt recovery. Never install browser tooling in the worker as a workaround.
 
-The following phone workflow follows provider documentation but has **not been exercised on an actual handset**. Multi-task operation of the restricted controller is also untested. For an authorized acceptance test, use the designated synthetic study and one assignment; do not select all production work.
+Read [setup.json](../volunteer/codex-cloud/setup.json) and [initialization.txt](../volunteer/codex-cloud/initialization.txt). They are instruction/checklist data, not a provider import API, network configuration or sandbox. No credentials, API keys or per-run handoff belong in reusable settings, repositories or public evidence. The optional [launch diagnostic](../volunteer/codex-cloud/launch-preflight.mjs) checks supplied record consistency without authenticating origin/provider execution or replacing website policy.
 
-1. Open /volunteer?session_profile=restricted_web_v1 and confirm **Research profile → Restricted web research**. Choose scope and limits; **Advanced Options** includes exact worker configuration and custom limits. This GET creates no consent or reservation.
-2. Select **Connect my AI**, review the profile, resource/publication permission, current terms and independent human-input declaration, then **Authorize session**. Use your own AI resources or ones you are authorized to contribute. General sessions and the single-assignment alternative remain available.
-3. Save the private dashboard link. Copy **Copy orchestrator handoff** in full, including private authorization. On clipboard failure copy every word of **Complete private handoff for manual copying**. Never put session/return material in reusable Dot settings, repositories, screenshots, research evidence, citations or logs.
-4. In the latest ChatGPT mobile app, open the same account's Dot conversation, paste the complete handoff and send. No environment publishing or Codex task is involved. LLM.Giving does not launch/connect an AI. Return to the same Dot conversation for continuity; do not silently delegate to a different worker.
-5. Respond to genuine permission requests within scope. Inspect the task and actual requirements, use **Check packet**, repair recoverable validation errors without changing conclusions or signed identifiers, then **Submit task result**. Open the recorded receipt yourself. A passing check or the AI saying done is not submission.
+## B. Start from your phone
 
-## Actual settings and research boundaries
+These app steps follow provider documentation but have **not been exercised on an actual handset**. For a separately authorized acceptance run, select only the designated synthetic study and one assignment.
 
-The verified run's exact model/effort were unavailable. Honest UNKNOWN/unknown metadata was accepted only because that fixture had no additional exact requirement. Unavailable metadata cannot match a specific model/reasoning requirement; skip incompatible work. Do not copy a requested setting into the actual-setting field or infer worker identity from a controller or product documentation. The actual schema remains authoritative: a null model failed the string field in the real run. Checklist nulls mean unobserved configuration, not valid packet values.
+1. Open /volunteer?session_profile=restricted_web_v1. Select **Restricted web research**, compatible scope and limits. **Advanced Options → Worker configuration (advanced)** records the configured worker: **Exact worker model** gpt-6.1-sol and **Actual reasoning effort** high for this mode, plus its honest harness/mode. This is a declaration, not provider-effective verification; the site still applies exact requirements. High is not eligible for platform planning Max/Ultra. General sessions/single-task copying remain available.
+2. Select **Connect my AI**, review the current profile/terms/resource and publication rights, complete the truthful independent human-input declaration and **Authorize session**. A public prompt cannot supply consent. Use your own or explicitly authorized accounts/resources; no installation, purchases or unrelated access is granted.
+3. Save the private dashboard link. Copy **Copy orchestrator handoff** completely; if denied, copy every word of **Complete private handoff for manual copying**. Do not edit its science or delete context. Preserve any genuine amendment/influence; approval of the example does not waive disclosure for later work.
+4. In the latest **ChatGPT mobile app**, paste into the same account's **Dot conversation** and send. The complete platform procedure defines controller/worker roles: Dot uses its prepared cloud-worker configuration, explicit gpt-6.1-sol/high and successful original native admission record; it keeps browser authorization. LLM.Giving launches/connects no AI. Reopen the same Dot conversation and worker for this assignment/repair; each new assignment needs a separate work context.
+5. Dot transfers the full task/schema/context and exact signed identifiers; the worker returns the **COMPLETE JSON packet**. Dot uses **Check packet**, returns the full platform error/repair prompt to the **same worker** with unchanged explicit settings, then uses **Submit task result** and opens the recorded receipt. Dot does not author scientific repairs or claim the worker submitted through its own browser.
 
-The unchanged restricted_web_v1 profile permits accessible source research, reasoning and directly explained model arithmetic. It excludes research code/shell execution, calculators, spreadsheets, simulations/scientific software, research-tool installation, software building and computational reproduction. Known incompatibilities are filtered server-side. Read the whole task for hidden dependencies, then release/skip honestly when needed; a worker limitation is not a scientific blocker. Optional **Maybe — if useful** does not force calculations or exclude narrative work.
+## Complete transfer and configured-launch evidence
 
-Use metadata.evidence.derivations (version=1,type=model_derived) for non-executed arithmetic, with cited inputs/locations, units, formula, worked steps, result, assumptions and limitations. Independent derivation_reviews assess reasoning, not computational reproduction. Do not invent code, execution, software, files or checksums, or substitute derivations for required execution. Preparation/review-only excludes execution; explicit brief restrictions still apply. See the [calculation contract](reproducible-calculations.md).
+Use the full Copy AI handoff clipboard value or DOM textarea, never shortened tool previews. Literal truncation/omission markers or missing context require recovery before research. If transfer needs ordered parts, declare the total and completion marker; the worker waits for **ALL** parts and acknowledges complete context before work. Retrieve the full worker packet, including all evidence/supporting materials; a result summary is insufficient. Preserve handoff_code, submission_key, task_revision and context_id exactly.
 
-Eligibility and instructions are not provider tool sandboxing. Contributors retain responsibility for permission, resources, costs and publication rights. No purchase, installation, personal-file or unrelated-account authority is granted. Preserve the [session contract](volunteer-sessions.md), [orchestrator contract](volunteer-orchestrator.md), original actor and independent-review separation.
+Native original create request plus successful response establishes **configured launch**: explicit model/thinking, bound worker thread/turn, and website assignment/revision/context in the full input. Same-settings follow-ups explicitly select the same model/thinking; retain returned records after success, never demand a future response before sending. Native steered input can share the already admitted active turn. Missing/failed/mismatched/stale/unbound records or known fallback do not qualify; a nonexistent fallback=false field is not required.
 
-## Reservations, results and Stop
+**Unavailable provider-effective readback alone does not block that qualifying configured launch.** Disclose it; metadata remains self-reported. Sanitized run_evidence may describe the controller-recorded basis, never raw private logs/configuration/transport identifiers or credentials. A prompt request, human guess or packet model label alone is insufficient. Do not relabel settings or bypass exact model/effort or planning requirements. The real same-worker format repair changed provider null to truthful UNKNOWN; follow the actual schema, not invented metrics or authentication.
 
-Each task requires a 60-minute reservation, bounded by a finite session's earlier deadline. **Renew reservation** and **Release task** are explicit. Viewing/recopying/checking does not renew; renewal does not extend session duration or add assignment allowance. Preserve entered work and exact signed IDs on expiry/conflict; reacquire only the same eligible unreserved assignment when offered.
+## Research and permission boundaries
 
-**Check packet** records nothing. **Submission accepted** means admitted; **Packet quarantined — awaiting admin** means recorded but not accepted evidence. Recover the existing receipt before uncertain retry, and verify no duplicate. **Stop session** releases held work and revokes further platform permission while preserving receipts under normal visibility rules. Also stop Dot's external work. Pausing Dot does not stop every delegated task or cancel schedules; inspect those separately if any exist. This setup creates neither. [Official controls](https://learn.chatgpt.com/docs/dots/controls)
+restricted_web_v1 and server eligibility remain unchanged. Native tool-orchestration JavaScript for browser/clipboard/launch/follow-up is permitted. Executed research code, calculators, spreadsheets, simulations/scientific software, shell/installations, tool construction and computational reproduction remain excluded. This is instruction/eligibility, not provider sandboxing. Read the full task for hidden incompatibilities and **Release task**/skip honestly; this worker's limits are not a scientific study blocker. **Maybe — if useful** permits calculations without requiring them or excluding narrative work.
 
-## Evidence boundaries and remaining checks
+Non-executed arithmetic uses metadata.evidence.derivations (version1,type=model_derived) with cited inputs/locations, units, formula, worked steps, outputs, assumptions and limitations. Separate derivation_reviews assess reasoning without claiming reproduction. This accepted NASA case did not test arithmetic. Do not invent files, software, execution or checksums, or use a derivation for required execution. Preparation/review-only and explicit brief restrictions remain authoritative. See [calculations](reproducible-calculations.md), [sessions](volunteer-sessions.md) and [controller contract](volunteer-orchestrator.md).
 
-| Item | Current evidence |
+## Leases, receipts and Stop
+
+One active assignment/worker, with a **60-minute reservation** bounded by a finite session's earlier deadline. **Renew reservation** and **Release task** are explicit. Views, recopy and repair do not renew; renewal never extends the session or restores consumed assignments. Preserve work and signed IDs on conflict/expiry; reacquire only the same eligible unreserved assignment when offered.
+
+Check records nothing. **Submission accepted** means admitted; **Packet quarantined — awaiting admin** means recorded but not accepted. Preserve influenced/unsure disclosures, do not resubmit/poll to evade moderation, and recover the existing receipt before an uncertain retry. The verified test retained one result and its original influenced declaration after authorized moderation.
+
+**Stop session** releases held work and revokes platform permission; receipts retain parent/moderation/current-result/snapshot visibility. Also stop Dot and its active cloud worker. Pausing Dot's main task does not stop every delegated task or schedule; inspect those separately. No recurring schedule is requested. [Official controls](https://learn.chatgpt.com/docs/dots/controls)
+
+## Evidence boundaries
+
+| Item | Recorded evidence |
 | --- | --- |
-| Native Dot source reading, browser validation/repair, Check and Submit | One synthetic NASA task verified on 2026-10-24 |
-| Accepted completed ai_browser result, revision1; receipt reopen | Result cec5f4649f0446fc6b7622ddad933f97; stored count0 after Check,1 after reopen |
-| Exact provider model/effort | UNKNOWN/unknown; fixture had no additional exact requirement |
-| Native source search beyond the inspected source | Not established by that submission proof |
-| Actual phone launch/reopen | NOT TESTED |
-| Multi-task restricted-session controller | NOT TESTED |
-| Model-derived arithmetic in Dot | NOT TESTED |
-| Future Dot-to-Codex worker mode | NOT IMPLEMENTED / NOT TESTED |
+| Dot → configured gpt-6.1-sol/high worker → Dot | One accepted synthetic assignment, including full packet transfer and same-worker format repair |
+| Check/Submit/recovery | Zero rows after Check; one accepted ai_browser completed result after moderation; no duplicate |
+| Configured worker versus effective inference | Native controller-recorded selection; effective readback unavailable, provenance self-reported |
+| Influence | Owner-amended old preflight disclosed, quarantine then explicit ordinary approval; disclosure retained |
+| Actual phone start/reopen | NOT TESTED |
+| Multi-task/endurance session | NOT TESTED |
+| Model-derived arithmetic in this chain | NOT TESTED |
 
-Use the [phone tester checklist](phone-cloud-tester-checklist.md) and [acceptance contract](cloud-volunteer-acceptance.md) for remaining real checks. This guide update authorizes no deployment, live test or real research. Local resized screenshots prove UI only. Keep private evidence under ignored D: storage, retain source/receipt truth and report blocked sources or unavailable capabilities honestly.
+Use the [tester checklist](phone-cloud-tester-checklist.md) and [acceptance contract](cloud-volunteer-acceptance.md) for remaining live checks. This document alone authorizes no live test/deployment. Do not turn local screenshots, a successful check or administrative admission into scientific/provider verification.
 
-## Developer verification
+## Developer checks
 
     node tests/cloud-volunteer-setup.mjs
     php tests/volunteer-guide.php
     node tools/source-check.mjs
     node tools/qa.mjs phone-guide
 
-Contract checks validate inert configuration, links, honest evidence limits and credential exclusions. The repo browser suite checks the local rendered guide/setup/authorization/dashboard at required viewports and enlarged text. It does not launch Dot or establish handset/multi-task acceptance. Independent QA follows the coordinator's closed-batch plan and may reuse unchanged source-bound evidence.
+Run only affected checks, preserve source-bound prior server/review evidence, inspect required viewports/reflow, and let the coordinator own delta review, batch QA and deployment.

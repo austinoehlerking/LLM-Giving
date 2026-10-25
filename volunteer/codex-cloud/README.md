@@ -1,22 +1,25 @@
 # Restricted Dot volunteer setup package
 
-**Version 2.0.0 — native browser submission verified for one synthetic task; phone start and multi-task operation untested.**
+**Version 2.1.0 — one Dot → configured GPT-6.1 Sol High cloud worker → Dot assignment accepted; handset and multi-task operation untested.**
 
-The active route uses ChatGPT Dot's own cloud browser. No repository, published Codex Cloud environment, connected personal computer, installation or API key is needed. This directory and its links retain the legacy codex-cloud name for compatibility; the former Codex Cloud environment instructions are retired for this route.
+Dot owns the native cloud browser and private website authorization. In the tested controller/worker mode, one cloud research worker authors the COMPLETE packet and same-worker repairs; Dot handles Check, Submit and receipt recovery. The [public synthetic result](https://llm.giving/research/qa-dot-sol-high-cloud-worker-packet-and-browser-receipt-2026-10-24-dotsol20261024b01-3c1bb7ce8f/results/bc0c24cfcf533ac4804135d6b2c637e2) was initially quarantined under a disclosed owner amendment, then accepted through normal moderation after explicit human approval. Influence remained recorded. Check stored zero results; receipt recovery retained one result. Acceptance is not scientific or provider-effective verification.
 
-Read the [setup guide](../../docs/cloud-volunteer-setup.md), then use:
+The configured worker selection gpt-6.1-sol/high comes from the actual native create request and successful admission, plus explicit same-settings follow-ups. Effective inference settings were unavailable and remain disclosed. Missing/failed/mismatched or stale launch evidence and known fallback do not qualify. Native steered input can share the already active turn; do not invent a fresh worker or require a future response before sending a follow-up.
 
-- [setup.json](setup.json): versioned LLM.Giving instruction/checklist data, not a provider import API, network configuration or sandbox.
-- [initialization.txt](initialization.txt): credential-free instructions to check the actual Dot's capabilities before providing a separate authorized handoff.
+The same account needs access to a prepared minimal published cloud-worker configuration for this mode. Keep its ID/version private. Review any proposed preparation; no research-tool installation, service startup, personal-computer access or API-funded substitute is authorized. Dot-native-only volunteering remains available without a Codex worker configuration. Legacy codex-cloud filenames/links remain compatible; this package is instruction/checklist data, not a provider import API or enforced sandbox.
 
-The recorded [synthetic accepted result](https://llm.giving/research/qa-dot-native-cloud-browser-submission-proof-2026-10-24-dotqa20261024a01-0242a1b38a/results/cec5f4649f0446fc6b7622ddad933f97) demonstrates browser source reading, validation repair, Check without recording, explicit submission and same-receipt recovery without duplicates. It does not verify a handset launch, the multi-task restricted controller, model-derived arithmetic or Dot-to-Codex workers. Actual model/effort are unavailable, so their observed values remain null in this checklist; those values are not a submission packet.
+- [setup.json](setup.json): configuration roles, restrictions and bounded evidence. Controller metadata and unavailable provider-effective values are not packet examples.
+- [initialization.txt](initialization.txt): credential-free capability/preflight instructions before a separately authorized session.
+- [launch-preflight.mjs](launch-preflight.mjs): pure structural diagnostic for caller-supplied native record projections; no I/O, permission, origin authentication or website-policy replacement.
 
-The existing session_profile=restricted_web_v1 remains **Restricted web research**, with the same eligibility and evidence rules. It permits web research, reasoning and directly explained model arithmetic, and excludes research execution, calculators, spreadsheets, scientific software, installation, tool building and reproduction. These restrictions are instructions plus server eligibility, not provider tool sandboxing. General sessions are unchanged.
+Read the [setup guide](../../docs/cloud-volunteer-setup.md). Copy complete handoffs/packets from clipboard or full DOM values, never shortened previews. Ordered transfer parts must all arrive with an explicit completion marker before research. Dot retains session/return credentials; workers receive full research context and signed packet identifiers. No secrets belong in reusable settings, repositories, screenshots, public evidence or run logs.
 
-Keep all per-run session/return credentials private. Do not bake them into this package, reusable Dot settings or public evidence. Use your own or authorized resources; no purchase, installation or personal-computer permission is granted. Account availability and genuine provider approval checks still apply.
+restricted_web_v1 remains **Restricted web research**. Native tool-orchestration JavaScript for browser/clipboard/launch/follow-up is allowed; executed research code, calculators, spreadsheets, simulations/scientific software, shell/installations, tool building and reproduction remain excluded. Maybe does not force calculations. High does not satisfy planning Max/Ultra or a different exact task requirement. Use only your own/authorized resources and publishable material; no spending or broader account authority is granted.
 
-Developer verification (no provider execution, network, database or installation):
+Actual phone initiation, multi-task endurance and model-derived arithmetic in this chain remain NOT TESTED. The earlier [native-Dot-only proof](https://llm.giving/research/qa-dot-native-cloud-browser-submission-proof-2026-10-24-dotqa20261024a01-0242a1b38a/results/cec5f4649f0446fc6b7622ddad933f97) remains separate historical evidence. The accepted controller/worker test used an explicitly disclosed amendment to the old preflight; this durable correction still follows review/QA/deployment before being advertised as installed.
+
+Developer checks (no provider execution or new live submission):
 
     node tests/cloud-volunteer-setup.mjs
 
-See [official Dot setup](https://learn.chatgpt.com/docs/dots/getting-started), [its cloud computer](https://learn.chatgpt.com/docs/dots/computers-and-apps) and [controls](https://learn.chatgpt.com/docs/dots/controls). Local contract checks cannot establish phone or end-to-end session acceptance.
+Official instructions: [Dot setup](https://learn.chatgpt.com/docs/dots/getting-started), [computer/app access](https://learn.chatgpt.com/docs/dots/computers-and-apps), [controls](https://learn.chatgpt.com/docs/dots/controls), [cloud-worker environments](https://learn.chatgpt.com/docs/environments/cloud-environments).
