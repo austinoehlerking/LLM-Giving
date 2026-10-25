@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__.'/volunteer-email.php';
 function vs_scope_label(array $configuration): string {
     if ($configuration['scope_kind']==='category') return 'Category: '.(one('SELECT name FROM categories WHERE id=?',[$configuration['scope_id']])['name']??'Unavailable');
     if ($configuration['scope_kind']==='research') {
@@ -126,6 +127,7 @@ function vs_assignment_page(array $session,array $assignment,string $method): vo
         'can'=>$can,'error'=>$error,'repair'=>$repair,'checked'=>$checked,'input'=>$input,'reservationText'=>$item['reservation_text'],'reacquire'=>$item['reacquire']]);
 }
 function vs_route(string $path,string $method): bool {
+    if (vs_email_route($path,$method)) return true;
     if ($path==='/volunteer/orchestrator.txt') {
         if ($method!=='GET') fail(405,'Use GET for public reference instructions.');
         header('Content-Type: text/plain; charset=UTF-8');

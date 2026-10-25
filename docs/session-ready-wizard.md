@@ -1,0 +1,23 @@
+# Private session-ready wizard
+
+The authorization receipt renders four steps: Save your private link; Copy the AI instructions; Paste into your AI and send; Open your dashboard. It uses the current white progress wordmark and a single active pane. Desktop retains all four numbered titles. Without JavaScript the ordered sections and native manual-copy/email forms remain available.
+
+Saving is optional. Copy session link OR Email it to me (optional) are alternatives. I've saved it — Next is always enabled and is outside the email form. Only an untouched receipt opens Continue without saving?; Go back and save, Close and Escape return with focus, while Continue anyway advances immediately. Copy/Email clicks count as interaction even when they fail or remain unsent. They never establish saved/delivered state. Skip acknowledgement and interaction flags exist only in the current wizard closure, not browser storage or a server credential cache.
+
+Copy AI instructions and its readonly fallback use one call to the existing vo_handoff(id,link), complete and unchanged. The private supplement is included. No text is forked or truncated; future canonical instruction changes flow through this same source. views/volunteer-orchestrator.php remains available unchanged for existing/dashboard use. Clipboard success is reported only after writeText resolves; denial opens/selects complete manual text. Navigation/copy does not launch AI, connect an account, claim/renew work or extend permission. Users open a new browser-capable AI chat, paste all instructions and press Send. Open dashboard shows recorded outcomes. Stop session and stopping the external AI are separate actions.
+
+## Optional transactional email
+
+POST /volunteer/{id}/email-link is the only send action. It needs current browser authorization, current policy/active session, matching raw session_secret, CSRF, a validated email and an email_attempt identity. The server constructs the existing canonical APP_URL fragment link; arbitrary client URLs are ignored. It stores neither the destination nor plaintext capability in application/session/configuration/audit/rate records. The configured private file mail sink necessarily holds the message as delivery; normal logs and public exports do not. No research/contact/subscription/account is created.
+
+mail_deliver factors the existing file/mail transport. mail_notice retains its original research recipient and emails-table status audit. Volunteer messages have no research audit association. Accepted means the configured transport accepted the message, never guaranteed inbox delivery. Disabled/unconfigured/failed transport is an error. Development uses only the private local file sink and synthetic recipients; live mail transport is not tested.
+
+Hashed rate_limits keys bound sends to three attempts per session and destination per hour and twelve per IP per hour. An attempt binds the session and destination hash with states pending/accepted/failed. Duplicate accepted attempts recover without another send, pending attempts report conflict, and failed attempts require a new explicit request. The browser prevents double-submit while pending. Unknown network outcomes retain the attempt identity for explicit recovery. There are no timer retries, GET sends, Next sends or automatic advancement. Sensitive inputs are bounded and header injection is rejected. These controls reuse the existing rate store; no migration is needed.
+
+## Focused checks
+
+- tests/volunteer-email.php covers current-session/CSRF/capability, header/length validation, transport acceptance/failure, duplicate/pending/recipient isolation, IP/session/recipient limits and unchanged research/reservation/archive stores.
+- tests/integration.php retains the original mail_notice research delivery/audit regression.
+- node tools/qa.mjs session-wizard is the repo-owned browser route. QA_WIZARD_CAPTURE_ONLY=1 first captures initial 1366x768,390x844,375x667 views without receipt interaction. Inspect those images before the interaction run. The full focused mode exercises all steps, exact current handoff/clipboard bytes and denial, both dialog paths/Escape/focus, optional-email states, real file transport, forgery and native forms/Stop, plus 200% all-font reflow.
+
+Artifacts are masked under ignored storage/qa/session-wizard. Only synthetic mail is used; private sink files are not public evidence. Integrated review/QA covers the shared authorization and transport change after the complete batch. This task authorizes no production access, deployment or real mail.
