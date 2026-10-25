@@ -1,7 +1,14 @@
 <?php
-function wf_influence(array $d): array {
+function wf_influence(array $d, ?array $trustedConsent=null): array {
     $out=[];
     foreach(['human_interaction'=>'AI','human_disclosure'=>'Contributor'] as $key=>$label){
+        // Only a server-loaded authorization argument may supply this session provenance.
+        // Packet/POST fields never select it; AI disclosure still requires one of the four real levels.
+        if ($key==='human_disclosure' && ($trustedConsent['human_disclosure_collection']??'')==='session_not_collected_v1'
+            && ($trustedConsent['human_disclosure']['level']??'')==='not_collected') {
+            $out[$key]=['level'=>'not_collected','details'=>text_field($trustedConsent['human_disclosure'],'details',1,3000)];
+            continue;
+        }
         $value=$d[$key]??null;
         if(!is_array($value))fail(422,$label.' prompt-edit and human-input disclosure is required. Do not edit the AI packet; ask the AI to include human_interaction, and complete your separate disclosure below.');
         $level=text_field($value,'level',1,20);
@@ -10,7 +17,7 @@ function wf_influence(array $d): array {
         $out[$key]=['level'=>$level,'details'=>$details];
     }
     $out['review_status']=in_array($out['human_interaction']['level'],['influenced','unsure'],true)||in_array($out['human_disclosure']['level'],['influenced','unsure'],true)?'needed':'not_requested';
-    $out['basis']='Self-reported by AI and contributor; undisclosed external steering cannot be detected.';
+    $out['basis']=$out['human_disclosure']['level']==='not_collected'?'AI self-report; independent contributor declaration not collected for this volunteer session. Undisclosed external steering cannot be detected.':'Self-reported by AI and contributor; undisclosed external steering cannot be detected.';
     return $out;
 }
 function wf_repair_prompt(array $r,array $task,string $error,bool $authorized=false,?string $returnPath=null,bool $volunteerSession=false): string {
