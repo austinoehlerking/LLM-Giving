@@ -133,7 +133,7 @@ function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnl
         if(!in_array($method,['unknown','manual','ai_browser'],true))throw new LogicException('Invalid submission method.');
         if($consent){if($consent['terms_version']!==terms_version())fail(409,'Fresh volunteer authorization is required for changed terms.');$meta['authorization']=$consent;}
         $meta['contribution_license']=RESEARCH_LICENSE;$meta['terms_version']=terms_version(record: !$checkOnly);
-        if(rt_is_tool($r)){
+        if(rt_is_tool($r) && (!isset($consent['session_profile']) || vs_task_software_consent($r,$t))){
             if(!$checkOnly&&empty($d['tool_terms']))fail(422,'Accept the separate software terms for original tool source and tests.');
             $meta['tool_software_license']=RT_LICENSE;$meta['tool_terms_version']=RT_TERMS;
         }

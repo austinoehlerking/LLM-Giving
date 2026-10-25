@@ -1,3 +1,4 @@
+import {connectVolunteer,privateControllerInstructions} from './session-wizard-actions.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -9,11 +10,11 @@ export async function sessionWizardQa({page,ctx,base,runPhp,check,visibleActions
  const captureOnly=process.env.QA_WIZARD_CAPTURE_ONLY==='1';
  const counts=()=>JSON.parse(runPhp(['tests/session-wizard-state.php','counts']));
  const masks=p=>[p.locator('textarea:visible'),p.locator('[name=email]:visible'),p.locator('[data-wizard-email-status]:visible')];
- const title=['Save your private link','Copy the AI instructions','Paste into your AI and send','Open your dashboard'];
+ const title=['Save your private link','Copy start message','Paste into Dot and send','Open your dashboard'];
  async function shot(p,name){const file=path.join(out,(captureOnly?'capture-':'exercise-')+name+'.png');await p.screenshot({path:file,fullPage:false,mask:masks(p)});report.screenshots.push(file);}
  async function create(p,size=sizes[0]){
   await p.setViewportSize(size);await p.goto(base+'/volunteer');
-  await p.getByRole('button',{name:'Connect my AI',exact:true}).click();
+  await connectVolunteer(p);
   for(const name of ['authorize','authorized_resources','terms'])await p.locator('[name='+name+']').check();
   if(await p.locator('[name=human_level]').count())await p.locator('[name=human_level]').selectOption('none');
   await p.getByRole('button',{name:/^Authorize (?:volunteer )?session$/}).click();
@@ -48,12 +49,12 @@ export async function sessionWizardQa({page,ctx,base,runPhp,check,visibleActions
     await advanceWithoutSave(page);check('Continue anyway immediately opens step two '+size.width,await pane(page,2).isVisible());
     check('Navigation/dialog do not claim/renew or send '+size.width,JSON.stringify(counts())===JSON.stringify(before));
     await back(page).click();await next(page).click();check('Skip acknowledgement is transient and avoids repeated nag '+size.width,await pane(page,2).isVisible()&&await page.locator('[data-wizard-confirm]').isHidden());
-    const expected=JSON.parse(runPhp(['tests/session-wizard-state.php','inspect'],JSON.stringify({id:c.id,secret:new URL(c.link).hash.slice(1)}),{APP_URL:base})).handoff.replaceAll('\r\n','\n');
-    const actual=(await page.locator('#orchestrator-handoff').inputValue()).replaceAll('\r\n','\n');check('Wizard text equals complete CURRENT vo_handoff bytes '+size.width,actual===expected);
+    const expected=JSON.parse(runPhp(['tests/session-wizard-state.php','inspect'],JSON.stringify({id:c.id,secret:new URL(c.link).hash.slice(1)}),{APP_URL:base})).start_message.replaceAll('\r\n','\n');
+    const actual=(await page.locator('#orchestrator-handoff').inputValue()).replaceAll('\r\n','\n');check('Wizard text equals canonical short start message '+size.width,actual===expected);
     check('Wizard retains accepted first-person launch intent and runtime permission boundary '+size.width,actual.startsWith('Please start my LLM.Giving volunteer session')&&actual.includes('does not bypass them'));
-    await page.getByRole('button',{name:'Copy AI instructions',exact:true}).click();await page.locator('[data-wizard-copy-status=instructions]').filter({hasText:'Copied the complete'}).waitFor();
-    check('Clipboard contains all current private handoff bytes '+size.width,(await page.evaluate(()=>navigator.clipboard.readText())).replaceAll('\r\n','\n')===expected);
-    await pane(page,2).locator('[data-wizard-next]').click();check('Step three says new chat, browser control, complete instructions and Send '+size.width,(await pane(page,3).innerText()).includes('new chat')&&(await pane(page,3).innerText()).includes('browser control enabled')&&(await pane(page,3).innerText()).includes('complete copied instructions')&&(await pane(page,3).innerText()).includes('Send'));
+    await page.getByRole('button',{name:'Copy start message',exact:true}).click();await page.locator('[data-wizard-copy-status=instructions]').filter({hasText:'Start message copied'}).waitFor();
+    check('Clipboard contains exact one-message authorization '+size.width,(await page.evaluate(()=>navigator.clipboard.readText())).replaceAll('\r\n','\n')===expected);
+    await pane(page,2).locator('[data-wizard-next]').click();check('Step three sends one message and reads complete private guidance '+size.width,(await pane(page,3).innerText()).includes('new chat in Dot')&&(await pane(page,3).innerText()).includes('browser control enabled')&&(await pane(page,3).innerText()).includes('one copied start message')&&(await pane(page,3).innerText()).includes('Send'));
     await pane(page,3).locator('[data-wizard-next]').click();await shot(page,'dashboard-step-'+size.width);await visibleActions(page,'[data-wizard-dashboard]','Wizard dashboard action '+size.width);
     check('Final instructions distinguish Stop from stopping AI '+size.width,(await pane(page,4).innerText()).includes('Stop session')&&(await pane(page,4).innerText()).includes('cannot terminate'));
     await page.getByRole('link',{name:'Open dashboard',exact:true}).click();check('Open dashboard reaches recorded empty session '+size.width,new URL(page.url()).pathname==='/volunteer/'+c.id&&await page.getByText('No assignments picked up yet.',{exact:true}).isVisible());
@@ -69,8 +70,8 @@ export async function sessionWizardQa({page,ctx,base,runPhp,check,visibleActions
   await page.getByRole('button',{name:'Copy session link',exact:true}).click();await page.locator('[data-wizard-copy-status=link]').filter({hasText:'denied'}).waitFor();
   check('Failed copy opens complete private-link manual fallback',await page.locator('[data-wizard-link-manual]').getAttribute('open')!==null&&await next(page).isEnabled());
   await shot(page,'clipboard-denial');await next(page).click();check('Copy interaction permits Next despite failure',await pane(page,2).isVisible()&&await page.locator('[data-wizard-confirm]').isHidden());
-  await page.getByRole('button',{name:'Copy AI instructions',exact:true}).click();await page.locator('[data-wizard-copy-status=instructions]').filter({hasText:'denied'}).waitFor();
-  check('Instruction failure exposes COMPLETE readonly fallback',await page.locator('[data-wizard-instructions-manual]').getAttribute('open')!==null&&(await page.locator('#orchestrator-handoff').inputValue()).includes('END PRIVATE SESSION SUPPLEMENT'));
+  await page.getByRole('button',{name:'Copy start message',exact:true}).click();await page.locator('[data-wizard-copy-status=instructions]').filter({hasText:'denied'}).waitFor();
+  check('Copy failure exposes short readonly fallback',await page.locator('[data-wizard-instructions-manual]').getAttribute('open')!==null&&(await page.locator('#orchestrator-handoff').inputValue()).startsWith('Please start my LLM.Giving volunteer session'));
   check('Clipboard failures cause no server changes',JSON.stringify(counts())===JSON.stringify(baseline));
   const emailSession=await create(page);await page.getByRole('button',{name:'Email it to me (optional)',exact:true}).click();
   check('Email option reveals labelled field without sending',await page.getByLabel('Your email address',{exact:true}).isVisible()&&await next(page).isEnabled());
@@ -120,13 +121,14 @@ export async function sessionWizardQa({page,ctx,base,runPhp,check,visibleActions
   check('200% all-font reflow has no horizontal clipping',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await next(page).click();await page.getByRole('button',{name:'Continue anyway',exact:true}).click();check('200% text remains operable',await pane(page,2).isVisible());
   const native=await ctx.browser().newContext({javaScriptEnabled:false,viewport:sizes[2]});try{
    const np=await native.newPage();await create(np,sizes[2]);await shot(np,'no-javascript-initial');
-   check('Native fallback retains complete private instructions without JS',(await np.locator('#orchestrator-handoff').inputValue()).includes('END PRIVATE SESSION SUPPLEMENT'));
+   check('Native fallback retains the same one-message authorization without JS',(await np.locator('#orchestrator-handoff').inputValue()).startsWith('Please start my LLM.Giving volunteer session')&&(await np.locator('#orchestrator-handoff').inputValue()).length<=1200);
    await np.locator('.wizard-email-native-summary').click();await np.getByLabel('Your email address',{exact:true}).fill('native-wizard@example.invalid');const nativeAttempt=await np.locator('[name=email_attempt]').inputValue();const nativeKeys=runPhp(['tests/session-wizard-state.php','email-attempt-snapshot']);await np.getByRole('button',{name:'Send my link',exact:true}).click();
    check('No-JS native form performs real private sink send with honest acceptance',(await np.locator('[data-wizard-email-status]').innerText()).includes('Email accepted'));
    runPhp(['tests/session-wizard-state.php','acceptance-state-lost'],nativeKeys);await np.locator('[name=email_attempt]').evaluate((input,value)=>{input.value=value;},nativeAttempt);const nativeMail=counts().mail;
    for(let retry=0;retry<2;retry++){await np.getByRole('button',{name:'Send my link',exact:true}).click();await np.locator('[data-wizard-email][data-email-state=pending]').waitFor();check('Native pending retry retains identity and sends no additional message '+retry,await np.locator('[name=email_attempt]').inputValue()===nativeAttempt&&counts().mail===nativeMail);}
    await shot(np,'native-email-pending-recovery');
-   await np.locator('[data-wizard-instructions-manual] summary').click();check('Native manual disclosure exposes all private handoff text',await np.locator('#orchestrator-handoff').isVisible()&&(await np.locator('#orchestrator-handoff').inputValue()).includes('END PRIVATE SESSION SUPPLEMENT'));
+   await np.locator('[data-wizard-instructions-manual] summary').click();check('Native manual disclosure exposes one-message authorization',await np.locator('#orchestrator-handoff').isVisible()&&(await np.locator('#orchestrator-handoff').inputValue()).length<=1200);
+   check('Native private route retains complete controller guidance',(await privateControllerInstructions(np,new URL(np.url()).pathname.split('/')[2])).includes('END PRIVATE SESSION SUPPLEMENT'));
    await np.getByRole('link',{name:'Open dashboard',exact:true}).click();await np.getByRole('button',{name:'Stop session',exact:true}).click();check('No-JS native dashboard/Stop remains usable',(await np.locator('body').innerText()).includes('Session stopped'));
   }finally{await native.close();}
   check('Wizard has no browser script exceptions',errors.length===0);assert.equal(errors.length,0,errors.join('\n'));

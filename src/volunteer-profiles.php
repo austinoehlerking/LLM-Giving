@@ -25,17 +25,41 @@ function vs_profile_id(array $session): string {
     if (isset($session['consent']) && ($session['consent']['session_profile']??'general')!==$id) fail(403,'Session profile differs from the captured authorization. Fresh authorization is required.');
     return $id;
 }
+/** Requirements of this persisted task, not work proposed for later project stages. */
+function vs_task_requirements(array $research,array $task): array {
+    $build=!empty($task['builds_tool']);
+    $reproduce=$task['kind']==='review' && (rc_targets($task) || rt_targets($task));
+    return ['execution'=>!empty($task['computational']),'build'=>$build,'reproduction'=>(bool)$reproduce,
+        'software_consent'=>rt_is_tool($research) && ($build || !empty($task['computational']) || $reproduce)];
+}
+function vs_task_software_consent(array $research,array $task): bool {
+    return vs_task_requirements($research,$task)['software_consent'];
+}
+function vs_task_requirements_description(array $research,array $task): string {
+    $needs=vs_task_requirements($research,$task);$parts=[];
+    if($task['kind']==='planning')$parts[]='Needs Research Plan: planning with an eligible Max/Ultra worker';
+    if($needs['execution'])$parts[]='This task requires executed calculations';
+    if($needs['build'])$parts[]='This task builds software and retains source/tests';
+    if($needs['reproduction'])$parts[]='This review requires actual computational/tool reproduction';
+    if($needs['software_consent'])$parts[]='Separate software-publication consent is required';
+    if($needs['execution']||$needs['build']||$needs['reproduction']){ $software=trim(external_requirements($research)['required_software']??'');if($software!=='')$parts[]='Project-reported software: '.$software; }
+    if(!$parts)$parts[]='This task has no recorded execution or software-build requirement';
+    return implode('. ',$parts).'.';
+}
 function vs_profile_compatible(array $session,array $research,array $task): bool {
     if (vs_profile_id($session)==='general') return true;
-    $external=external_requirements($research);
-    if (rt_is_tool($research) || !empty($task['builds_tool']) || !empty($task['computational']) || calculation_policy($research)['required']) return false;
-    $software=trim($external['required_software']??'');
-    $ordinaryWeb=in_array(strtolower($software),['browser','web browser','web search','web search and browser'],true);
-    // An ordinary browser/search requirement is within this profile; plugins, named versions and unknown packages are not inferred.
-    if (in_array($external['external_tools'],['licensed','mixed'],true) || ($external['external_tools']==='free' && !$ordinaryWeb) || ($software!=='' && !$ordinaryWeb)) return false;
-    // The legacy execution-review schema requires actual reproduction, not merely reading a result.
-    if ($task['kind']==='review' && (rc_targets($task) || rt_targets($task))) return false;
-    return true;
+    $needs=vs_task_requirements($research,$task);
+    // The plan may describe future calculations/build tasks; it does not execute them.
+    // Later task flags are server-owned and result admission still rejects execution evidence.
+    return !$needs['execution'] && !$needs['build'] && !$needs['reproduction'];
+}
+function vs_worker_assert_packet(array $session,array $packet): void {
+    if(($session['consent']['worker_settings_source']??'')!=='volunteer_requested_v1')return;
+    $metadata=$packet['metadata']??[];
+    foreach(['model','reasoning','tool','workflow_mode'] as $field) {
+        $expected=$session['capabilities'][$field]??'';$actual=$metadata[$field]??'';
+        if(!is_string($actual) || ($field==='tool'?strcasecmp($expected,$actual)!==0:$expected!==$actual))fail(422,'Returned worker '.$field.' does not match the requested session settings. Preserve the packet and use the authorized worker; do not invent settings or provider verification.');
+    }
 }
 function vs_profile_assert_packet(array $session,array $packet): void {
     if (vs_profile_id($session)==='general') return;

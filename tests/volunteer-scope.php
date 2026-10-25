@@ -27,8 +27,11 @@ try {
     vscq(true,'Help wherever needed permits eligible work from both categories');
     $a=vs_claim_next($id);$r=research($a['research_id']);$t=wf_task($r['id'],$a['task_id']);
     vscq($r['moderation']==='Approved'&&$t['state']==='Ready'&&$t['visibility']==='public','Unscoped actual pickup still passes public Ready-work gates');vs_stop($id);
-    change_status($projects[0],'Paused','Synthetic scope exhaustion.','requester');
     $id=vscq_session(['scope_kind'=>'category','category_id'=>$categories[0]]);
+    change_status($projects[0],'Paused','Synthetic scope exhaustion after eligible authorization.','requester');
+    $sessionCount=(int)one('SELECT COUNT(*) n FROM volunteer_sessions')['n'];
+    try{vscq_session(['scope_kind'=>'category','category_id'=>$categories[0]]);throw new RuntimeException('Empty category authorized a session');}catch(HttpError $e){vscq($e->status===409,'Zero matching category cannot authorize a session');}
+    vscq((int)one('SELECT COUNT(*) n FROM volunteer_sessions')['n']===$sessionCount,'Zero matching category creates no session credential');
     try{vs_claim_next($id);throw new RuntimeException('Empty category invented work');}catch(HttpError $e){vscq($e->status===409,'Unavailable matching work never falls back to an unrelated category');}
     vscq((int)vs_read($id)['assignments_used']===0,'No eligible task consumes no category-session allowance');vs_stop($id);
     echo count($checks)." volunteer scope queue checks passed.\n";

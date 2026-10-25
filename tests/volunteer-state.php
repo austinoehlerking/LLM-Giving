@@ -24,6 +24,7 @@ if($action==='create') {
         if(!$assignment)fail(409,'No current test assignment.');
         $grant=vs_assignment_grant($session,$assignment);$task=wf_task($assignment['research_id'],$assignment['task_id']);
         $packet=wf_test_payload($assignment['research_id'],$task,$argv[3]??'completed');
+        foreach(['model','reasoning','tool','workflow_mode'] as $field)$packet['metadata'][$field]=$session['capabilities'][$field];
         $packet['submission_key']=$grant['scope']['submission_key'];$packet['context_id']=$grant['scope']['context_id'];$packet['task_revision']=$grant['scope']['revision'];
         $packet['handoff_code']=wf_handoff_code($task,wf_read_snapshot($assignment['research_id'],$packet['context_id']),$packet['submission_key']);
         echo json_encode($packet);
