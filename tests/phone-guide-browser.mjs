@@ -1,4 +1,4 @@
-import {readyDashboard} from './session-wizard-actions.mjs';
+import {connectVolunteer,readyDashboard} from './session-wizard-actions.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {root,env} from '../tools/runtime.mjs';
@@ -30,7 +30,7 @@ export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) 
   await page.getByLabel('Web only',{exact:true}).check();check('Web-only selection is restored',await page.locator('[name=session_profile]:checked').inputValue()==='restricted_web_v1');
   await page.locator('[data-volunteer-advanced] > summary').click();await page.getByLabel('Exact worker model',{exact:true}).selectOption('gpt-6.1-sol');await page.getByLabel('Actual reasoning effort',{exact:true}).selectOption('high');await page.getByLabel('AI tool or harness name',{exact:true}).fill('Codex cloud worker; Dot browser controller');await page.locator('[data-volunteer-advanced] > summary').click();
   check('Guide worker configuration is selectable without expanding consent',await page.locator('[name=model]').inputValue()==='gpt-6.1-sol'&&await page.locator('[name=reasoning]').inputValue()==='high');
-  await page.getByRole('button',{name:'Connect my AI',exact:true}).click();await page.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();
+  await connectVolunteer(page);await page.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();
   await initial(page,null,'restricted-authorization','.volunteer-authorization > .form-panel > .primary-actions > *, .volunteer-authorization > .form-panel > .check');
   check('Consent form retains one validated restricted profile',await page.locator('[data-volunteer-consent] input[name=session_profile]').count()===1&&await page.locator('[data-volunteer-consent] input[name=session_profile]').inputValue()==='restricted_web_v1');
   check('Separate recheck form retains the same validated profile without consent',await page.locator('#startup-settings form input[name=session_profile]').count()===1&&await page.locator('#startup-settings form input[name=session_profile]').inputValue()==='restricted_web_v1'&&await page.locator('#startup-settings form [name=authorize],#startup-settings form [name=terms]').count()===0);
@@ -45,16 +45,15 @@ export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) 
   check('Actual local authorization provides a private dashboard',await page.locator('#volunteer-private-link').inputValue().then(value=>new URL(value).pathname.startsWith('/volunteer/')));
   await readyDashboard(page);
   await initial(page,null,'restricted-dashboard','[data-session-actions] button');
-  check('Private dashboard displays the stored restricted profile',(await page.locator('.volunteer-profile-details > summary').innerText()).includes('Restricted web research'));
-  await page.locator('.volunteer-profile-details > summary').click();check('Dashboard explains real restricted capability boundaries',(await page.locator('.volunteer-profile-details').innerText()).includes('calculators')&&(await page.locator('.volunteer-profile-details').innerText()).includes('not a technical sandbox'));
+  check('Private dashboard omits the removed profile disclosure',await page.locator('.volunteer-profile-details').count()===0);
   await page.getByRole('button',{name:'Stop session',exact:true}).click();check('Actual local Stop revokes this synthetic session',(await page.locator('.session-state').innerText()).includes('Session stopped'));
   await page.goto(base+'/volunteer/quick-start');await page.locator('[data-guide-actions] a[href="/volunteer"]').click();check('Guide primary action opens actual general setup',new URL(page.url()).pathname==='/volunteer');
   await initial(page,'/volunteer','general-setup','.volunteer-profile-choice label,.time-card,.connect-ai');
   check('Existing default stays general',await page.locator('[name=session_profile]:checked').inputValue()==='general');
-  await page.getByRole('button',{name:'Connect my AI',exact:true}).click();check('Existing general path retains server review',await page.locator('[data-volunteer-consent] input[name=session_profile]').inputValue()==='general'&&await page.locator('[name=tool_terms]').count()===1);
+  await connectVolunteer(page);check('Existing general path retains server review',await page.locator('[data-volunteer-consent] input[name=session_profile]').inputValue()==='general'&&await page.locator('[name=tool_terms]').count()===1);
   await page.goto(base+'/volunteer?session_profile=restricted_web_v1');await reflow(page,'restricted-setup');
   native=await ctx.browser().newContext({javaScriptEnabled:false,viewport:sizes[0]});const np=await native.newPage();await np.goto(base+'/volunteer?session_profile=restricted_web_v1');
-  check('Native setup preserves server preselection',await np.locator('[name=session_profile]:checked').inputValue()==='restricted_web_v1');await np.getByRole('button',{name:'Connect my AI',exact:true}).click();check('Native configure retains the exact profile',await np.locator('[data-volunteer-consent] input[name=session_profile]').inputValue()==='restricted_web_v1');
+  check('Native setup preserves server preselection',await np.locator('[name=session_profile]:checked').inputValue()==='restricted_web_v1');await connectVolunteer(np);check('Native configure retains the exact profile',await np.locator('[data-volunteer-consent] input[name=session_profile]').inputValue()==='restricted_web_v1');
   check('Configuring never issues a private session',await np.locator('#volunteer-private-link').count()===0);
   report.consoleErrors=errors;check('No guide/setup script or console errors',errors.length===0);
   report.scope='Local rendered guide/setup/review/navigation evidence only. Synthetic local authorization/Stop only; no actual handset, new Dot research or accepted-result claim. The separate earlier single-task Dot proof is not re-executed by this suite.';

@@ -9,9 +9,9 @@
 <?php foreach($startupPreview['examples'] as $example): ?><p><a href="<?=e($example['url'])?>"><?=e($example['title'])?></a> · <?=e($example['kind'])?></p><?php endforeach ?>
 <p class="fine">A preview reserves nothing and may change. Pickup rechecks the current task, consent, worker requirements and reservation.</p>
 <?php if(!empty($startupEditable)): ?>
-<form method="post" action="/volunteer"><?=csrf()?><input type="hidden" name="operation" value="configure"><input type="hidden" name="startup_edit" value="1">
-<?php foreach($draft as $name=>$value): if(in_array($name,['model','reasoning','tool','workflow_mode'],true))continue; ?><input type="hidden" name="<?=e($name)?>" value="<?=e($value)?>"><?php endforeach ?>
-<p>Enter the research worker’s actual configured settings, not the browser controller’s. Leave unknown settings unspecified; never guess a qualifying model or effort.</p>
+<form method="post" action="/volunteer"><?=csrf()?><input type="hidden" name="operation" value="configure"><input type="hidden" name="startup_edit" value="1"><input type="hidden" name="worker_choice" value="custom">
+<?php foreach($draft as $name=>$value): if(in_array($name,['worker_choice','model','reasoning','tool','workflow_mode'],true))continue; ?><input type="hidden" name="<?=e($name)?>" value="<?=e($value)?>"><?php endforeach ?>
+<p>Choose the worker settings you will launch, not the browser controller’s. Unknown settings cannot start a session. These remain requested/self-reported settings.</p>
 <label for="startup-model">Exact worker model</label><select id="startup-model" name="model"><option value="">Not specified</option><?php foreach(wf_model_registry() as $id=>$model): ?><option value="<?=e($id)?>" <?=$configuration['capabilities']['model']===$id?'selected':''?>><?=e($model['label'])?></option><?php endforeach ?></select>
 <label for="startup-effort">Actual reasoning effort</label><select id="startup-effort" name="reasoning"><option value="">Not specified</option><?php foreach(RQ_EFFORTS as $effort): ?><option value="<?=e($effort)?>" <?=$configuration['capabilities']['reasoning']===$effort?'selected':''?>><?=e(ucfirst($effort))?></option><?php endforeach ?></select>
 <label for="startup-tool">Worker tool or harness</label><input id="startup-tool" name="tool" maxlength="100" value="<?=e($configuration['capabilities']['tool'])?>">

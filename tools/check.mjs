@@ -47,6 +47,7 @@ process.stdout.write(runPhp(['tests/cloud-volunteer-contract.php']));
 process.stdout.write(runPhp(['tests/volunteer-queue.php']));
 process.stdout.write(runPhp(['tests/volunteer-orchestrator.php']));
 process.stdout.write(runPhp(['tests/volunteer-startup.php']));
+process.stdout.write(runPhp(['tests/volunteer-real-start.php']));
 process.stdout.write(runPhp(['tests/volunteer-guide.php']));
 process.stdout.write(runPhp(['tests/volunteer-scope.php']));
 const volunteerRace=spawnSync(process.execPath,['tests/volunteer-concurrency.mjs'],{encoding:'utf8'});

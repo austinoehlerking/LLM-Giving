@@ -10,7 +10,7 @@ function vs_scope_label(array $configuration): string {
 }
 function vs_state_label(string $state): string {
     return match($state) {
-        'active'=>'Active — ready for eligible work',
+        'active'=>'Session active',
         'limit_reached'=>'Assignment limit reached — finish the current task before the deadline',
         'expired'=>'Session expired — no more claims, renewals or submissions',
         'terms_changed'=>'Terms changed — fresh volunteer authorization is required',
@@ -18,8 +18,9 @@ function vs_state_label(string $state): string {
     };
 }
 function vs_form_draft(array $input): array {
+    $input=vs_worker_input($input);
     $draft=[];
-    foreach (['session_profile','session_preset','cause_choice','scope_kind','category_id','research_id','assignment_limit','minutes','model','reasoning','tool','workflow_mode'] as $field) {
+    foreach (['worker_choice','session_profile','session_preset','cause_choice','scope_kind','category_id','research_id','assignment_limit','minutes','model','reasoning','tool','workflow_mode'] as $field) {
         if (isset($input[$field]) && is_scalar($input[$field])) $draft[$field]=(string)$input[$field];
     }
     return $draft;
@@ -145,6 +146,7 @@ function vs_route(string $path,string $method): bool {
                     return true;
                 }
                 if (($_POST['operation']??'')!=='configure') fail(422,'Choose configure or authorize.');
+                vs_require_worker($configuration);
                 render('volunteer-authorize',['title'=>'Authorize volunteer session','draft'=>$draft,'configuration'=>$configuration,'error'=>'']);
                 return true;
             } catch (HttpError $caught) {
@@ -156,6 +158,14 @@ function vs_route(string $path,string $method): bool {
             }
         } elseif ($method!=='GET') fail(405,'Use GET or POST.');
         render('volunteer-setup',['title'=>'Start volunteering','draft'=>$draft,'error'=>$error]);
+        return true;
+    }
+    if(preg_match('~^/volunteer/([a-f0-9]{32})/instructions$~D',$path,$instructionsMatch)) {
+        if($method!=='GET')fail(405,'Use GET for the private read-only instructions.');
+        $instructionSession=vs_read($instructionsMatch[1]);
+        $instructions=vo_authenticated_instructions($instructionSession);
+        header('Cache-Control: private, no-store, max-age=0');header('Pragma: no-cache');header('X-Robots-Tag: noindex, nofollow');
+        render('volunteer-instructions',['title'=>'Private AI instructions','session'=>$instructionSession,'instructions'=>$instructions]);
         return true;
     }
     if (!preg_match('~^/volunteer/([a-f0-9]{32})(?:/(open|assignments/([a-f0-9]{32})))?$~D',$path,$match)) return false;

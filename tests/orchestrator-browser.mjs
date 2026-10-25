@@ -1,4 +1,4 @@
-import {readyInstructions} from './session-wizard-actions.mjs';
+import {connectVolunteer,readyInstructions,privateControllerInstructions} from './session-wizard-actions.mjs';
 import {startupQa} from './volunteer-startup-browser.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -12,7 +12,7 @@ export async function orchestratorQa({page,ctx,base,check,visibleActions}) {
  async function authorize(p){
   await p.goto(base+'/volunteer');
   check('Public setup has no private orchestrator authorization',await p.locator('#orchestrator-handoff').count()===0);
-  await p.getByRole('button',{name:'Connect my AI',exact:true}).click();
+  await connectVolunteer(p);
   check('Session consent begins unchecked',await p.locator('[name=authorize],[name=authorized_resources],[name=terms]').evaluateAll(es=>es.length===3&&es.every(e=>!e.checked)));
   check('No orchestrator copy control precedes actual authorization',await p.locator('[data-wizard-copy=instructions]').count()===0);
   for(const name of ['authorize','authorized_resources','terms'])await p.locator('[name='+name+']').check();
@@ -32,15 +32,15 @@ export async function orchestratorQa({page,ctx,base,check,visibleActions}) {
   await visibleActions(page,'[data-wizard-copy=link],[data-wizard-email-toggle],[data-wizard-next="2"]','Orchestrator authorized '+size.width);
  }
  await readyInstructions(page);
- const text=await page.locator('#orchestrator-handoff').inputValue();
+ const text=await page.locator('#orchestrator-handoff').inputValue();const complete=await privateControllerInstructions(page,dashboard.split('/')[2]);
  const reference=fs.readFileSync(path.join(root,'templates/volunteer-orchestrator.txt'),'utf8').replaceAll('\r\n','\n');
- check('Actual authorized handoff retains complete reusable instructions',text.startsWith('Please start my LLM.Giving volunteer session')&&text.includes(reference+'\nPRIVATE VOLUNTEER SESSION SUPPLEMENT'));
- check('Private delivery contains exact session limits and original authorization',text.includes('RECORDED SESSION SCOPE')&&text.includes('"assignment_limit": 3')&&text.includes('"assignments_used": 0'));
- await page.getByRole('button',{name:'Copy AI instructions',exact:true}).click();
- await page.locator('[data-wizard-copy-status=instructions]').filter({hasText:'Copied the complete'}).waitFor();
- check('Clipboard contains complete actual handoff',await page.evaluate(()=>navigator.clipboard.readText()).then(v=>v.replaceAll('\r\n','\n')===text));
+ check('One-message authorization loads complete authenticated instructions',text.startsWith('Please start my LLM.Giving volunteer session')&&text.length<=1200&&complete.includes(reference+'\nPRIVATE VOLUNTEER SESSION SUPPLEMENT'));
+ check('Private delivery contains exact session limits and original authorization',complete.includes('RECORDED SESSION SCOPE')&&complete.includes('"assignment_limit": 3')&&complete.includes('"assignments_used": 0'));
+ await page.getByRole('button',{name:'Copy start message',exact:true}).click();
+ await page.locator('[data-wizard-copy-status=instructions]').filter({hasText:'Start message copied'}).waitFor();
+ check('Clipboard contains exact short start message',await page.evaluate(()=>navigator.clipboard.readText()).then(v=>v.replaceAll('\r\n','\n')===text));
  await page.evaluate(()=>Object.defineProperty(navigator.clipboard,'writeText',{configurable:true,value:async()=>{throw new DOMException('Synthetic permission denial','NotAllowedError');}}));
- await page.getByRole('button',{name:'Copy AI instructions',exact:true}).click();
+ await page.getByRole('button',{name:'Copy start message',exact:true}).click();
  await page.locator('[data-wizard-copy-status=instructions]').filter({hasText:'Clipboard'}).waitFor();
  check('Denial clears success and exposes full manual text',await page.locator('[data-wizard-instructions-manual]').getAttribute('open')!==null&&await page.locator('#orchestrator-handoff').inputValue()===text);
  await page.screenshot({path:path.join(out,'clipboard-denied.png'),fullPage:false,mask:[page.locator('#orchestrator-handoff:visible'),page.locator('#volunteer-private-link:visible')]});
@@ -61,7 +61,7 @@ export async function orchestratorQa({page,ctx,base,check,visibleActions}) {
   await visibleActions(p,'.wizard-save-methods a,#wizard-step-1 .wizard-actions a','Native orchestrator 375');
   check('Native copy enhancement stays hidden',await p.locator('[data-wizard-copy=instructions]').isHidden());
   await p.locator('[data-wizard-instructions-manual] summary').click();
-  check('Native disclosure exposes complete private handoff',await p.locator('#orchestrator-handoff').isVisible()&&(await p.locator('#orchestrator-handoff').inputValue()).includes('END PRIVATE SESSION SUPPLEMENT'));
+  check('Native disclosure exposes short start message and complete private guidance',await p.locator('#orchestrator-handoff').isVisible()&&(await p.locator('#orchestrator-handoff').inputValue()).length<=1200&&(await privateControllerInstructions(p,nativeDashboard.split('/')[2])).includes('END PRIVATE SESSION SUPPLEMENT'));
   await p.goto(base+nativeDashboard);await p.getByRole('button',{name:'Stop session',exact:true}).click();
  }finally{await native.close();}
  check('Orchestrator route has no browser script exceptions',errors.length===0);

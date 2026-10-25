@@ -41,6 +41,9 @@ try {
     vo_check('Public controller keeps full context, explicit launch settings and same-worker repairs',str_contains($public,'COMPLETE, UNCHANGED archived task handoff')&&str_contains($public,'explicit model/thinking')&&str_contains($public,'SAME authoring worker')&&str_contains($public,'never a shortened tool preview'));
     vo_check('Native orchestration JS is separate from excluded scientific execution',str_contains($public,'Native tool-orchestration JavaScript')&&str_contains($public,'Do not use it to execute research code'));
     vo_check('Configured launch does not claim provider verification or future response before send',str_contains($public,'never provider-verified')&&str_contains($public,'do not require that future response before sending'));
+    $_SESSION['admin']=1;
+    $voSeed=create_research(['title'=>'[QA] Orchestrator available work '.uid(),'question'=>'Synthetic Ready planning work for a valid bounded orchestrator authorization.','category_id'=>1,'terms'=>1]);
+    moderate('request',$voSeed['id'],'Approved','Synthetic available work for orchestrator test.');
     $archiveCount = (int)one('SELECT COUNT(*) AS n FROM workflow_handoffs')['n'];
     $reservationStorage = vo_reservation_storage();
     $GLOBALS['vs_test_now'] = time();
@@ -82,6 +85,7 @@ try {
     echo $count." volunteer orchestrator authorization checks passed.\n";
 } finally {
     foreach ($ids as $id) query('DELETE FROM volunteer_sessions WHERE id=?', [$id]);
+    if(isset($voSeed))purge_request($voSeed['id'],$voSeed['id']);
     $_SESSION = $originalSession;
     if ($originalClock === null) unset($GLOBALS['vs_test_now']); else $GLOBALS['vs_test_now'] = $originalClock;
 }

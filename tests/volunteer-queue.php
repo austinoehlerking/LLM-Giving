@@ -92,8 +92,8 @@ try {
     vqd(fn()=>vs_claim_next($id5),503,'Failed complete handoff preparation rejects the pickup');
     vqc((int)vs_read($id5)['assignments_used']===0 && !vs_current(vs_read($id5)) && !wr_live($r5['id'],wf_tasks($r5['id'])[0]['id']),'Failed pickup leaves no reservation, assignment or consumed allowance');
     query('DELETE FROM rate_limits WHERE bucket=?',[$budget]);
-    $tool=vq_project(false,true);$noSoftware=vq_session($tool);vqd(fn()=>vs_claim_next($noSoftware['id']),409,'Queue excludes actual tool projects without separate software consent');
-    vqc((int)vs_read($noSoftware['id'])['assignments_used']===0,'An empty eligible queue consumes nothing');
+    $tool=vq_project(false,true);$noSoftware=vq_session($tool);$planned=vs_claim_next($noSoftware['id']);vqc(wf_task($tool['id'],$planned['task_id'])['kind']==='planning','Tool-project planning is eligible without offering software source');
+    vqc((int)vs_read($noSoftware['id'])['assignments_used']===1,'Planning pickup consumes exactly one assignment');vs_stop($noSoftware['id']);
     $yesSoftware=vq_session($tool,3,60,true);$toolAssignment=vs_claim_next($yesSoftware['id']);
     vqc($toolAssignment['research_id']===$tool['id'],'Current separate software consent permits an otherwise eligible tool task');vs_stop($yesSoftware['id']);
     $reviewProject=vq_project();$reviewSession=vq_session($reviewProject,8);$reviewId=$reviewSession['id'];

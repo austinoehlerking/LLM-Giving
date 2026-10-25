@@ -42,6 +42,7 @@ const report={browser:'Not launched',screenshots:[],checks:[],viewports:[]};
 const password=randomBytes(24).toString('hex');
 const server=spawnPhp(['-S','127.0.0.1:'+qaPort,'-t','public','public/router.php'],{APP_URL:base,...(mode==='google'?{GOOGLE_ANALYTICS_ENABLED:'1',GOOGLE_ANALYTICS_ID:'G-TEST123456',GOOGLE_SITE_VERIFICATION:'synthetic_verification_token_123456'}:{}),RATE_LIMIT_NAMESPACE:'browser-qa-'+randomBytes(12).toString('hex')});
 let browser;
+let volunteerFixtures=[];
 const check=(name,value=true)=>{assert.ok(value,name);report.checks.push(name);};
 async function shot(page,name){const file=path.join(output,name+'.png');await page.screenshot({path:file,fullPage:false});report.screenshots.push(file);}
 async function visibleActions(page,selector,name){
@@ -69,6 +70,7 @@ const payload=(kind='Original research',target=null)=>{const d={
 try{
  await ready(base+'/',server);
  if(mode!=='session-wizard'&&mode!=='phone-guide'&&mode!=='google'&&mode!=='viewport'&&mode!=='quarantine'&&mode!=='handoffs'&&mode!=='launch'&&mode!=='legal'&&mode!=='artifacts'&&mode!=='citations'&&mode!=='requirements'&&mode!=='tools'&&mode!=='setup')runPhp(['tests/qa-state.php','cleanup']);
+ if(['session-wizard','orchestrator','phone-guide'].includes(mode))volunteerFixtures=JSON.parse(runPhp(['tests/volunteer-state.php','create']));
  const pw=await playwright();
  const executable=browserExecutable();
  browser=await pw.chromium.launch({headless:true,executablePath:executable,env,args:['--no-sandbox'],downloadsPath:path.join(output,'downloads')});
@@ -81,7 +83,7 @@ try{
  }
  const page=await ctx.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
  if(mode==='pickups')await manualPickupQa({page,ctx,base,runPhp,check,visibleActions});
- if(mode!=='session-wizard'&&mode!=='volunteers'&&mode!=='phone-guide'&&mode!=='admin-approval'&&mode!=='volunteer-compact') {
+ if(mode!=='volunteer-real-start'&&mode!=='session-wizard'&&mode!=='volunteers'&&mode!=='phone-guide'&&mode!=='admin-approval'&&mode!=='volunteer-compact') {
  const sample=JSON.parse(runPhp(['tests/qa-state.php','preview']));
  for(const size of [{width:1366,height:768},{width:390,height:844},{width:375,height:667},{width:768,height:1024}]){
   await page.setViewportSize(size);await goto(page,'/');await shot(page,'home-'+size.width+'x'+size.height);await visibleActions(page,'.hero .primary-actions > *','Home '+size.width);
@@ -117,7 +119,8 @@ try{
  // 200% browser zoom equivalent: reduced CSS viewport plus text scaling checks.
  await page.setViewportSize({width:683,height:384});await goto(page,'/');await page.evaluate(()=>{document.body.style.fontSize='200%';});await shot(page,'home-enlarged-text');check('Enlarged text reflow without horizontal clipping',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  }
- if(mode==='session-wizard'){const {sessionWizardQa}=await import('../tests/session-wizard-browser.mjs');await sessionWizardQa({page,ctx,base,runPhp,check,visibleActions,report});}
+ if(mode==='volunteer-real-start'){const {volunteerRealStartQa}=await import('../tests/volunteer-real-start-browser.mjs');await volunteerRealStartQa({page,ctx,base,runPhp,check,visibleActions,report});}
+ else if(mode==='session-wizard'){const {sessionWizardQa}=await import('../tests/session-wizard-browser.mjs');await sessionWizardQa({page,ctx,base,runPhp,check,visibleActions,report});}
  else if(mode==='volunteer-compact'){const {volunteerCompactQa}=await import('../tests/volunteer-compact-browser.mjs');await volunteerCompactQa({page,ctx,base,runPhp,check,visibleActions,report});}
  else if(mode==='admin-approval'){const {adminApprovalQa}=await import('../tests/admin-approval-browser.mjs');await adminApprovalQa({page,ctx,base,runPhp,check,visibleActions,report,password});}
  else if(mode==='phone-guide'){const {phoneGuideQa}=await import('../tests/phone-guide-browser.mjs');await phoneGuideQa({page,ctx,base,runPhp,check,visibleActions,report});}
@@ -306,4 +309,5 @@ try{
  check('No unhandled browser script exceptions in '+mode,errors.length===0);
  fs.writeFileSync(path.join(output,qaReports[mode]),JSON.stringify(report,null,2));
 }catch(error){fs.writeFileSync(path.join(output,'failure.json'),JSON.stringify({message:error.message,report},null,2));throw error;}
-finally{await browser?.close();server.kill();}
+finally{
+ if(volunteerFixtures.length)runPhp(['tests/volunteer-state.php','cleanup'],JSON.stringify({fixtures:volunteerFixtures,sessions:[]}));await browser?.close();server.kill();}
