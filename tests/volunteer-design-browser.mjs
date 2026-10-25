@@ -40,7 +40,7 @@ export async function volunteerDesignQa({page,ctx,base,runPhp,check,visibleActio
   await page.locator('[name=cause_choice][value=custom]').check();await page.locator('[name=scope_kind]').selectOption('research');await page.locator('[name=research_id]').fill(fixtures[0].id);await page.locator('[name=model]').selectOption('gpt-6-astra');await page.locator('[name=reasoning]').selectOption('max');await page.locator('[name=tool]').fill('Codex');
   await page.getByRole('button',{name:'Connect my AI',exact:true}).click();
   const consentShots=[],consentFailures=[];
-  for(const size of sizes.slice(0,3)){await page.setViewportSize(size);await page.evaluate(()=>scrollTo(0,0));consentShots.push(await shot(page,'unlimited-authorization-'+size.width+'x'+size.height));try{await visibleActions(page,'[data-wizard-copy=link],[data-wizard-email-toggle],[data-wizard-next="2"]','Unlimited authorization '+size.width);}catch(error){consentFailures.push(error.message);}}
+  for(const size of sizes.slice(0,3)){await page.setViewportSize(size);await page.evaluate(()=>scrollTo(0,0));consentShots.push(await shot(page,'unlimited-authorization-'+size.width+'x'+size.height));try{await visibleActions(page,'.volunteer-authorization > .form-panel > .primary-actions > *, .volunteer-authorization > .form-panel > .check','Unlimited authorization '+size.width);}catch(error){consentFailures.push(error.message);}}
   console.log('INSPECT UNLIMITED AUTHORIZATION: '+consentShots.join(' | '));
   if(env.QA_INSPECT_FIRST==='design')await new Promise(resolve=>{process.stdin.resume();process.stdin.once('data',()=>{process.stdin.pause();resolve();});});
   if(consentFailures.length)throw new Error(consentFailures.join('; '));

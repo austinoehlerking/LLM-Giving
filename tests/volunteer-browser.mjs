@@ -60,7 +60,7 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
   check('Visible defaults are three assignments and sixty minutes',await page.locator('[name=assignment_limit]').inputValue()==='3'&&await page.locator('[name=minutes]').inputValue()==='60');
   check('Advanced worker configuration starts collapsed',!await page.locator('[data-volunteer-advanced]').evaluate(element=>element.open));
   check('No account credentials or API keys are requested',await page.locator('input[type=password]').count()===0);
-  await configure(page,fixtures[0],2);await capture(page,'authorization','[data-wizard-copy=link],[data-wizard-email-toggle],[data-wizard-next="2"]');
+  await configure(page,fixtures[0],2);await capture(page,'authorization','.volunteer-authorization > .form-panel > .primary-actions > *, .volunteer-authorization > .form-panel > .check');
   check('Authorization and legal confirmations start unchecked',!await page.locator('[name=authorize]').isChecked()&&!await page.locator('[name=terms]').isChecked()&&!await page.locator('[name=authorized_resources]').isChecked());
   check('Session does not request an upfront independent declaration',await page.locator('[name=human_level],[name=human_details]').count()===0);
   const first=await authorize(page);await capture(page,'created','[data-wizard-copy=link],[data-wizard-email-toggle],[data-wizard-next="2"]');

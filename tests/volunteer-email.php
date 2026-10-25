@@ -5,9 +5,9 @@ $original=$_SESSION??[]; $_SESSION['csrf']=bin2hex(random_bytes(32));
 $driver=setting('mail_driver',env('MAIL_DRIVER','file')); set_setting('mail_driver','file');
 function ve_check(string $name,bool $pass): void { global $count; if(!$pass) throw new RuntimeException($name); $count++; }
 function ve_deny(string $name,int $status,callable $fn): void { try{$fn();}catch(HttpError $e){ve_check($name,$e->status===$status);return;}throw new RuntimeException($name.' allowed'); }
-function ve_create(): array {
+function ve_create(string $preset='standard'): array {
     global $ids;
-    $created=vs_create(['scope_kind'=>'all','session_preset'=>'standard','authorize'=>1,'terms'=>1,'authorized_resources'=>1,'policy_version'=>terms_version(),'human_level'=>'none','human_details'=>'']);
+    $created=vs_create(['scope_kind'=>'all','session_preset'=>$preset,'authorize'=>1,'terms'=>1,'authorized_resources'=>1,'policy_version'=>terms_version(),'human_level'=>'none','human_details'=>'']);
     $ids[]=$created['id'];return $created;
 }
 function ve_post(array $c,string $email='wizard-synthetic@example.invalid'): array { return ['csrf'=>$_SESSION['csrf'],'session_secret'=>explode('#',$c['link'])[1],'email'=>$email,'email_attempt'=>uid(),'url'=>'https://attacker.invalid/ignored']; }
@@ -57,6 +57,17 @@ try {
     $pendingBinding=hash('sha256',$pendingKey.'|'.strtolower($pendingPost['email']));
     query('INSERT INTO rate_limits(bucket,hits,expires) VALUES (?,1,?),(?,0,?)',[$pendingKey,time()+86400,$pendingBinding,time()+86400]);
     ve_deny('Concurrent pending attempt cannot duplicate or claim acceptance',409,fn()=>vs_email_link($pending['id'],$pendingPost));
+    $_SERVER['HTTP_ACCEPT']='application/json';$beforePendingMail=count(glob(storage('mail/volunteer-*.json'))?:[]);
+    for($retry=0;$retry<2;$retry++){
+        ob_start();vs_email_route('/volunteer/'.$pending['id'].'/email-link','POST');$pendingResponse=json_decode(ob_get_clean(),true);
+        ve_check('Pending JSON retry keeps original identity '.$retry,$pendingResponse['state']==='pending'&&$pendingResponse['ok']===false&&$pendingResponse['next_attempt']===$pendingPost['email_attempt']&&http_response_code()===409);
+    }
+    ve_check('Pending route retries make zero additional transport deliveries',count(glob(storage('mail/volunteer-*.json'))?:[])===$beforePendingMail);unset($_SERVER['HTTP_ACCEPT']);
+    $_SERVER['REMOTE_ADDR']='127.0.0.77';$unlimited=ve_create('unlimited');$unlimitedPost=ve_post($unlimited,'unlimited-email@example.invalid');$_POST=$unlimitedPost;
+    vs_email_link($unlimited['id'],$unlimitedPost);$unlimitedKey=hash('sha256',env('RATE_LIMIT_NAMESPACE').'|volunteer-email|'.$unlimited['id'].'|'.$unlimitedPost['email_attempt']);
+    ve_check('Unlimited send identity cannot expire into an unsafe new send',(string)one('SELECT expires FROM rate_limits WHERE bucket=?',[$unlimitedKey])['expires']==='9223372036854775807');
+    $unlimitedMail=count(glob(storage('mail/volunteer-*.json'))?:[]);vs_email_link($unlimited['id'],$unlimitedPost);
+    ve_check('Unlimited accepted recovery still sends no duplicate',count(glob(storage('mail/volunteer-*.json'))?:[])===$unlimitedMail);
     $countsAfter=[one('SELECT COUNT(*) n FROM research')['n'],one('SELECT COUNT(*) n FROM emails')['n'],one('SELECT COUNT(*) n FROM task_reservations')['n'],one('SELECT COUNT(*) n FROM workflow_handoffs')['n']];
     ve_check('Volunteer email creates no research record, research-email audit, reservation or archive',$countsAfter===$counts);
     ve_check('Rate and attempt store contains only hashed keys',array_reduce(all('SELECT bucket FROM rate_limits'),fn($ok,$row)=>$ok&&(bool)preg_match('/^[a-f0-9]{64}$/D',$row['bucket']),true));

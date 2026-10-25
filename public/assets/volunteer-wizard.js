@@ -61,15 +61,25 @@
     if (sending || !form.reportValidity()) return;
     const send = form.querySelector('button[type=submit]');
     const status = form.querySelector('[data-wizard-email-status]');
+    const submittedAttempt = form.querySelector('[name=email_attempt]').value;
+    const wasUncertain = ['pending', 'unknown'].includes(form.dataset.emailState);
     sending = true; send.disabled = true;
     status.textContent = 'Sending…';
     try {
       const response = await fetch(form.action, {method: 'POST', body: new FormData(form), headers: {'Accept': 'application/json'}, credentials: 'same-origin'});
       const result = await response.json();
       status.textContent = result.message || "We couldn't send the email. Copy your session link instead.";
-      if (typeof result.next_attempt === 'string' && /^[a-f0-9]{32}$/.test(result.next_attempt)) form.querySelector('[name=email_attempt]').value = result.next_attempt;
+      if (result.state === 'pending' || result.state === 'unknown' || (!result.ok && wasUncertain)) {
+        form.dataset.emailState = result.state === 'pending' ? 'pending' : 'unknown';
+        form.querySelector('[name=email_attempt]').value = submittedAttempt;
+      } else {
+        form.dataset.emailState = result.ok ? 'accepted' : 'failed';
+        if (typeof result.next_attempt === 'string' && /^[a-f0-9]{32}$/.test(result.next_attempt)) form.querySelector('[name=email_attempt]').value = result.next_attempt;
+      }
     } catch {
       // Retain the attempt key: an explicit retry safely recovers an uncertain acceptance.
+      form.dataset.emailState = 'unknown';
+      form.querySelector('[name=email_attempt]').value = submittedAttempt;
       status.textContent = 'Email outcome is unknown. Copy your session link, or explicitly retry to recover the same send attempt.';
     } finally { sending = false; send.disabled = false; }
   });

@@ -18,8 +18,8 @@ $wizardTitles=['Save your private link','Copy the AI instructions','Paste into y
 <p class="wizard-feedback" data-wizard-copy-status="link" role="status" aria-live="polite"></p>
 <details class="wizard-manual" id="wizard-link-manual" data-wizard-link-manual><summary>Copy link manually</summary><label for="volunteer-private-link">Private session link</label><textarea id="volunteer-private-link" rows="3" readonly autocomplete="off" spellcheck="false"><?=e($created['link'])?></textarea></details>
 <details data-wizard-email-disclosure <?=!empty($emailOpen)?'open':''?>><summary class="wizard-email-native-summary">Email it to me (optional)</summary>
-<form id="wizard-email" class="wizard-email" method="post" action="/volunteer/<?=e($created['id'])?>/email-link" data-wizard-email <?=empty($emailOpen)?'data-initially-collapsed':''?>>
-<?=csrf()?><input type="hidden" name="session_secret" value="<?=e($wizardSecret)?>"><input type="hidden" name="email_attempt" value="<?=e(uid())?>">
+<form id="wizard-email" class="wizard-email" method="post" action="/volunteer/<?=e($created['id'])?>/email-link" data-wizard-email data-email-state="<?=e($emailState??'idle')?>" <?=empty($emailOpen)?'data-initially-collapsed':''?>>
+<?=csrf()?><input type="hidden" name="session_secret" value="<?=e($wizardSecret)?>"><input type="hidden" name="email_attempt" value="<?=e($emailAttempt??uid())?>">
 <label for="wizard-email-address">Your email address</label><div class="wizard-email-row"><input type="email" id="wizard-email-address" name="email" value="<?=e($emailValue??'')?>" placeholder="you@example.com" autocomplete="email" maxlength="254" required><button type="submit">Send my link</button></div>
 <p class="fine">We'll email your private session link to this address.</p><p class="wizard-feedback" data-wizard-email-status role="status" aria-live="polite"><?=e($emailFeedback??'')?></p>
 </form></details>
