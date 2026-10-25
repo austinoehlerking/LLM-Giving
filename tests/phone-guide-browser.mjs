@@ -1,3 +1,4 @@
+import {readyDashboard} from './session-wizard-actions.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {root,env} from '../tools/runtime.mjs';
@@ -7,7 +8,7 @@ export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) 
  const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}],errors=[];
  page.on('pageerror',e=>errors.push(e.message));
  page.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
- const screenshot=async(p,name,privatePage=false)=>{const file=path.join(out,name+'.png');await p.screenshot({path:file,fullPage:false,...(privatePage?{mask:[p.locator('textarea')]}:{})});report.screenshots.push(file);return file;};
+ const screenshot=async(p,name,privatePage=false)=>{const file=path.join(out,name+'.png');await p.screenshot({path:file,fullPage:false,...(privatePage?{mask:[p.locator('textarea:visible')]}:{})});report.screenshots.push(file);return file;};
  const inspect=async(label,files)=>{console.log('INSPECT PHONE GUIDE '+label+': '+files.join(' | '));if(['1','phone-guide'].includes(env.QA_INSPECT_FIRST))await new Promise(resolve=>{process.stdin.resume();process.stdin.once('data',()=>{process.stdin.pause();resolve();});});};
  const initial=async(p,url,label,selector,privatePage=false)=>{const files=[];for(const size of sizes){await p.setViewportSize(size);if(url){const response=await p.goto(base+url);check(label+' HTTP success '+size.width,response.status()===200);}await p.evaluate(()=>scrollTo(0,0));files.push(await screenshot(p,label+'-'+size.width+'x'+size.height,privatePage));check(label+' starts at scroll zero '+size.width,await p.evaluate(()=>scrollY===0));await visibleActions(p,selector,label+' '+size.width);}await inspect(label,files);await p.setViewportSize(sizes[0]);};
  const reflow=async(p,label)=>{await p.setViewportSize(sizes[2]);await p.evaluate(()=>{const fonts=[...document.querySelectorAll('body,body *')].filter(el=>el instanceof HTMLElement).map(el=>[el,parseFloat(getComputedStyle(el).fontSize)]);for(const [el,size]of fonts)if(Number.isFinite(size))el.style.fontSize=(size*2)+'px';scrollTo(0,0);});await screenshot(p,label+'-200-percent');check(label+' all-font 200 percent reflows',await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));};
@@ -30,7 +31,7 @@ export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) 
   await page.locator('[data-volunteer-advanced] > summary').click();await page.getByLabel('Exact worker model',{exact:true}).selectOption('gpt-6.1-sol');await page.getByLabel('Actual reasoning effort',{exact:true}).selectOption('high');await page.getByLabel('AI tool or harness name',{exact:true}).fill('Codex cloud worker; Dot browser controller');await page.locator('[data-volunteer-advanced] > summary').click();
   check('Guide worker configuration is selectable without expanding consent',await page.locator('[name=model]').inputValue()==='gpt-6.1-sol'&&await page.locator('[name=reasoning]').inputValue()==='high');
   await page.getByRole('button',{name:'Connect my AI',exact:true}).click();await page.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();
-  await initial(page,null,'restricted-authorization','.volunteer-start .primary-actions > *');
+  await initial(page,null,'restricted-authorization','[data-wizard-copy=link],[data-wizard-email-toggle],[data-wizard-next="2"]');
   check('Server review retains one validated restricted profile',await page.locator('input[name=session_profile]').count()===1&&await page.locator('input[name=session_profile]').inputValue()==='restricted_web_v1');
   check('Server review preserves declared6.1Sol/high selection without claiming effective verification',await page.locator('input[name=model]').inputValue()==='gpt-6.1-sol'&&await page.locator('input[name=reasoning]').inputValue()==='high');
   check('Authorization remains unchecked and separate',await page.locator('[name=authorize],[name=authorized_resources],[name=terms]').evaluateAll(els=>els.length===3&&els.every(el=>!el.checked))&&await page.locator('[name=human_level],[name=human_details]').count()===0);
@@ -38,10 +39,10 @@ export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) 
   check('Restricted review does not solicit irrelevant software consent',await page.locator('[name=tool_terms]').count()===0);
   await reflow(page,'authorization');
   await page.evaluate(()=>{for(const el of document.querySelectorAll('body,body *'))if(el instanceof HTMLElement)el.style.removeProperty('font-size');});await page.setViewportSize(sizes[0]);
-  for(const name of ['authorize','authorized_resources','terms'])await page.locator('[name='+name+']').check();await page.getByRole('button',{name:'Authorize session',exact:true}).click();await page.getByRole('heading',{name:'Your volunteer session is ready',exact:true}).waitFor();
-  await initial(page,null,'synthetic-session-created','.volunteer-start .primary-actions > *',true);
+  for(const name of ['authorize','authorized_resources','terms'])await page.locator('[name='+name+']').check();await page.getByRole('button',{name:'Authorize session',exact:true}).click();await page.getByRole('heading',{name:'Your session is ready',exact:true}).waitFor();
+  await initial(page,null,'synthetic-session-created','[data-wizard-copy=link],[data-wizard-email-toggle],[data-wizard-next="2"]',true);
   check('Actual local authorization provides a private dashboard',await page.locator('#volunteer-private-link').inputValue().then(value=>new URL(value).pathname.startsWith('/volunteer/')));
-  await page.getByRole('link',{name:'Open private dashboard',exact:true}).click();
+  await readyDashboard(page);
   await initial(page,null,'restricted-dashboard','[data-session-actions] button');
   check('Private dashboard displays the stored restricted profile',(await page.locator('.volunteer-profile-details > summary').innerText()).includes('Restricted web research'));
   await page.locator('.volunteer-profile-details > summary').click();check('Dashboard explains real restricted capability boundaries',(await page.locator('.volunteer-profile-details').innerText()).includes('calculators')&&(await page.locator('.volunteer-profile-details').innerText()).includes('not a technical sandbox'));

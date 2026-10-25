@@ -26,6 +26,7 @@ export async function sessionWizardQa({page,ctx,base,runPhp,check,visibleActions
  const pane=(p,n)=>p.locator('[data-wizard-pane="'+n+'"]');
  async function advanceWithoutSave(p){await next(p).click();await p.getByRole('button',{name:'Continue anyway',exact:true}).click();}
  try{
+  runPhp(['tests/session-wizard-state.php','driver','file']);
   for(const size of sizes){
    const c=await create(page,size);page.on('pageerror',error=>errors.push(error.message));
    // Viewport-only capture and geometry precede any interaction with this receipt.
@@ -59,6 +60,9 @@ export async function sessionWizardQa({page,ctx,base,runPhp,check,visibleActions
    }
   }
   if(captureOnly){check('Capture-only run performs no receipt copy/email/pickup actions');return;}
+  for(const size of sizes){await page.setViewportSize(size);await page.goto(base+'/volunteer/quick-start');await shot(page,'guide-initial-'+size.width+'x'+size.height);await visibleActions(page,'[data-guide-actions] a','Guide initial '+size.width);}
+  const copied=await create(page);const beforeCopy=counts();await page.getByRole('button',{name:'Copy session link',exact:true}).click();await page.locator('[data-wizard-copy-status=link]').filter({hasText:'Session link copied'}).waitFor();
+  check('Successful session-link clipboard write contains the exact existing private link',await page.evaluate(()=>navigator.clipboard.readText()).then(value=>value.replaceAll('\r\n','\n')===copied.link.replaceAll('\r\n','\n')));check('Copying existing link makes no server mutation',JSON.stringify(counts())===JSON.stringify(beforeCopy));
   await create(page);const baseline=counts();
   await page.evaluate(()=>Object.defineProperty(navigator.clipboard,'writeText',{configurable:true,value:async()=>{throw new DOMException('Synthetic clipboard denial','NotAllowedError');}}));
   await page.getByRole('button',{name:'Copy session link',exact:true}).click();await page.locator('[data-wizard-copy-status=link]').filter({hasText:'denied'}).waitFor();
@@ -81,7 +85,7 @@ export async function sessionWizardQa({page,ctx,base,runPhp,check,visibleActions
   await next(page).click();check('Pending send permits immediate step two',await pane(page,2).isVisible());release();await page.locator('[data-wizard-email-status]').filter({hasText:'Email accepted'}).waitFor({state:'attached'});await ctx.unroute('**/email-link');await back(page).click();
   check('Only one pending/double-click send reaches transport',requests===1&&counts().mail===beforePending.mail+1);check('Accepted transport names destination without promising inbox delivery',(await page.locator('[data-wizard-email-status]').innerText()).includes('wizard-browser@example.invalid')&&(await page.locator('[data-wizard-email-status]').innerText()).includes('not guaranteed')&&await next(page).isEnabled());
   await shot(page,'email-accepted');await next(page).click();check('Accepted send does not autoadvance or gate Next',await pane(page,2).isVisible());await back(page).click();
-  // A third explicit attempt reaches the bounded session allowance; the next is rejected.
+  // The failure and two transport-accepted explicit attempts consume the bounded allowance.
   await page.getByRole('button',{name:'Send my link',exact:true}).click();await page.locator('[data-wizard-email-status]').filter({hasText:'Email accepted'}).waitFor();await page.getByRole('button',{name:'Send my link',exact:true}).click();await page.locator('[data-wizard-email-status]').filter({hasText:'Too many attempts'}).waitFor();
   check('Rate limiting remains honest and does not disable Next',await next(page).isEnabled());await next(page).click();check('Rate-limited email permits navigation',await pane(page,2).isVisible());
   const post={csrf:await page.locator('[name=csrf]').inputValue(),session_secret:new URL(emailSession.link).hash.slice(1),email_attempt:'a'.repeat(32),email:'http-synthetic@example.invalid'};
@@ -100,6 +104,7 @@ export async function sessionWizardQa({page,ctx,base,runPhp,check,visibleActions
    check('Native fallback retains complete private instructions without JS',(await np.locator('#orchestrator-handoff').inputValue()).includes('END PRIVATE SESSION SUPPLEMENT'));
    await np.locator('.wizard-email-native-summary').click();await np.getByLabel('Your email address',{exact:true}).fill('native-wizard@example.invalid');await np.getByRole('button',{name:'Send my link',exact:true}).click();
    check('No-JS native form performs real private sink send with honest acceptance',(await np.locator('[data-wizard-email-status]').innerText()).includes('Email accepted'));
+   await np.locator('[data-wizard-instructions-manual] summary').click();check('Native manual disclosure exposes all private handoff text',await np.locator('#orchestrator-handoff').isVisible()&&(await np.locator('#orchestrator-handoff').inputValue()).includes('END PRIVATE SESSION SUPPLEMENT'));
    await np.getByRole('link',{name:'Open dashboard',exact:true}).click();await np.getByRole('button',{name:'Stop session',exact:true}).click();check('No-JS native dashboard/Stop remains usable',(await np.locator('body').innerText()).includes('Session stopped'));
   }finally{await native.close();}
   check('Wizard has no browser script exceptions',errors.length===0);assert.equal(errors.length,0,errors.join('\n'));

@@ -1,3 +1,4 @@
+import {readyDashboard} from './session-wizard-actions.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -19,7 +20,7 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
   for(const size of sizes) {
    await p.setViewportSize(size);if(reload)await p.goto(reload);
    const file=path.join(out,label+'-'+size.width+'x'+size.height+'.png');
-   await p.screenshot({path:file,fullPage:false,mask:[p.locator('#volunteer-private-link'),p.locator('#session-task-handoff')]});screenshots.push(file);report.screenshots.push(file);
+   await p.screenshot({path:file,fullPage:false,mask:[p.locator('#volunteer-private-link:visible'),p.locator('#session-task-handoff:visible')]});screenshots.push(file);report.screenshots.push(file);
    try{await visibleActions(p,selector,label+' '+size.width);
     if(label==='separate-worker')check('Assigned worker packet entry is fully visible '+size.width,await p.locator('textarea[name=payload]').evaluate(el=>{const r=el.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight&&r.height>=44&&document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)===el;}));
    }catch(error){failures.push(error.message);}
@@ -29,7 +30,7 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
   if(['setup','authorization','dashboard-active','assignment'].includes(label)) {
    await p.setViewportSize(sizes[2]);
    await p.evaluate(()=>{window.__qaFonts=[...document.querySelectorAll('body,body *')].filter(e=>e instanceof HTMLElement).map(e=>[e,e.style.fontSize,parseFloat(getComputedStyle(e).fontSize)]);for(const [e,,size]of window.__qaFonts)if(Number.isFinite(size))e.style.fontSize=(size*2)+'px';});
-   const file=path.join(out,label+'-200-percent.png');await p.screenshot({path:file,fullPage:false,mask:[p.locator('#volunteer-private-link'),p.locator('#session-task-handoff')]});screenshots.push(file);report.screenshots.push(file);
+   const file=path.join(out,label+'-200-percent.png');await p.screenshot({path:file,fullPage:false,mask:[p.locator('#volunteer-private-link:visible'),p.locator('#session-task-handoff:visible')]});screenshots.push(file);report.screenshots.push(file);
    check(label+' reflows with all fonts at 200%',await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
    await p.evaluate(()=>{for(const [e,original]of window.__qaFonts)e.style.fontSize=original;delete window.__qaFonts;});
   }
@@ -45,10 +46,10 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
  }
  async function authorize(p) {
   await p.locator('[name=authorize]').check();await p.locator('[name=authorized_resources]').check();await p.locator('[name=terms]').check();
-  await p.getByRole('button',{name:'Authorize session',exact:true}).click();await p.getByRole('heading',{name:'Your volunteer session is ready',exact:true}).waitFor();
+  await p.getByRole('button',{name:'Authorize session',exact:true}).click();await p.getByRole('heading',{name:'Your session is ready',exact:true}).waitFor();
   const link=await p.locator('#volunteer-private-link').inputValue(),id=new URL(link).pathname.split('/')[2];sessions.push(id);secrets.push(new URL(link).hash.slice(1));return {id,link};
  }
- async function fresh(p,fixture,limit=3) {await p.goto(base+'/volunteer');await configure(p,fixture,limit);const created=await authorize(p);await p.getByRole('link',{name:'Open private dashboard',exact:true}).click();return created;}
+ async function fresh(p,fixture,limit=3) {await p.goto(base+'/volunteer');await configure(p,fixture,limit);const created=await authorize(p);await readyDashboard(p);return created;}
  async function pick(p) {await p.getByRole('button',{name:'Pick up next task',exact:true}).click();await p.getByRole('heading',{name:'Your reserved task handoff',exact:true}).waitFor();return p.locator('#session-task-handoff').inputValue();}
  async function checkPacket(p,value) {await p.locator('[name=payload]').fill(JSON.stringify(value));await p.getByRole('button',{name:'Check packet',exact:true}).click();await p.locator('[data-workflow-error]').getByText('Packet checks passed.',{exact:false}).waitFor();}
  try {
@@ -59,12 +60,12 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
   check('Visible defaults are three assignments and sixty minutes',await page.locator('[name=assignment_limit]').inputValue()==='3'&&await page.locator('[name=minutes]').inputValue()==='60');
   check('Advanced worker configuration starts collapsed',!await page.locator('[data-volunteer-advanced]').evaluate(element=>element.open));
   check('No account credentials or API keys are requested',await page.locator('input[type=password]').count()===0);
-  await configure(page,fixtures[0],2);await capture(page,'authorization','.volunteer-start .primary-actions > *');
+  await configure(page,fixtures[0],2);await capture(page,'authorization','[data-wizard-copy=link],[data-wizard-email-toggle],[data-wizard-next="2"]');
   check('Authorization and legal confirmations start unchecked',!await page.locator('[name=authorize]').isChecked()&&!await page.locator('[name=terms]').isChecked()&&!await page.locator('[name=authorized_resources]').isChecked());
   check('Session does not request an upfront independent declaration',await page.locator('[name=human_level],[name=human_details]').count()===0);
-  const first=await authorize(page);await capture(page,'created','.volunteer-start > .primary-actions > *');
+  const first=await authorize(page);await capture(page,'created','[data-wizard-copy=link],[data-wizard-email-toggle],[data-wizard-next="2"]');
   check('Private authorization response contains no analytics loader',await page.locator('[data-google-analytics]').count()===0);
-  await page.getByRole('link',{name:'Open private dashboard',exact:true}).click();await capture(page,'dashboard-empty','[data-session-actions] button');
+  await readyDashboard(page);await capture(page,'dashboard-empty','[data-session-actions] button');
   check('Reading all dashboard sizes never picks up work',state(first.id).used===0);
   check('Dashboard reports remaining minutes and assignments',await page.locator('.session-meta').innerText().then(text=>text.includes('min remaining')&&text.includes('assignments remaining')));
   const outsider=await browser.newContext({viewport:sizes[0]});contexts.push(outsider);const op=await outsider.newPage();
@@ -125,7 +126,7 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
   check('Session expiry denies submission and retains entered work',await page.locator('[name=payload]').inputValue()===lateText&&(await page.locator('[data-workflow-error]').innerText()).includes('expired')&&state(late.id).recorded===0);
   await page.goto(base+'/volunteer/'+late.id);await page.getByRole('button',{name:'Stop session',exact:true}).click();
   const native=await browser.newContext({javaScriptEnabled:false,viewport:sizes[0],reducedMotion:'reduce'});contexts.push(native);const np=await native.newPage();await np.goto(base+'/volunteer');await capture(np,'native-setup','.time-cards .time-card,.connect-ai',base+'/volunteer');
-  await configure(np,fixtures[2],1);const nc=await authorize(np);await np.getByRole('link',{name:'Open private dashboard',exact:true}).click();const nh=await pick(np);
+  await configure(np,fixtures[2],1);const nc=await authorize(np);await readyDashboard(np);const nh=await pick(np);
   check('Native no-JavaScript pickup supplies the complete manual-copy handoff',nh.includes('Private return link: ')&&await np.locator('[data-session-copy]').count()===1&&await np.locator('[data-session-copy]').isHidden());
   await np.getByRole('link',{name:'Open result form',exact:true}).click();await checkPacket(np,packet(nc.id));await np.getByRole('button',{name:'Submit task result',exact:true}).click();await np.getByRole('heading',{name:'Submission accepted',exact:true}).waitFor();
   check('Native forms complete an authorized last assignment without JavaScript',state(nc.id).recorded===1&&state(nc.id).used===1);
