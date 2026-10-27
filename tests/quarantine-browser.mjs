@@ -1,6 +1,6 @@
 import {revealAdminControls} from './admin-controls.mjs';
 import {reservationPickup} from './reservation-browser-support.mjs';
-import {authorizedHandoff} from './browser-authorization.mjs';
+import {authorizedHandoff,openResearchHelp} from './browser-authorization.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {root} from '../tools/runtime.mjs';
@@ -31,9 +31,9 @@ export async function quarantineQa({page,ctx,base,runPhp,check,visibleActions,pa
   check('Quarantined result excluded from evidence',(await data()).workflow.submissions.length===0);
   await viewports(page,rejectedUrl,'quarantined','.workflow-heading .primary-actions > *');
   await viewports(page,url,'project-held','.research-heading .primary-actions > *');
-  check('Research clearly shows hold',(await page.locator('.handoff-state').innerText()).includes('Awaiting admin decision'));
+  check('Research clearly shows hold',(await page.locator('.reader-availability').innerText()).includes('Awaiting admin decision'));
   check('Held research offers reference text rather than a task pickup',await page.getByRole('link',{name:'Copy AI handoff',exact:true}).count()===0);
-  await page.getByRole('link',{name:'Read reference handoff',exact:true}).click();const heldText=await page.locator('body').innerText();check('Held handoff gives admin next action without schema',heldText.includes('A packet is quarantined')&&!heldText.includes('REQUIRED OUTPUT JSON'));
+  await openResearchHelp(page);await page.getByRole('link',{name:'Read reference handoff',exact:true}).click();const heldText=await page.locator('body').innerText();check('Held handoff gives admin next action without schema',heldText.includes('A packet is quarantined')&&!heldText.includes('REQUIRED OUTPUT JSON'));
   await page.goto(url+'/tasks/'+t.id);check('Return form unavailable during hold',await page.locator('[name=payload]').count()===0);
   await ap.goto(base+'/admin/research/'+fixture.id);
   let form=ap.locator('form').filter({has:ap.locator('[name=result_id][value="'+rejectedId+'"]')});
@@ -57,7 +57,7 @@ export async function quarantineQa({page,ctx,base,runPhp,check,visibleActions,pa
   check('Original influence preserved after approval',JSON.parse(d.workflow.submissions[0].metadata).human_influence.human_interaction.level==='influenced');
   check('UTC audit records both decisions',['Quarantined packet rejected','Quarantined packet approved'].every(a=>d.workflow.ledger.some(e=>e.action===a&&e.actor_type==='administrator'&&e.created_at)));
   await revealAdminControls(page.locator('[data-influence-status]'));await page.locator('[data-influence-status] summary').click();await page.locator('[data-influence-status]').scrollIntoViewIfNeeded();await shot(page,'approved-reason-disclosures');
-  await page.goto(url);check('Research now offers next real task',(await page.locator('.handoff-state').innerText()).includes('Ready for research'));await shot(page,'research-advanced');
+  await page.goto(url);check('Research now offers next real task',(await page.locator('.reader-availability').innerText()).includes('research task is available'));await shot(page,'research-advanced');
   for(const u of [rejectedUrl,approvedUrl]){await page.setViewportSize({width:683,height:384});await page.goto(u);await page.evaluate(()=>document.body.style.fontSize='200%');check('Decision receipt 200% text reflows',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await shot(page,u===rejectedUrl?'rejected-200-percent':'approved-200-percent');}
   await page.setViewportSize(sizes[0]);await page.goto(url+'/ledger');await shot(page,'utc-ledger-decisions');
   fs.writeFileSync(path.join(out,'result.json'),JSON.stringify({research:url,rejectedUrl,approvedUrl,shots},null,2));

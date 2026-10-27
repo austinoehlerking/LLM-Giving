@@ -1,6 +1,10 @@
+/** Native study disclosure keeps reader actions first and contributor controls reachable. */
+export async function openResearchHelp(page){
+ const help=page.locator('details.reader-contribute');if(await help.count()&&await help.getAttribute('open')===null)await help.locator(':scope > summary').click();
+}
 /** Shared real consent UI path; returns private text only to the in-memory test. */
 export async function authorizedHandoff(page,{level='none',details=''}={}){
- await page.locator('[data-authorize-url]').click();
+ await openResearchHelp(page);await page.locator('[data-authorize-url]').click();
  await page.getByRole('heading',{name:'Authorize your AI',exact:true}).waitFor();
  await page.locator('[name=authorize]').check();await page.locator('[name=terms]').check();
  if(await page.locator('[name=tool_terms]').count())await page.locator('[name=tool_terms]').check();
