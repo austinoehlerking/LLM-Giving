@@ -1,5 +1,5 @@
 <?php
-require __DIR__.'/bootstrap.php';require __DIR__.'/workflow-fixture.php';require __DIR__.'/fork-fixture.php';require __DIR__.'/tool-fixture.php';
+require __DIR__.'/bootstrap.php';require __DIR__.'/workflow-fixture.php';require __DIR__.'/fork-fixture.php';require __DIR__.'/tool-fixture.php';require __DIR__.'/context-directory-fixture.php';
 session_start_safe();$_SESSION['admin']=1;$_SERVER['REMOTE_ADDR']='fork-test-'.uid();
 $ids=[];$checks=[];
 function fork_ok(bool $value,string $name):void{global $checks;if(!$value)throw new RuntimeException($name);$checks[]=$name;}
@@ -50,7 +50,8 @@ try{
     fork_ok($ctx['fork']['snapshot_id']===$draft['fork']['snapshot_id']&&$ctx['fork']['context_version']===$draft['fork']['context_version'],'Exact inherited context identity and version preserved');
     fork_ok($ctx['fork']['background_sha256']===hash('sha256',rf_json($bg)),'Pinned background checksum reproducible');
     try{query("UPDATE research_forks SET context_version=context_version+1 WHERE research_id=?",[$child]);throw new RuntimeException('Fork provenance update accepted');}catch(PDOException $e){fork_ok($e->getCode()==='45000','Database independently rejects provenance mutation');}
-    fork_ok(str_contains(wf_handoff_text($child),'Inherited background evidence'),'Handoff supplies attributed background with non-result warning');
+    $forkTask=wf_tasks($child)[0];$forkDependency=qa_required_dependency($child,$forkTask['id'],wf_handoff_text($child),'fork');$forkContext=$forkDependency['value'];
+    fork_ok(str_contains($forkContext['background']['notice'],'Inherited background evidence, not new results')&&$forkContext['background']===$bg&&$forkContext['background_sha256']===hash('sha256',rf_json($bg))&&$forkContext['background']['question']['display_name']==='Original synthetic requester'&&in_array('Synthetic research contributor',array_column($forkContext['background']['results'],'display_name'),true),'Handoff retrieves exact attributed background and non-result notice with verified dependency digest and byte length');
     $snap=wf_snapshot($child);$archive=wf_issue_handoff($child);
     $childTask=wf_tasks($child)[0];$packet=wf_test_payload($child,$childTask);$childResult=wf_test_submit($child,$childTask['id'],$packet,str_repeat('c',64));
     fork_ok((bool)$childResult,'Fork accepts own independent planning result');

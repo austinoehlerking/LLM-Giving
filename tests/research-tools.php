@@ -1,5 +1,5 @@
 <?php
-require __DIR__.'/bootstrap.php';require_once ROOT.'/src/view.php';require __DIR__.'/tool-fixture.php';
+require __DIR__.'/bootstrap.php';require_once ROOT.'/src/view.php';require __DIR__.'/tool-fixture.php';require __DIR__.'/context-directory-fixture.php';
 
 session_start_safe();$_SESSION['admin']=1;$checks=[];$ids=[];
 function tc(bool $ok,string $label): void {global $checks;if(!$ok)throw new RuntimeException($label);$checks[]=$label;}
@@ -19,7 +19,8 @@ try{
  $plainTask=rt_test_task($plain['id'],'planning');td(fn()=>tp($plain['id'],$plainTask,rt_test_plan($plain['id'],$plainTask)),'Standard research cannot silently add tool-build tasks');
  $bad=$packet;unset($bad['tool_terms']);td(fn()=>wf_test_submit($rid,$plan['id'],$bad,str_repeat('a',64)),'Submission needs separate human software consent');
  wf_test_submit($rid,$plan['id'],$packet,str_repeat('a',64));$task=rt_test_task($rid,'research');tc((bool)$task['builds_tool'],'Build requirement survives planning');
- $prompt=wf_prompt($rid,$task['id']);tc(str_contains($prompt,'BUILD A RESEARCH TOOL')&&str_contains($prompt,'tool_builds')&&str_contains($prompt,'No geospatial projection'),'Handoffs include tool instructions, schema and exact requester scope');
+ $prompt=wf_prompt($rid,$task['id']);$scope=qa_required_dependency($rid,$task['id'],$prompt,'research');
+ tc(str_contains($prompt,'BUILD A RESEARCH TOOL')&&str_contains($prompt,'tool_builds')&&$scope['value']['tool_requirements']===rt_brief(research($rid))&&str_contains($scope['body'],'No geospatial projection'),'Handoff retains trusted tool instructions/schema and retrieves exact requester scope with verified dependency bytes');
  tc(str_contains(wf_repair_prompt(research($rid),$task,'Missing test record.'),'invalid_input'),'Repair prompts preserve the tool contract');
  $packet=rt_test_build($rid,$task);$bad=$packet;$bad['evidence']['tool_builds']=[];td(fn()=>tp($rid,$task,$bad),'Completion cannot omit a tool');
  $bad=$packet;$bad['evidence']['tool_builds'][0]['files'][0]['content'].=' ';td(fn()=>tp($rid,$task,$bad),'Altered file bytes rejected');
