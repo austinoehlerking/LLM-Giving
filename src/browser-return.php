@@ -14,7 +14,7 @@ function ar_consent(array $r,array $post): array {
     if(empty($post['authorize'])||empty($post['terms']))fail(422,'The volunteer must authorize this assignment and accept the public-content terms.');
     if(text_field($post,'policy_version',1,64)!==terms_version())fail(409,'The public-content terms changed. Read the current terms and authorize again.');
     if(rt_is_tool($r)&&empty($post['tool_terms']))fail(422,'The volunteer must accept the separate software terms.');
-    return ['terms_version'=>terms_version(record:true),'research_license'=>RESEARCH_LICENSE,'tool_terms_version'=>rt_is_tool($r)?RT_TERMS:null,'software_license'=>rt_is_tool($r)?RT_LICENSE:null,'human_disclosure'=>ar_disclosure($post),'captured_at_utc'=>now(),'source'=>'Volunteer authorization form (self-attested)','resource_confirmation'=>CONTRIBUTOR_RESOURCE_CONFIRMATION,'disclosure_scope'=>'Through authorization; the AI separately reports later input.','permission'=>'One assigned result, including browser navigation and platform validation repair; no further tasks or self-review.'];
+    return ['terms_version'=>terms_version(record:true),'research_license'=>RESEARCH_LICENSE,'tool_terms_version'=>rt_is_tool($r)?RT_TERMS:null,'software_license'=>rt_is_tool($r)?RT_LICENSE:null,'human_disclosure'=>ar_disclosure($post),'captured_at_utc'=>now(),'source'=>'Volunteer authorization form (self-attested)','influence_policy_version'=>'formatting-only-v1','resource_confirmation'=>CONTRIBUTOR_RESOURCE_CONFIRMATION,'disclosure_scope'=>'Through authorization; the AI separately reports later input.','permission'=>'One assigned result, including browser navigation and platform validation repair; no further tasks or self-review.'];
 }
 function ar_ready(array $r,array $t,?string $actor=null): void {
     wr_eligible($r['id'],$t['id'],(int)$t['revision'],$actor??wf_actor());
@@ -26,12 +26,13 @@ function ar_issue(array $r,?string $tid,array $post): array {
         one('SELECT id FROM research WHERE id=? FOR UPDATE',[$r['id']]);
         $r=research($r['id']);
         $consent=ar_consent($r,$post);
+        $identityId=ri_capture($post,wf_actor())??ri_actor_identity(wf_actor());
         if($tid){
             $t=wf_task($r['id'],$tid);
             ar_ready($r,$t);
-            wr_claim($r['id'],$tid,(int)$t['revision'],wf_actor());
+            $lease=wr_claim($r['id'],$tid,(int)$t['revision'],wf_actor(),null,$identityId??'');
             $archive=wf_issue_handoff($r['id'],$tid);
-            $scope=['kind'=>'task','revision'=>(int)$t['revision'],'context_id'=>$archive['snapshot_id'],'submission_key'=>$archive['nonce'],'archive_id'=>$archive['id']];
+            $scope=['kind'=>'task','reservation_id'=>$lease['id'],'revision'=>(int)$t['revision'],'context_id'=>$archive['snapshot_id'],'submission_key'=>$archive['nonce'],'archive_id'=>$archive['id']];
             $body=$archive['body'];
         }
         else{
@@ -44,19 +45,21 @@ function ar_issue(array $r,?string $tid,array $post): array {
         }
         if(strlen($body)>4194304)fail(413,'This complete handoff exceeds the 4 MiB limit. Ask an administrator to help scope it; nothing was truncated.');
         $scope['requirements']=rq_requirements($r);
+        $scope['schema_version']=$tid?sr_schema_version(wf_task($r['id'],$tid),$scope['context_id']):'legacy-v1';
         $secret=bin2hex(random_bytes(32));
         $id=uid();
-        insert('browser_returns',['id'=>$id,'research_id'=>$r['id'],'task_id'=>$tid,'secret_hash'=>hash('sha256',$secret),'actor_hash'=>wf_actor(),'scope'=>json_encode($scope),'consent'=>json_encode($consent),'created_at'=>now(),'expires_at'=>gmdate('Y-m-d H:i:s',time()+86400)]);
+        insert('browser_returns',['id'=>$id,'research_id'=>$r['id'],'task_id'=>$tid,'secret_hash'=>hash('sha256',$secret),'actor_hash'=>wf_actor(),'identity_id'=>$identityId,'scope'=>json_encode($scope),'consent'=>json_encode($consent),'created_at'=>now(),'expires_at'=>gmdate('Y-m-d H:i:s',time()+86400)]);
         $link=rtrim(env('APP_URL'),'/').'/research/'.$r['slug'].'/return/'.$id.'#'.$secret;
         $supplement="\n\nPRIVATE VOLUNTEER AUTHORIZATION SUPPLEMENT — not part of the public handoff archive.\nThe volunteer authorized exactly this assignment, accepted the displayed public-content terms".(rt_is_tool($r)?' and separate software terms':'')." and supplied an independent declaration through the authorization time. These are self-attestations, not verified identity or conversation integrity. The volunteer also confirmed: ".$consent['resource_confirmation']." LLM.Giving relies on that confirmation and does not audit external resource permissions. This handoff grants no access to other accounts or resources, installation or spending authority. Browser submission and platform formatting repair alone are operational permission, not scientific influence. Preserve and report any later substantive human input or uncertainty. Do not ask the AI to invent a human declaration or check new consent boxes.\nPrivate return link: ".$link."\nOpen only this trusted site link using your browser tools when ready to return the assigned work. It carries the captured consent into your separate anonymous browser session. Never include the link, its fragment secret or authorization identifiers in the research packet, public output, sources, screenshots shared publicly or final answer. The return authorization expires after 24 hours and can record one result, but the separate task reservation lasts only 60 server-timed minutes. Only an explicit renewal extends that reservation; opening this link, checking a packet or copying a handoff never renews. For a task assignment use POST to this return URL with /reservation appended before the fragment (CSRF-protected), operation claim, renew or release, and task_revision matching the signed assignment. A lost or expired reservation must be explicitly reacquired against current eligibility before submitting; never displace another holder. Supplementary contributions do not reserve tasks. If used already, inspect its recorded receipt before retrying. If expired, stale or consent changed, report NOT SUBMITTED and request fresh authorization; do not forge identifiers or consent. Stop after the recorded outcome.\n";
-        return ['id'=>$id,'archive_id'=>$scope['archive_id']??null,'handoff'=>$body.$supplement];
+        return ['id'=>$id,'archive_id'=>$scope['archive_id']??null,'handoff'=>$body.$supplement.(function_exists('vo_formatting_guidance')?vo_formatting_guidance($consent):'')];
     });
 }
 function ar_read(array $r,string $id,bool $requireSession=true,bool $forUpdate=false,bool $allowHolder=false): array {
     research($r['id']);
     if($forUpdate&&!db()->inTransaction())throw new LogicException('Current grant locks require a research transaction.');
     $g=one('SELECT * FROM browser_returns WHERE id=? AND research_id=?'.($forUpdate?' FOR UPDATE':''),[$id,$r['id']])??fail(404,'Return authorization not found.');
-    $scoped=isset($_SESSION['browser_returns'][$id])&&hash_equals($g['secret_hash'],$_SESSION['browser_returns'][$id]);
+    if(!empty($g['revoked_at']))fail(403,'This private assignment authorization was revoked.');
+    $scoped=function_exists('sr_return_access')?sr_return_access($g):(isset($_SESSION['browser_returns'][$id])&&hash_equals($g['secret_hash'],$_SESSION['browser_returns'][$id]));
     if($requireSession&&!$scoped&&(!$allowHolder||!hash_equals($g['actor_hash'],wf_actor())))fail(403,'Open the private return link supplied by the volunteer. A public handoff does not authorize submission.');
     if($g['task_id']&&wf_task($r['id'],$g['task_id'])['visibility']!=='public')fail(404,'Assignment not found.');
     $g['scope']=json_decode($g['scope'],true);
@@ -65,17 +68,19 @@ function ar_read(array $r,string $id,bool $requireSession=true,bool $forUpdate=f
     if(!empty($g['scope']['target_id'])&&!one("SELECT id FROM contributions WHERE id=? AND research_id=? AND moderation='Approved'",[$g['scope']['target_id'],$r['id']]))fail(404,'Review target unavailable.');
     return $g;
 }
-function ar_validate(array $r,array $g): void {
-    if (!empty($g['scope']['volunteer_session_id'])) vs_validate_grant($r,$g);
+function ar_validate(array $r,array $g,bool $requireLease=true): void {
+    if (!empty($g['scope']['volunteer_session_id'])) vs_validate_grant($r,$g,$requireLease);
     if($g['task_id']){
         $t=wf_task($r['id'],$g['task_id']);
-        ar_ready($r,$t,$g['actor_hash']);
+        wr_eligible($r['id'],$t['id'],(int)$t['revision'],$g['actor_hash'],$g['identity_id']??'');
         if((int)$t['revision']!==$g['scope']['revision'])fail(409,'This assignment changed. Obtain a fresh authorized handoff and reassess.');
+        if(isset($g['scope']['recovery_profile'])&&!vs_profile_compatible(['session_profile'=>$g['scope']['recovery_profile'],'consent'=>$g['consent']],$r,$t))fail(403,'Recovered work cannot expand the original capability profile.');
     }
     if($g['expires_at']===null && empty($g['scope']['volunteer_session_id']))fail(403,'A standalone return requires an expiration.');
-    if($g['expires_at']!==null && $g['expires_at']<now())fail(403,'This return authorization expired. Ask the volunteer for fresh authorization; do not invent consent.');
-    if($g['consent']['terms_version']!==terms_version()||((!empty($g['scope']['volunteer_session_id'])&&$g['task_id']?vs_task_software_consent($r,wf_task($r['id'],$g['task_id'])):rt_is_tool($r))&&$g['consent']['tool_terms_version']!==RT_TERMS))fail(409,'The terms changed. Fresh volunteer authorization is required.');
+    if($g['expires_at']!==null && strtotime($g['expires_at'].' UTC')<=wr_time())fail(403,'This return authorization expired. Ask the volunteer for fresh authorization; do not invent consent.');
+    if($g['consent']['terms_version']!==terms_version()||(((!empty($g['scope']['volunteer_session_id'])||isset($g['scope']['recovery_profile']))&&$g['task_id']?vs_task_software_consent($r,wf_task($r['id'],$g['task_id'])):rt_is_tool($r))&&$g['consent']['tool_terms_version']!==RT_TERMS))fail(409,'The terms changed. Fresh volunteer authorization is required.');
     if(!rq_same_requirements($g['scope']['requirements']??null,rq_requirements($r)))fail(409,'Requester AI requirements changed. Obtain fresh authorization and reassess with a qualifying run.');
+    if($requireLease&&$g['task_id'])wr_require($r['id'],$g['task_id'],(int)$g['scope']['revision'],$g['actor_hash'],$g['identity_id']??'');
 }
 function ar_record(array $r,array $grant,array $d,bool $checkOnly): string {
     // A separate session worker reads its grant before waiting for the parent lock.
@@ -104,6 +109,7 @@ function ar_record(array $r,array $grant,array $d,bool $checkOnly): string {
         }
         ar_validate($r,$g);
         if (!empty($g['scope']['volunteer_session_id'])) { $workerSession=vs_read($g['scope']['volunteer_session_id'],false); vs_worker_assert_packet($workerSession,$d); vs_profile_assert_packet($workerSession,$d); }
+        if(isset($g['scope']['recovery_worker'])){ $recovery=['session_profile'=>$g['scope']['recovery_profile'],'consent'=>$g['consent'],'capabilities'=>$g['scope']['recovery_worker']];vs_worker_assert_packet($recovery,$d);vs_profile_assert_packet($recovery,$d);}
         if($g['task_id']){
             foreach(['task_revision'=>'revision','context_id'=>'context_id','submission_key'=>'submission_key'] as $field=>$scope)if((string)($d[$field]??'')!==(string)$g['scope'][$scope])fail(409,'Packet identifiers differ from this authorized assignment. Preserve the full original handoff; do not replace signed identifiers.');
         }
@@ -113,8 +119,9 @@ function ar_record(array $r,array $grant,array $d,bool $checkOnly): string {
         // A packet cannot replace server-captured consent or its declaration collection status.
         $d['human_disclosure']=$g['consent']['human_disclosure'];
         $d['terms']=1;
+        if($g['task_id'])ri_review_guard($r,wf_task($r['id'],$g['task_id']),$g['actor_hash'],$g['identity_id']??null);
         $d['tool_terms']=($g['consent']['tool_terms_version']??null)===RT_TERMS?1:null;
-        if($g['task_id'])$id=wf_submit($r['id'],$g['task_id'],$d,$g['actor_hash'],$checkOnly,'ai_browser',$g['consent']);
+        if($g['task_id'])$id=wf_submit($r['id'],$g['task_id'],$d,$g['actor_hash'],$checkOnly,'ai_browser',$g['consent'],$g['identity_id']??null);
         else{
             $d['human_influence']=wf_influence($d,$g['consent']);
             $d['human_influence']['authorization']=$g['consent'];
@@ -122,6 +129,7 @@ function ar_record(array $r,array $grant,array $d,bool $checkOnly): string {
             $id=create_contribution($r['id'],$d,$checkOnly);
         }
         if(!$checkOnly){
+            if($g['task_id'])ri_record_result($id,$g['actor_hash'],$g['identity_id']??null);
             query('UPDATE browser_returns SET result_id=?,payload_hash=? WHERE id=?',[$id,$hash,$g['id']]);
             vs_return_recorded($g,$id);
             $_SESSION['contribution_receipts'][$id]=true;
@@ -133,6 +141,7 @@ function ar_receipt_url(array $r,array $g,string $id): string {
     return '/research/'.$r['slug'].($g['task_id']?'/results/':'/contributions/').$id.($g['task_id']?'':'/receipt');
 }
 function ar_route(array $r,string $suffix,string $method): bool {
+    if(preg_match('~^return/([a-f0-9]{32})/continue$~D',$suffix,$continueMatch)){if($method!=='POST')fail(405,'Use an explicit POST.');$issued=sr_continue($r,$continueMatch[1]);$g=sr_authority($r,$continueMatch[1])['grant'];render('volunteer-continuation',['title'=>'Continue reserved task','continuation'=>$issued,'r'=>$r,'grant'=>$g,'status'=>sr_status($r,$g),'issuedLink'=>$issued['link'],'error'=>'']);return true;}
     if(preg_match('~^authorize(?:/([a-f0-9]{32}|pickup))?$~D',$suffix,$m)){
         $tid=$m[1]??null;$studyPickup=$tid==='pickup';
         if($tid&&!$studyPickup)ar_ready($r,wf_task($r['id'],$tid));
@@ -164,9 +173,9 @@ function ar_route(array $r,string $suffix,string $method): bool {
                 $g=ar_read($r,$id,false);
                 $secret=text_field($_POST,'return_secret',64,64);
                 if(!hash_equals($g['secret_hash'],hash('sha256',$secret)))fail(403,'This private return link is invalid.');
-                if(!$g['result_id'])ar_validate($r,$g);
+                // The valid capability grants read recovery after expiry; mutation guards remain on every operation.
                 session_regenerate_id(true);
-                $_SESSION['browser_returns'][$id]=$g['secret_hash'];
+                $_SESSION['browser_returns'][$id]=$g['secret_hash'];unset($_SESSION['continuation_grants'][$id]);
                 redirect('/research/'.$r['slug'].'/return/'.$id.'/submit');
             }
             render('browser-exchange',['title'=>'Open authorized assignment','r'=>$r,'returnId'=>$id]);
@@ -185,7 +194,7 @@ function ar_route(array $r,string $suffix,string $method): bool {
             redirect(ar_receipt_url($r,$g,$g['result_id']));
         }
         if($g['task_id']){
-            if($method!=='POST')ar_validate($r,$g);
+            if($method!=='POST'){$status=sr_status($r,$g);if($status['permission']!=='active'||$status['lease']!=='owned'){render('volunteer-grant-recovery',['title'=>'Assignment recovery','r'=>$r,'grant'=>$g,'status'=>$status]);return true;}ar_validate($r,$g);}
             return wf_route($r,'tasks/'.$g['task_id'],$method,$g);
         }
         ar_validate($r,$g);

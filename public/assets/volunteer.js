@@ -17,6 +17,7 @@ if(setup){
   let place=cause?.dataset.causeLabel||'Wherever needed';
   if(cause?.value==='custom')place=scope.value==='research'?'One research question':scope.value==='category'?(category.selectedOptions[0]?.textContent||'Choose a category'):'Wherever needed';
   setup.querySelector('[data-volunteer-summary]').textContent=time+' · '+place;
+  const concurrent=setup.querySelector('[data-concurrent-summary]');if(concurrent)concurrent.textContent=setup.elements.concurrent_limit.value;
  };
  setup.addEventListener('input',event=>{
   if(['model','reasoning','tool','workflow_mode'].includes(event.target.name))setup.elements.worker_choice.value='custom';
@@ -26,6 +27,7 @@ if(setup){
  });
  setup.addEventListener('change',update);update();
 }
+for(const button of document.querySelectorAll('[data-copy-continuation]')){button.hidden=false;button.addEventListener('click',async()=>{const text=document.getElementById('continuation-start-message'),status=document.querySelector('[data-continuation-copy-status]');try{await navigator.clipboard.writeText(text.value);status.textContent='Continuation message copied. Paste this one message into your AI and send.';}catch{document.querySelector('[data-continuation-manual]').open=true;text.focus();text.select();status.textContent='Clipboard access failed. Copy the complete short message manually.';}});}
 const exchange=document.querySelector('[data-volunteer-exchange]');
 if(exchange && location.hash){
  const secret=location.hash.slice(1);history.replaceState(null,'',location.pathname);

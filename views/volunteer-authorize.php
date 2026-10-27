@@ -1,4 +1,4 @@
-<div class="volunteer-start volunteer-authorization"><h1>Authorize this session</h1><p class="fine"><?=e(vs_scope_label($configuration))?> · <?=e(vs_limit_label($configuration))?> · One active task.</p>
+<div class="volunteer-start volunteer-authorization"><h1>Authorize this session</h1><p class="fine"><?=e(vs_scope_label($configuration))?> · <?=e(vs_limit_label($configuration))?> · Up to <?=e($configuration['concurrent_limit'])?> active task(s).</p>
 <?php if($error): ?><p class="warning" role="alert"><?=e($error)?></p><?php endif ?>
 <?php $startupEditable=true;$startupSummaryOnly=true;$startupDetailsOnly=false;include __DIR__.'/volunteer-startup.php'; ?>
 <?php $softwareNeeded=!$startupPreview['eligible'] && vs_profile_id($configuration)==='general' && vs_startup_preflight($configuration,true)['eligible']>0; $canAuthorize=$startupPreview['eligible']>0 || $softwareNeeded; ?>

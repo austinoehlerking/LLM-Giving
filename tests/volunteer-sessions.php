@@ -57,7 +57,7 @@ try {
     $unlimitedCreated=vs_create($post+['session_preset'=>'unlimited']);
     $unlimited=vs_read($unlimitedCreated['id']);
     vsc(vs_unlimited($unlimited) && $unlimited['assignment_limit']===null && $unlimited['expires_at']===null,'Unlimited stores no hidden task cap or deadline');
-    vsc($unlimited['consent']['session_limits']===['mode'=>'unlimited','assignment_limit'=>null,'minutes'=>null],'Captured consent explicitly records unlimited scope');
+    vsc($unlimited['consent']['session_limits']===['mode'=>'unlimited','assignment_limit'=>null,'minutes'=>null,'concurrent_limit'=>1],'Captured unlimited consent preserves the default single active worker separately from total allowance');
     $unlimited['assignments_used']=70000;
     $unlimitedClock=$GLOBALS['vs_test_now'];$GLOBALS['vs_test_now']+=86400*365;
     vsc(vs_state($unlimited)==='active','Unlimited remains active beyond former time/count ceilings');

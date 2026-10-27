@@ -14,7 +14,8 @@ function wr_stamp(?int $at=null): string { return gmdate('Y-m-d H:i:s',$at??wr_t
 function wr_actor_lock(string $actor,bool $create=false): void {
     if(!preg_match('/^[a-f0-9]{64}$/D',$actor))throw new LogicException('Expected a server-owned actor hash.');
     if(!db()->inTransaction())throw new LogicException('Reservation locks require a transaction.');
-    if($create)query('INSERT IGNORE INTO reservation_actors(actor_hash) VALUES (?)',[$actor]);
+    // Duplicate-key UPDATE obtains the exclusive mutex directly; INSERT IGNORE can leave competing shared locks that deadlock on upgrade.
+    if($create)query('INSERT INTO reservation_actors(actor_hash) VALUES (?) ON DUPLICATE KEY UPDATE actor_hash=VALUES(actor_hash)',[$actor]);
     one('SELECT actor_hash FROM reservation_actors WHERE actor_hash=? FOR UPDATE',[$actor]);
 }
 function wr_rate(string $operation,string $actor): void {
@@ -29,7 +30,7 @@ function wr_rate(string $operation,string $actor): void {
     }
 }
 /** Caller holds this research row when admitting work. Public read callers never grant a lease. */
-function wr_eligible(string $rid,string $tid,int $revision,?string $actor=null): array {
+function wr_eligible(string $rid,string $tid,int $revision,?string $actor=null,?string $identityId=null): array {
     $r=research($rid);$p=wf_project($rid);$t=wf_task($rid,$tid);
     if(!$p||$t['visibility']!=='public'||$t['round_no']!=$p['round_no']||$t['state']!=='Ready'||(int)$t['revision']!==$revision||wf_quarantine($rid)||in_array($r['status'],['Needs Clarification','Blocked','Paused','Archived — Inactive','Solved','Review Complete'],true))fail(409,'This task is unavailable or changed. Reload its current revision before reserving or submitting.');
     foreach(json_decode($t['dependencies'],true) as $id){
@@ -39,6 +40,7 @@ function wr_eligible(string $rid,string $tid,int $revision,?string $actor=null):
         wf_read_snapshot($rid,$result['snapshot_id']);
     }
     if($actor&&$t['kind']==='review'){
+        ri_review_guard($r,$t,$actor,$identityId===null?ri_actor_identity($actor):($identityId?:null));
         $syn=wf_task($rid,json_decode($t['dependencies'],true)[0]);
         $original=one('SELECT actor_hash FROM workflow_submissions WHERE id=? AND research_id=?',[$syn['accepted_id'],$rid]);
         if($original&&hash_equals($original['actor_hash'],$actor))fail(422,'Independent review requires a different contributor browser. AI handover preserves the original volunteer identity.');
@@ -67,24 +69,29 @@ function wr_live(string $rid,string $tid): ?array {
     if (!$row || !hash_equals($row['eligibility_fence'],wr_fence($rid))) return null;
     return function_exists('vs_reservation_projection') ? vs_reservation_projection($row) : $row;
 }
-function wr_claim(string $rid,string $tid,int $revision,string $actor): array {
+function wr_claim(string $rid,string $tid,int $revision,string $actor,?string $sessionId=null,?string $identityId=null): array {
     wr_rate('claim',$actor);
-    return tx(function()use($rid,$tid,$revision,$actor){
+    return tx(function()use($rid,$tid,$revision,$actor,$sessionId,$identityId){
         wr_actor_lock($actor,true);
+        $session=$sessionId?vs_read($sessionId,false,true):null;
+        if($session){if(!hash_equals($session['actor_hash'],$actor)||!vs_claim_proof($session,$rid,$tid))fail(403,'A current controller or matching task-scoped private grant is required.');vs_capacity_guard($session,$tid);}
         one('SELECT id FROM research WHERE id=? FOR UPDATE',[$rid])??fail(404,'Research not found.');
-        wr_eligible($rid,$tid,$revision,$actor);
+        wr_eligible($rid,$tid,$revision,$actor,$session?($session['identity_id']??''):$identityId);
+        if($session){$r=research($rid);$t=wf_task($rid,$tid);if(!vs_scope_matches($session,$r)||!vs_configuration_matches($session,$r,$t))fail(403,'This task is outside the captured session scope or worker permissions.');}
         $live=wr_live($rid,$tid);
         if($live){
             if(!hash_equals($live['actor_hash'],$actor))fail(409,'This task is reserved by another volunteer until '.$live['expires_at'].' UTC.');
             if((int)$live['task_revision']===$revision)return $live; // Recopy/retry never renews.
         }
         $others=all("SELECT v.* FROM task_reservations v JOIN workflow_tasks t ON t.id=v.task_id AND t.revision=v.task_revision JOIN workflow_projects p ON p.research_id=t.research_id AND p.round_no=t.round_no WHERE v.actor_hash=? AND v.ended_at IS NULL AND v.expires_at>? AND v.task_id<>? AND t.state='Ready' AND t.visibility='public'",[$actor,wr_stamp(),$tid]);
+        $held=0;$capacity=$session?max(1,min(3,(int)($session['concurrent_limit']??1))):1;
         foreach($others as $other){
             if (function_exists('vs_reservation_projection') && !vs_reservation_projection($other)) continue;
             if(!hash_equals($other['eligibility_fence'],wr_fence($other['research_id'])))continue;
-            try{wr_eligible($other['research_id'],$other['task_id'],(int)$other['task_revision'],$actor);}
+            try{wr_eligible($other['research_id'],$other['task_id'],(int)$other['task_revision']);}
             catch(HttpError $error){if(in_array($error->status,[404,409,422],true))continue;throw $error;}
-            fail(409,'Finish or release your existing task reservation before picking up another task.');
+            $held++;
+            if($held>=$capacity)fail(409,'Your authorized concurrent-task capacity is full. Finish or release an existing assignment; total task allowance is separate from concurrency.');
         }
         // Only obsolete generations of this task are retired; never displace a live other holder.
         query("UPDATE task_reservations SET ended_at=?,end_reason='replaced' WHERE research_id=? AND task_id=? AND ended_at IS NULL",[wr_stamp(),$rid,$tid]);
@@ -93,18 +100,18 @@ function wr_claim(string $rid,string $tid,int $revision,string $actor): array {
         return $row;
     });
 }
-function wr_require(string $rid,string $tid,int $revision,string $actor): array {
-    wr_eligible($rid,$tid,$revision,$actor);
+function wr_require(string $rid,string $tid,int $revision,string $actor,?string $identityId=null): array {
+    wr_eligible($rid,$tid,$revision,$actor,$identityId);
     $live=wr_live($rid,$tid);
     if(!$live||!hash_equals($live['actor_hash'],$actor)||(int)$live['task_revision']!==$revision)fail(409,'A live reservation for this task revision is required. Explicitly reacquire the current task; an expired handoff cannot submit or displace its holder.');
     return $live;
 }
-function wr_renew(string $rid,string $tid,int $revision,string $actor): array {
+function wr_renew(string $rid,string $tid,int $revision,string $actor,?string $identityId=null): array {
     wr_rate('renew',$actor);
-    return tx(function()use($rid,$tid,$revision,$actor){
+    return tx(function()use($rid,$tid,$revision,$actor,$identityId){
         wr_actor_lock($actor);
         one('SELECT id FROM research WHERE id=? FOR UPDATE',[$rid])??fail(404,'Research not found.');
-        $live=wr_require($rid,$tid,$revision,$actor);
+        $live=wr_require($rid,$tid,$revision,$actor,$identityId);
         $live['expires_at']=wr_stamp(wr_time()+WR_SECONDS);
         query('UPDATE task_reservations SET expires_at=? WHERE id=?',[$live['expires_at'],$live['id']]);
         return function_exists('vs_reservation_projection') ? vs_reservation_projection($live) : $live;
@@ -154,6 +161,7 @@ function wr_http(array $r,string $tid,string $method,?array $grant=null): void {
     $revisionText=text_field($_POST,'task_revision',1,10);
     if(!preg_match('/^[1-9][0-9]{0,9}$/D',$revisionText))fail(422,'Supply the exact positive task revision.');
     $revision=(int)$revisionText;
+    if($grant){$g=sr_authority($r,$grant['id'])['grant'];if($revision!==(int)$g['scope']['revision']||$g['task_id']!==$tid)fail(409,'Preserve the authorized task and revision.');sr_grant_action($r,$g['id'],$operation==='claim'?'reacquire':$operation);header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode($operation==='release'?['status'=>'released','expires_at_utc'=>null]:wr_availability($r['id'],$tid),JSON_THROW_ON_ERROR);return;}
     $availability=tx(function()use($r,$tid,$grant,$actor,$operation,$revision){
         wr_actor_lock($actor,$operation==='claim');
         one('SELECT id FROM research WHERE id=? FOR UPDATE',[$r['id']])??fail(404,'Research not found.');

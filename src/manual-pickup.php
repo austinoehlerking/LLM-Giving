@@ -61,6 +61,7 @@ function mp_authorized_pickup(array $r,array $post): array {
 function mp_control(array $r,array $task,string $operation,int $revision,?array $grant=null): array {
     if(!in_array($operation,['status','claim','renew','release'],true))fail(422,'Choose claim, renew or release.');
     if($operation==='status'&&!$grant)return ['message'=>'Availability refreshed. Entered work and signed identifiers are unchanged.'];
+    if($grant){$g=sr_authority($r,$grant['id'])['grant'];if($revision!==(int)$g['scope']['revision']||$g['task_id']!==$task['id'])fail(409,'Preserve the authorized task and signed revision.');if($operation==='status'){$status=sr_status($r,$g);return ['message'=>'Permission '.$status['permission'].'; reservation '.$status['lease'].'. No work was recorded or renewed.'];}sr_grant_action($r,$g['id'],$operation==='claim'?'reacquire':$operation);$out=['message'=>$operation==='release'?'This assignment was released; other assignments are unchanged.':'Reservation updated explicitly; original signed identifiers and consent are unchanged.'];if($operation==='claim')$out['handoff']=wf_read_handoff($r['id'],$g['scope']['archive_id'])['body'];return $out;}
     $actor=$grant['actor_hash']??wf_actor();
     return tx(function()use($r,$task,$operation,$revision,$actor,$grant){
         wr_actor_lock($actor,$operation==='claim');
