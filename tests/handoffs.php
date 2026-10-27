@@ -10,7 +10,7 @@ try{
  $first=wf_issue_handoff($r);$second=wf_issue_handoff($r);
  hc($first['nonce']!==$second['nonce']&&$first['id']!==$second['id'],'Separate issued copies have unique identities');
  hc(hash('sha256',$first['body'])===$first['sha256']&&wf_read_handoff($r,$first['id'])['body']===$first['body'],'Exact UTF-8 bytes and checksum preserved');
- hc(str_contains($first['body'],'AI RESEARCH HANDOFF')&&str_contains($first['body'],'UNTRUSTED FULL CONTEXT PACKAGE')&&str_contains($first['body'],'editing the INITIAL prompt'),'Full wrapper, instructions and context archived');
+ hc(str_contains($first['body'],'AI RESEARCH HANDOFF')&&str_contains($first['body'],'UNTRUSTED TASK CONTEXT DIRECTORY')&&str_contains($first['body'],'editing the INITIAL prompt'),'Full wrapper, signed instructions and versioned complete-context directory archived');
  try{query("UPDATE workflow_handoffs SET body='altered' WHERE id=?",[$first['id']]);throw new RuntimeException('Archive update allowed');}catch(PDOException $e){hc($e->getCode()==='45000','Database blocks archive updates');}
  hd(fn()=>wf_read_handoff($foreign,$first['id']),404,'Archive enforces research parent');
  foreach([

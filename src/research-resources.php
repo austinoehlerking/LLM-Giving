@@ -1,8 +1,9 @@
 <?php
 /** Scholarly resources and supporting-material completeness. Never fetch or execute sources. */
 const RS_CATEGORIES=['sources','inputs','units','formulas','code','software','methods','assumptions','outputs','tables','intermediate_results','failed_approaches'];
-function rs_packet_budget(array $packet): void {
-    if(strlen(json_encode($packet,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR))>200000)fail(422,'The complete packet exceeds 200,000 bytes. Report oversized required material in progress; never silently truncate it or claim unsupported completion.');
+function rs_packet_budget(array $packet,string $trustedVersion='research-packet-v1'): void {
+    $max=wf_packet_byte_limit($trustedVersion);
+    if(strlen(json_encode($packet,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR))>$max)fail(422,'The complete packet exceeds the trusted '.$trustedVersion.' limit of '.number_format($max).' UTF-8 bytes. Report oversized required material in progress; never silently truncate it or claim unsupported completion.');
 }
 function rs_attribution(array $source): array {
     $out=[];

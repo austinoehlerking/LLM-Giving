@@ -2,6 +2,7 @@
 export const qaReports = Object.freeze({
   'research-transport': 'research-transport/browser-report.json',
   'session-reliability': 'session-reliability/browser-report.json',
+  schema: 'schema/browser-report.json',
   'volunteer-real-start': 'volunteer-real-start/browser-report.json',
   'session-wizard': 'session-wizard/browser-report.json',
   'volunteer-compact': 'volunteer-compact/browser-report.json',
