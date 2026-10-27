@@ -61,8 +61,45 @@ function ri_record_result(string $resultId,string $ownerActor,?string $identityI
 }
 
 function ri_route(string $path,string $method): bool {
+    if(ri_contribution_route($path,$method))return true;
     if(!preg_match('~^/volunteer/review/([a-f0-9]{32})/([a-f0-9]{32})$~D',$path,$m))return false;
     header('Cache-Control: private, no-store');header('X-Robots-Tag: noindex, nofollow');$r=research($m[1]);$task=wr_eligible($r['id'],$m[2],(int)wf_task($r['id'],$m[2])['revision']);if($task['kind']!=='review')fail(422,'This is not an independent-review task.');$actor=wf_actor();$error='';
     if($method==='POST'){try{if(($_POST['operation']??'')==='identity'){ri_capture($_POST,$actor)??fail(422,'Declare the actual AI account yourself.');redirect($path);}tx(function()use($r,$task,$actor){wr_actor_lock($actor,true);one('SELECT id FROM research WHERE id=? FOR UPDATE',[$r['id']]);$identity=ri_actor_identity($actor);ri_capture_review(research($r['id']),wf_task($r['id'],$task['id']),$actor,$identity,$_POST);});redirect('/research/'.$r['slug'].'/authorize/'.$task['id']);}catch(HttpError $e){http_response_code($e->status);$error=$e->getMessage();}}
     elseif($method!=='GET')fail(405,'Use GET or POST.');$targetDigest=ri_review_target_digest($r,$task,$actor,ri_actor_identity($actor));render('volunteer-review-attestation',['title'=>'Review account separation','r'=>$r,'task'=>$task,'targetDigest'=>$targetDigest,'error'=>$error]);return true;
+}
+
+/** Supplementary reviews use the same private account policy, bound to the exact published target. */
+function ri_contribution_target_digest(array $r,string $target,string $actor,?string $identityId): string {
+    research($r['id']);$c=one("SELECT * FROM contributions WHERE id=? AND research_id=? AND moderation='Approved' AND kind<>'Independent review'",[$target,$r['id']])??fail(409,'The published review target is unavailable.');
+    $author=one('SELECT a.owner_actor_hash,a.identity_id,i.provider,i.account_hash FROM research_contribution_identities a LEFT JOIN research_account_identities i ON i.id=a.identity_id WHERE a.contribution_id=?',[$target]);$reviewer=ri_identity($identityId);
+    if($author&&hash_equals($author['owner_actor_hash'],$actor))fail(422,'This owner authored the reviewed contribution. A new browser, thread, model or subagent does not establish independence.');
+    if($author&&$reviewer&&$author['account_hash']&&$reviewer['provider']===$author['provider']&&hash_equals($reviewer['account_hash'],$author['account_hash']))fail(422,'Independent review cannot use the same AI account as the reviewed contribution author.');
+    return hash('sha256',json_encode([$r['id'],$c,$author],JSON_THROW_ON_ERROR));
+}
+function ri_capture_contribution_review(array $r,string $target,string $actor,?string $identityId,array $humanPost): void {
+    if(!$identityId||!ri_identity($identityId))fail(422,'Declare the actual AI account yourself before attesting supplementary review separation.');
+    if(($humanPost['review_account_separation']??'')!=='knowingly_different')fail(422,'A human must knowingly attest a different AI account from the reviewed author. Missing or uncertain separation is ineligible.');
+    $digest=ri_contribution_target_digest($r,$target,$actor,$identityId);
+    if(!is_string($humanPost['review_target_digest']??null)||!hash_equals($digest,$humanPost['review_target_digest']))fail(409,'The contribution target changed or differs from this form. Open its current review form and attest again yourself.');
+    query('INSERT IGNORE INTO research_contribution_review_attestations(id,research_id,target_id,owner_actor_hash,identity_id,target_digest,policy_version,captured_at) VALUES (?,?,?,?,?,?,?,?)',[uid(),$r['id'],$target,$actor,$identityId,$digest,'ai-account-separation-v1',wr_stamp()]);
+}
+function ri_contribution_review_guard(array $r,string $target,string $actor,?string $identityId): void {
+    $digest=ri_contribution_target_digest($r,$target,$actor,$identityId);
+    if(!$identityId||!one('SELECT id FROM research_contribution_review_attestations WHERE research_id=? AND target_id=? AND owner_actor_hash=? AND identity_id=? AND target_digest=? AND policy_version=?',[$r['id'],$target,$actor,$identityId,$digest,'ai-account-separation-v1']))fail(422,'Supplementary independent review needs a human account declaration and knowing separation attestation for this exact target. Another thread, model, browser or subagent is insufficient.');
+}
+function ri_record_contribution(string $id,string $ownerActor,?string $identityId): void {
+    if(!db()->inTransaction())throw new LogicException('Contribution identity must be recorded in its insertion transaction.');
+    if(!preg_match('/^[a-f0-9]{64}$/D',$ownerActor)||!one('SELECT id FROM contributions WHERE id=?',[$id]))fail(403,'New contribution attribution is unavailable.');
+    if($identityId&&!ri_identity($identityId))fail(403,'Captured account declaration is unavailable.');
+    query('INSERT IGNORE INTO research_contribution_identities(contribution_id,identity_id,owner_actor_hash) VALUES (?,?,?)',[$id,$identityId,$ownerActor]);
+}
+
+function ri_contribution_route(string $path,string $method): bool {
+    if(!preg_match('~^/volunteer/contribution-review/([a-f0-9]{32})/([a-f0-9]{32})$~D',$path,$m))return false;
+    header('Cache-Control: private, no-store');header('X-Robots-Tag: noindex, nofollow');$r=research($m[1]);$target=$m[2];$actor=wf_actor();$error='';
+    ri_contribution_target_digest($r,$target,$actor,null);
+    if($method==='POST'){try{if(($_POST['operation']??'')==='identity'){ri_capture($_POST,$actor)??fail(422,'Declare the actual AI account yourself.');redirect($path);}tx(function()use($r,$target,$actor){wr_actor_lock($actor,true);one('SELECT id FROM research WHERE id=? FOR UPDATE',[$r['id']]);ri_capture_contribution_review(research($r['id']),$target,$actor,ri_actor_identity($actor),$_POST);});redirect('/research/'.$r['slug'].'/authorize?target='.$target);}catch(HttpError $e){http_response_code($e->status);$error=$e->getMessage();}}
+    elseif($method!=='GET')fail(405,'Use GET or POST.');
+    $targetDigest='';try{$targetDigest=ri_contribution_target_digest($r,$target,$actor,ri_actor_identity($actor));}catch(HttpError $e){if($e->status!==422)throw $e;$error=$e->getMessage();}
+    render('volunteer-contribution-attestation',['title'=>'Review account separation','r'=>$r,'target'=>$target,'targetDigest'=>$targetDigest,'error'=>$error]);return true;
 }

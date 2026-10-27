@@ -35,3 +35,18 @@ CREATE TABLE task_reauthorizations (
  FOREIGN KEY(old_grant_id) REFERENCES browser_returns(id) ON DELETE CASCADE,
  FOREIGN KEY(new_grant_id) REFERENCES browser_returns(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+CREATE TABLE research_contribution_identities (
+ contribution_id CHAR(32) PRIMARY KEY, identity_id CHAR(32) NULL, owner_actor_hash CHAR(64) NOT NULL,
+ FOREIGN KEY(contribution_id) REFERENCES contributions(id) ON DELETE CASCADE,
+ FOREIGN KEY(identity_id) REFERENCES research_account_identities(id)
+) ENGINE=InnoDB;
+CREATE TABLE research_contribution_review_attestations (
+ id CHAR(32) PRIMARY KEY, research_id CHAR(32) NOT NULL, target_id CHAR(32) NOT NULL,
+ owner_actor_hash CHAR(64) NOT NULL, identity_id CHAR(32) NOT NULL, target_digest CHAR(64) NOT NULL,
+ policy_version VARCHAR(40) NOT NULL, captured_at DATETIME NOT NULL,
+ FOREIGN KEY(research_id) REFERENCES research(id) ON DELETE CASCADE,
+ FOREIGN KEY(target_id,research_id) REFERENCES contributions(id,research_id) ON DELETE CASCADE,
+ FOREIGN KEY(identity_id) REFERENCES research_account_identities(id),
+ UNIQUE KEY contribution_review_attestation(target_id,owner_actor_hash,identity_id,target_digest)
+) ENGINE=InnoDB;

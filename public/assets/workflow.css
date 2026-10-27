@@ -15,3 +15,5 @@
 
 /* Long evidence paths and source URLs remain readable with enlarged text. */
 #supporting-materials,#resource-list{min-width:0;overflow-wrap:anywhere}
+
+@media(max-width:600px){.workflow-heading.authorized-return-heading+#task-submit.form-panel{padding-top:8px}.workflow-heading.authorized-return-heading+#task-submit>h2{margin-bottom:4px}}

@@ -47,7 +47,7 @@ document.getElementById('copy-schema')?.addEventListener('click',()=>copy(docume
 document.getElementById('preview-submission')?.addEventListener('click',()=>{
  try{
   if(form.elements.namedItem('json').value.trim())loadJSON();
-  const data={metadata:{}};for(const [k,v] of new FormData(form)){if(['csrf','terms','attachments[]','json'].includes(k))continue;const m=k.match(/^metadata\[(.+)\]$/);if(m)data.metadata[m[1]]=v===''?null:v;else data[k]=k==='evidence'?JSON.parse(v):v;}
+  const data={metadata:{}};for(const [k,v] of new FormData(form)){if(['csrf','terms','attachments[]','json','account_provider','account_reference','account_attestation','identity_id','review_account_separation','review_target_digest'].includes(k))continue;const m=k.match(/^metadata\[(.+)\]$/);if(m)data.metadata[m[1]]=v===''?null:v;else data[k]=k==='evidence'?JSON.parse(v):v;}
   document.getElementById('preview-content').textContent=JSON.stringify(data,null,2);
   document.getElementById('preview').hidden=false;document.getElementById('preview').scrollIntoView({block:'start'});
  }catch(e){document.getElementById('parse-status').textContent=e.message;}

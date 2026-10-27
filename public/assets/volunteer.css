@@ -101,3 +101,5 @@
 .recovery-status{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px;margin:12px 0}.recovery-status>div{min-width:0}.recovery-status dt{font-weight:650}.recovery-status dd{margin:0;font-size:14px;overflow-wrap:anywhere}.continuation-controls{margin:8px 0}.continuation-page .primary-actions{margin-top:8px}.account-declaration input[type=text],.account-declaration input:not([type]){max-width:100%}
 
 .review-account-page p,.review-account-page label{font-size:14px;line-height:1.4}.review-account-page .account-declaration legend{font-size:18px}.review-account-page .account-declaration label{margin:6px 0}.review-account-page .account-declaration p{margin:6px 0}.review-account-page .account-declaration input:not([type=checkbox]){display:block;width:100%}.review-account-page .account-declaration{border:0;padding:0;margin:0 0 8px}
+
+.session-active-picker{flex:1 1 26rem;min-width:0;max-width:100%}.session-active-picker select{display:block;width:100%;max-width:100%;margin-bottom:8px}

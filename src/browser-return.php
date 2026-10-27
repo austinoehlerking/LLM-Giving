@@ -7,8 +7,8 @@ function ar_method(?string $method): string {
 }
 function ar_disclosure(array $post): array {
     $level=text_field($post,'human_level',1,20);
-    if(!in_array($level,['none','repair_only','influenced','unsure'],true))fail(422,'Choose your human-input disclosure.');
-    return ['level'=>$level,'details'=>text_field($post,'human_details',in_array($level,['influenced','unsure'],true)?10:0,3000)];
+    if(!in_array($level,['none','repair_only','formatting_only','influenced','unsure'],true))fail(422,'Choose your human-input disclosure.');
+    return ['level'=>$level,'details'=>text_field($post,'human_details',in_array($level,['influenced','unsure'],true)?10:($level==='formatting_only'?1:0),3000)]+($level==='formatting_only'?['category'=>'formatting']:[]);
 }
 function ar_consent(array $r,array $post): array {
     if(empty($post['authorize'])||empty($post['terms']))fail(422,'The volunteer must authorize this assignment and accept the public-content terms.');
@@ -40,6 +40,7 @@ function ar_issue(array $r,?string $tid,array $post): array {
             $target=text_field($post,'target_id',0,32)?:null;
             $kind=$target?'Independent review':(text_field($post,'contribution_kind',0,40)?:'Original research');
             if(!in_array($kind,KINDS,true)||(!$target&&$kind==='Independent review'))fail(422,'Choose a contribution type; independent reviews need a published target.');
+            if($target)ri_contribution_review_guard($r,$target,wf_actor(),$identityId);
             $body=prompt_text($r['id'],$target,$kind);
             $scope=['kind'=>'contribution','target_id'=>$target,'contribution_kind'=>$kind];
         }
@@ -76,6 +77,7 @@ function ar_validate(array $r,array $g,bool $requireLease=true): void {
         if((int)$t['revision']!==$g['scope']['revision'])fail(409,'This assignment changed. Obtain a fresh authorized handoff and reassess.');
         if(isset($g['scope']['recovery_profile'])&&!vs_profile_compatible(['session_profile'=>$g['scope']['recovery_profile'],'consent'=>$g['consent']],$r,$t))fail(403,'Recovered work cannot expand the original capability profile.');
     }
+    if(!$g['task_id']&&!empty($g['scope']['target_id']))ri_contribution_review_guard($r,$g['scope']['target_id'],$g['actor_hash'],$g['identity_id']??null);
     if($g['expires_at']===null && empty($g['scope']['volunteer_session_id']))fail(403,'A standalone return requires an expiration.');
     if($g['expires_at']!==null && strtotime($g['expires_at'].' UTC')<=wr_time())fail(403,'This return authorization expired. Ask the volunteer for fresh authorization; do not invent consent.');
     if($g['consent']['terms_version']!==terms_version()||(((!empty($g['scope']['volunteer_session_id'])||isset($g['scope']['recovery_profile']))&&$g['task_id']?vs_task_software_consent($r,wf_task($r['id'],$g['task_id'])):rt_is_tool($r))&&$g['consent']['tool_terms_version']!==RT_TERMS))fail(409,'The terms changed. Fresh volunteer authorization is required.');
@@ -126,7 +128,7 @@ function ar_record(array $r,array $grant,array $d,bool $checkOnly): string {
             $d['human_influence']=wf_influence($d,$g['consent']);
             $d['human_influence']['authorization']=$g['consent'];
             $d['submission_method']='ai_browser';
-            $id=create_contribution($r['id'],$d,$checkOnly);
+            $id=create_contribution($r['id'],$d,$checkOnly,$g['actor_hash'],$g['identity_id']??null);
         }
         if(!$checkOnly){
             if($g['task_id'])ri_record_result($id,$g['actor_hash'],$g['identity_id']??null);
@@ -145,6 +147,7 @@ function ar_route(array $r,string $suffix,string $method): bool {
     if(preg_match('~^authorize(?:/([a-f0-9]{32}|pickup))?$~D',$suffix,$m)){
         $tid=$m[1]??null;$studyPickup=$tid==='pickup';
         if($tid&&!$studyPickup)ar_ready($r,wf_task($r['id'],$tid));
+        if($method==='GET'&&!$tid&&!empty($_GET['target'])){try{ri_contribution_review_guard($r,text_field($_GET,'target',32,32),wf_actor(),ri_actor_identity(wf_actor()));}catch(HttpError $accountError){if($accountError->status!==422)throw $accountError;redirect('/volunteer/contribution-review/'.$r['id'].'/'.text_field($_GET,'target',32,32));}}
         $error='';
         if($method==='POST'){
             try{

@@ -11,7 +11,7 @@ function vs_scope_label(array $configuration): string {
 function vs_state_label(string $state): string {
     return match($state) {
         'active'=>'Session active',
-        'limit_reached'=>'Assignment limit reached — finish the current task before the deadline',
+        'limit_reached'=>'Task allowance used — finish active assignments before authorization ends',
         'expired'=>'Session expired — no more claims, renewals or submissions',
         'terms_changed'=>'Terms changed — fresh volunteer authorization is required',
         default=>'Session stopped — existing receipts remain available'
@@ -31,7 +31,7 @@ function vs_public_assignment(array $session,array $assignment): array {
     try {
         $grant=vs_assignment_grant($session,$assignment);
         $r=research($assignment['research_id']); $task=wf_task($r['id'],$assignment['task_id']);
-        $item['available']=true; $item['title']=$task['title']; $item['task_url']='/research/'.$r['slug'].'/tasks/'.$task['id'];
+        $item['available']=true; $item['research_title']=$r['title']; $item['title']=$task['title']; $item['task_url']='/research/'.$r['slug'].'/tasks/'.$task['id'];
         if ($grant['result_id']) {
             $result=one("SELECT admission,visibility FROM workflow_submissions WHERE id=? AND research_id=?",[$grant['result_id'],$r['id']]);
             if (!$result || $result['visibility']!=='public') return array_replace($item,['available'=>false,'title'=>'Research unavailable','task_url'=>null]);

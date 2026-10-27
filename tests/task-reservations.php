@@ -77,7 +77,7 @@ try{
  $syn=array_values(array_filter(wf_tasks($foreign),fn($x)=>$x['kind']==='synthesis'))[0];wr_claim($foreign,$syn['id'],1,$builder);wf_submit($foreign,$syn['id'],wf_test_payload($foreign,$syn),$builder);
  $review=array_values(array_filter(wf_tasks($foreign),fn($x)=>$x['kind']==='review'))[0];
  vdeny(fn()=>wr_claim($foreign,$review['id'],1,$builder),422,'Synthesis author cannot pick up independent review');
- $reviewer=vactor();wr_claim($foreign,$review['id'],1,$reviewer);wr_release($foreign,$review['id'],$reviewer);
+ $reviewer=vactor();$reviewIdentity=ri_capture(['account_provider'=>'synthetic-qa','account_reference'=>'reservation-review-'.$reviewer,'account_attestation'=>1],$reviewer);ri_capture_review(research($foreign),$review,$reviewer,$reviewIdentity,['review_account_separation'=>'knowingly_different','review_target_digest'=>ri_review_target_digest(research($foreign),$review,$reviewer,$reviewIdentity)]);wr_claim($foreign,$review['id'],1,$reviewer);wr_release($foreign,$review['id'],$reviewer);
  query("UPDATE workflow_submissions SET visibility='private' WHERE id=?",[$syn['accepted_id']??wf_task($foreign,$syn['id'])['accepted_id']]);
  vdeny(fn()=>wr_claim($foreign,$review['id'],1,$reviewer),409,'Missing public prerequisite prevents pickup even when task says Ready');
  // Browser authorization delegates use of the original identity, never creates a second owner.
