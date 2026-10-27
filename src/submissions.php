@@ -10,20 +10,27 @@ function contribution_schema(): array {
         'evidence'=>wf_evidence_template(['kind'=>'supplementary','computational'=>false]),'human_interaction'=>['level'=>'none','details'=>''],'metadata'=>array_fill_keys(META_FIELDS,null)
     ];
 }
-function parse_contribution(array $post): array {
+function parse_contribution(array $post,?string $researchId=null): array {
     if(trim((string)($post['json']??''))===''){
         if(is_string($post['evidence']??null)){try{$post['evidence']=json_decode(text_field($post,'evidence',2,200000),true,32,JSON_THROW_ON_ERROR);}catch(JsonException){fail(422,'Supporting evidence must be complete valid JSON.');}}
-        return $post;
+        $d=$post;
+    }else{
+        try{$d=json_decode(text_field($post,'json',2,200000),true,32,JSON_THROW_ON_ERROR);}catch(JsonException){fail(422,'The JSON could not be parsed. Correct it or use the individual fields.');}
+        if(!is_array($d)||array_is_list($d))fail(422,'Submit a JSON object.');$d['terms']=$post['terms']??null;
     }
-    try { $d=json_decode(text_field($post,'json',2,200000),true,32,JSON_THROW_ON_ERROR); }
-    catch(JsonException) { fail(422,'The JSON could not be parsed. Correct it or use the individual fields.'); }
-    if(!is_array($d) || array_is_list($d)) fail(422,'Submit a JSON object.');
-    $d['terms']=$post['terms']??null;
+    // Only the human form outside the authored JSON may capture private identity/separation.
+    ri_capture($post,wf_actor());
+    if($researchId&&($d['kind']??'')==='Independent review'&&(isset($post['review_account_separation'])||isset($post['review_target_digest']))){
+        $target=text_field($d,'target_id',32,32);
+        tx(function()use($researchId,$target,$post){wr_actor_lock(wf_actor(),true);one('SELECT id FROM research WHERE id=? FOR UPDATE',[$researchId]);ri_capture_contribution_review(research($researchId),$target,wf_actor(),ri_actor_identity(wf_actor()),$post);});
+    }
+    foreach(['account_provider','account_reference','account_attestation','identity_id','review_account_separation','review_target_digest'] as $privateField)unset($d[$privateField]);
     return $d;
 }
-function create_contribution(string $rid,array $d,bool $checkOnly=false): string {
+function create_contribution(string $rid,array $d,bool $checkOnly=false,?string $ownerActor=null,?string $identityId=null): string {
     rs_packet_budget($d);
-    if(!db()->inTransaction())return tx(fn()=>create_contribution($rid,$d,$checkOnly));
+    if($ownerActor===null){$ownerActor=wf_actor();$identityId=ri_actor_identity($ownerActor);}
+    if(!db()->inTransaction())return tx(fn()=>create_contribution($rid,$d,$checkOnly,$ownerActor,$identityId));
     one('SELECT id FROM research WHERE id=? FOR UPDATE',[$rid]);
     $r=research($rid);
     if(in_array($r['status'],['Paused','Withdrawn'],true)) fail(422,'This request is not accepting research right now.');
@@ -34,6 +41,7 @@ function create_contribution(string $rid,array $d,bool $checkOnly=false): string
     if($kind==='Independent review' && !$target) fail(422,'Select the contribution being reviewed.');
     if($kind!=='Independent review' && $target) fail(422,'Only an independent review has a review target.');
     if($target && !one("SELECT id FROM contributions WHERE id=? AND research_id=? AND moderation='Approved' AND kind<>'Independent review'",[$target,$rid])) fail(422,'Review target must be published research in this request.');
+    if($kind==='Independent review')ri_contribution_review_guard($r,$target,$ownerActor,$identityId);
     $row=['id'=>uid(),'research_id'=>$rid,'kind'=>$kind,'target_id'=>$target,'created_at'=>now(),'terms_version'=>terms_version(record: !$checkOnly),'license'=>RESEARCH_LICENSE,'moderation_reason'=>'','metadata_exception'=>''];
     foreach(['summary','body','methodology','sources','uncertainty','limitations','previous_work','open_questions','next_actions','safety'] as $key) $row[$key]=text_field($d,$key,in_array($key,['summary','body'],true)?10:0);
     $row['suggested_status']=text_field($d,'suggested_status',0,80);
@@ -76,7 +84,7 @@ function create_contribution(string $rid,array $d,bool $checkOnly=false): string
     $row['moderation']=$row['flags']?'Needs Additional Review':'Pending Approval';
     if(!$row['flags'] && wf_project($rid)){$row['moderation']='Approved';$row['published_at']=now();}
     if($checkOnly)return '';
-    tx(function() use($row,$meta,$rid) { insert('contributions',$row); insert('agent_metadata',$meta);if($row['moderation']==='Approved')touch_context($rid);audit_event($rid,'Research contribution submitted',$row['moderation']==='Approved'?'Complete provenance supplied; evidence published automatically without changing task completion.':'Submission retained privately because provenance or safety checks need attention.','contribution',$row['id'],'',$row['moderation'],'Use task submissions to advance the planned workflow.','contributor',$row['display_name']?:'Anonymous volunteer',['submission_method'=>$row['submission_method']],$row['moderation']==='Approved'?'public':'private'); });
+    tx(function() use($row,$meta,$rid,$ownerActor,$identityId) { insert('contributions',$row);ri_record_contribution($row['id'],$ownerActor,$identityId); insert('agent_metadata',$meta);if($row['moderation']==='Approved')touch_context($rid);audit_event($rid,'Research contribution submitted',$row['moderation']==='Approved'?'Complete provenance supplied; evidence published automatically without changing task completion.':'Submission retained privately because provenance or safety checks need attention.','contribution',$row['id'],'',$row['moderation'],'Use task submissions to advance the planned workflow.','contributor',$row['display_name']?:'Anonymous volunteer',['submission_method'=>$row['submission_method']],$row['moderation']==='Approved'?'public':'private'); });
     return $row['id'];
 }
 function create_feedback(string $rid,array $d): string {

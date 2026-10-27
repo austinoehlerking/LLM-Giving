@@ -11,7 +11,7 @@ function vs_scope_label(array $configuration): string {
 function vs_state_label(string $state): string {
     return match($state) {
         'active'=>'Session active',
-        'limit_reached'=>'Assignment limit reached — finish the current task before the deadline',
+        'limit_reached'=>'Task allowance used — finish active assignments before authorization ends',
         'expired'=>'Session expired — no more claims, renewals or submissions',
         'terms_changed'=>'Terms changed — fresh volunteer authorization is required',
         default=>'Session stopped — existing receipts remain available'
@@ -20,7 +20,7 @@ function vs_state_label(string $state): string {
 function vs_form_draft(array $input): array {
     $input=vs_worker_input($input);
     $draft=[];
-    foreach (['worker_choice','session_profile','session_preset','cause_choice','scope_kind','category_id','research_id','assignment_limit','minutes','model','reasoning','tool','workflow_mode'] as $field) {
+    foreach (['worker_choice','concurrent_limit','session_profile','session_preset','cause_choice','scope_kind','category_id','research_id','assignment_limit','minutes','model','reasoning','tool','workflow_mode'] as $field) {
         if (isset($input[$field]) && is_scalar($input[$field])) $draft[$field]=(string)$input[$field];
     }
     return $draft;
@@ -31,7 +31,7 @@ function vs_public_assignment(array $session,array $assignment): array {
     try {
         $grant=vs_assignment_grant($session,$assignment);
         $r=research($assignment['research_id']); $task=wf_task($r['id'],$assignment['task_id']);
-        $item['available']=true; $item['title']=$task['title']; $item['task_url']='/research/'.$r['slug'].'/tasks/'.$task['id'];
+        $item['available']=true; $item['research_title']=$r['title']; $item['title']=$task['title']; $item['task_url']='/research/'.$r['slug'].'/tasks/'.$task['id'];
         if ($grant['result_id']) {
             $result=one("SELECT admission,visibility FROM workflow_submissions WHERE id=? AND research_id=?",[$grant['result_id'],$r['id']]);
             if (!$result || $result['visibility']!=='public') return array_replace($item,['available'=>false,'title'=>'Research unavailable','task_url'=>null]);
@@ -94,7 +94,7 @@ function vs_assignment_page(array $session,array $assignment,string $method): vo
                 vs_assignment_action($session['id'],$assignment['id'],'reacquire');
             } elseif (in_array($operation,['check','submit'],true)) {
                 throttle('volunteer-packet-'.$operation,$operation==='check'?60:12);
-                $text=text_field($_POST,'payload',2,200000);
+                $text=function_exists('rtx_packet_input')?rtx_packet_input($r,$task,$grant,$_POST,$session):text_field($_POST,'payload',2,200000);
                 try { $packet=json_decode($text,true,32,JSON_THROW_ON_ERROR); }
                 catch (JsonException) { fail(422,'Supply the complete JSON object without code fences. Nothing was submitted.'); }
                 if (!is_array($packet) || array_is_list($packet)) fail(422,'Supply one complete JSON object.');
@@ -114,7 +114,7 @@ function vs_assignment_page(array $session,array $assignment,string $method): vo
             if ($jsonCheck) {
                 header('Content-Type: application/json'); header('Cache-Control: no-store');
                 $currentItem=vs_public_assignment(vs_read($session['id']),vs_assignment(vs_read($session['id']),$assignment['id']));
-                echo json_encode(['ok'=>false,'message'=>$error,'repair_prompt'=>$repair,'session_reacquire'=>$currentItem['reacquire']]);
+                echo json_encode(array_merge(['ok'=>false,'message'=>$error,'repair_prompt'=>$repair,'session_reacquire'=>$currentItem['reacquire']],function_exists('wf_packet_exception_details')?wf_packet_exception_details($caught):[]));
                 return;
             }
         }
@@ -128,6 +128,8 @@ function vs_assignment_page(array $session,array $assignment,string $method): vo
         'can'=>$can,'error'=>$error,'repair'=>$repair,'checked'=>$checked,'input'=>$input,'reservationText'=>$item['reservation_text'],'reacquire'=>$item['reacquire']]);
 }
 function vs_route(string $path,string $method): bool {
+    if(function_exists('rtx_session_route')&&rtx_session_route($path,$method))return true;
+    if(sr_route($path,$method)||ri_route($path,$method))return true;
     if (vs_email_route($path,$method)) return true;
     if ($path==='/volunteer/orchestrator.txt') {
         if ($method!=='GET') fail(405,'Use GET for public reference instructions.');
@@ -140,6 +142,7 @@ function vs_route(string $path,string $method): bool {
         if ($method==='POST') {
             try {
                 $configuration=vs_configuration($_POST);
+                if(($_POST['operation']??'')==='configure')ri_capture($_POST,wf_actor());
                 if (($_POST['operation']??'')==='authorize') {
                     $created=vs_create($_POST);
                     render('volunteer-created',['title'=>'Private volunteer session','created'=>$created]);
@@ -190,12 +193,15 @@ function vs_route(string $path,string $method): bool {
             $operation=text_field($_POST,'operation',1,16);
             if ($operation==='stop') vs_stop($id);
             elseif ($operation==='claim') {
-                $assignment=vs_claim_next($id);
+                $assignment=vs_claim_next($id,text_field($_POST,'claim_key',0,32)?:null);
+                if($assignment['ended_at']){$g=vs_assignment_grant($session,$assignment);if($g['result_id'])redirect(ar_receipt_url(research($assignment['research_id']),$g,$g['result_id']));fail(409,'This claim request already ended; it did not create another assignment.');}
                 $handoff=$assignment['prepared_handoff'];
                 $session=vs_read($id); $item=vs_public_assignment($session,$assignment);
                 render('volunteer-handoff',['title'=>'Reserved task handoff','session'=>$session,'assignment'=>$assignment,'handoff'=>$handoff,'reservationText'=>$item['reservation_text']]);
                 return true;
-            } elseif ($operation==='handoff') {
+            } elseif($operation==='open'){$a=vs_assignment($session,text_field($_POST,'assignment_id',32,32));redirect('/volunteer/'.$id.'/assignments/'.$a['id']);}
+            elseif($operation==='worker_state'){vs_report_worker($id,text_field($_POST,'assignment_id',32,32),text_field($_POST,'worker_state',1,24));}
+            elseif ($operation==='handoff') {
                 $assignment=vs_assignment($session,text_field($_POST,'assignment_id',32,32));
                 $handoff=vs_handoff($id,$assignment['id']); $item=vs_public_assignment($session,$assignment);
                 render('volunteer-handoff',['title'=>'Reserved task handoff','session'=>$session,'assignment'=>$assignment,'handoff'=>$handoff,'reservationText'=>$item['reservation_text']]);

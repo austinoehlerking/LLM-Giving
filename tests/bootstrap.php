@@ -4,12 +4,22 @@ require_once __DIR__.'/../src/bootstrap.php';
 require_once __DIR__.'/supporting-fixture.php';
 /** Fixture pickup is explicit; real admission tests call wf_submit directly. */
 function wf_test_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnly=false,string $method='unknown',?array $consent=null): string {
-    $pickup=null;
-    if(!one('SELECT id FROM workflow_submissions WHERE research_id=? AND nonce=?',[$rid,$d['submission_key']??''])){
+    $pickup=null;$identityId=null;
+    $recorded=one('SELECT id FROM workflow_submissions WHERE research_id=? AND nonce=?',[$rid,$d['submission_key']??'']);
+    if(!$recorded){
+        if(function_exists('ri_capture')){
+            // Explicit synthetic human declarations for positive fixtures, never provider verification.
+            $identityId=ri_capture(['account_provider'=>'synthetic-qa','account_reference'=>'fixture-account-'.$actor,'account_attestation'=>'1'],$actor);
+            $task=wf_task($rid,$tid);
+            if($task['kind']==='review'){
+                $research=research($rid);$digest=ri_review_target_digest($research,$task,$actor,$identityId);
+                ri_capture_review($research,$task,$actor,$identityId,['review_account_separation'=>'knowingly_different','review_target_digest'=>$digest]);
+            }
+        }
         try{$pickup=wr_claim($rid,$tid,(int)($d['task_revision']??0),$actor);}
         catch(HttpError $error){/* Invalid/stale fixtures must still exercise the original packet validation. */}
     }
-    try{return wf_submit($rid,$tid,$d,$actor,$checkOnly,$method,$consent);}
+    try{return wf_submit($rid,$tid,$d,$actor,$checkOnly,$method,$consent,$identityId);}
     finally{if($checkOnly&&$pickup&&(wr_live($rid,$tid)['id']??null)===$pickup['id'])wr_release($rid,$tid,$actor);}
 }
 

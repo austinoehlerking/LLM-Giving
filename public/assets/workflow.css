@@ -19,4 +19,5 @@
 /* Long evidence paths and source URLs remain readable with enlarged text. */
 #supporting-materials,#resource-list{min-width:0;overflow-wrap:anywhere}
 
+@media(max-width:600px){.workflow-heading.authorized-return-heading+#task-submit.form-panel{padding-top:8px}.workflow-heading.authorized-return-heading+#task-submit>h2{margin-bottom:4px}}
 #supporting-materials .supporting-file{padding:16px 0;border-top:1px solid var(--line)}#supporting-materials .supporting-file h4{margin:0 0 8px;font-size:17px;overflow-wrap:anywhere}#supporting-materials .supporting-file .actions{margin-top:14px}#supporting-materials .supporting-file .button{display:inline-flex;align-items:center;min-height:44px;min-width:44px}#supporting-materials .material-reference>summary{min-height:44px;display:list-item;padding:10px 0;font-size:14px}#supporting-materials .material-reference code{display:block;overflow-wrap:anywhere;padding-bottom:12px}#supporting-materials .material-references>li{padding:6px 0}

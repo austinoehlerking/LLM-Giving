@@ -1,0 +1,1 @@
+<div class="volunteer-start"><h1>Complete task instructions</h1><p><a class="button secondary" href="/continue/<?=e($continuationId)?>">Return to reserved task</a></p><label for="continuation-instructions">Complete task handoff and current return procedure</label><textarea id="continuation-instructions" rows="24" readonly><?=e($instructions)?></textarea></div>
