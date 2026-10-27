@@ -51,6 +51,7 @@ try {
  try { query('UPDATE contributions SET target_id=? WHERE id=?',[$c,$foreign]);throw new RuntimeException('Cross-request foreign key accepted'); } catch(PDOException $error) { check($error->getCode()==='23000','Database composite FK independently rejects cross-request target'); }
  blocked(fn()=>parse_contribution(['json'=>'{"bad":']),422,'Invalid JSON rejected with validation feedback');
  blocked(fn()=>parse_contribution(['json'=>'[]']),422,'JSON list rejected; object required');
+ $_SESSION['workflow_actor']=bin2hex(random_bytes(32));$reviewActor=wf_actor();$reviewIdentity=ri_capture(['account_provider'=>'synthetic-qa','account_reference'=>'integration-review-'.$reviewActor,'account_attestation'=>1],$reviewActor);ri_capture_contribution_review(research($rid),$c,$reviewActor,$reviewIdentity,['review_account_separation'=>'knowingly_different','review_target_digest'=>ri_contribution_target_digest(research($rid),$c,$reviewActor,$reviewIdentity)]);
  $review=create_contribution($rid,$bad);moderate('contribution',$review,'Approved','Reviewed');
  check(count(approved_contributions($rid))===2,'Independent review published');
  $invalid=contribution_fixture();$invalid['kind']='administrator';blocked(fn()=>create_contribution($rid,$invalid),422,'Unexpected contribution type rejected');

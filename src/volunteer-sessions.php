@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__.'/research-identity.php';
+require_once __DIR__.'/session-recovery.php';
 /** Private bounded permission. Reservation ownership remains in the shared service. */
 function vs_now(): int {
     if (PHP_SAPI === 'cli' && in_array(env('APP_ENV'), ['local','test','testing'], true) && isset($GLOBALS['vs_test_now'])) {
@@ -92,7 +94,7 @@ function vs_configuration(array $post): array {
     if ($capabilities['workflow_mode'] === 'ultracode' && (!isset($registry[$capabilities['model']]) || !in_array('ultracode', $registry[$capabilities['model']]['modes'], true) || strcasecmp($capabilities['tool'], 'Claude Code') !== 0 || $capabilities['reasoning'] === '')) {
         fail(422, 'Ultracode requires a supported exact model, actual effort and Claude Code.');
     }
-    return ['scope_kind'=>$scope, 'scope_id'=>$scopeId, 'capabilities'=>$capabilities,'session_profile'=>$profile]+$limits;
+    return ['scope_kind'=>$scope, 'scope_id'=>$scopeId, 'capabilities'=>$capabilities,'session_profile'=>$profile,'concurrent_limit'=>vs_integer($post,'concurrent_limit',1,1,3)]+$limits;
 }
 function vs_create(array $post): array {
     throttle('volunteer-session-start', 10);
@@ -113,22 +115,26 @@ function vs_create(array $post): array {
         'tool_terms_version'=>$software ? RT_TERMS : null, 'software_license'=>$software ? RT_LICENSE : null,
         'human_disclosure'=>$declaration, 'human_disclosure_collection'=>$collected?'explicit_v1':'session_not_collected_v1', 'captured_at_utc'=>gmdate('Y-m-d H:i:s', $started),
         'source'=>'Volunteer session authorization form (self-attested)',
+        'influence_policy_version'=>'formatting-only-v1',
         'disclosure_scope'=>$collected?'Through session authorization; each worker separately reports later scientific input.':'Independent contributor declaration not collected for this session; the AI reports all initial and later scientific input or uncertainty.',
-        'permission'=>'Eligible task selection, research, browser submission, platform validation repair and continuation only within the chosen scope. '.vs_limit_label($configuration).'. Stop and current terms remain authoritative. One active task at a time. No purchases, installation, unrelated work or broader account access is authorized.',
+        'permission'=>'Eligible task selection, research, browser submission, platform validation repair and continuation only within the chosen scope. '.vs_limit_label($configuration).'. Stop and current terms remain authoritative. Up to '.$configuration['concurrent_limit'].' concurrent task(s). No purchases, installation, unrelated work or broader account access is authorized.',
         'session_profile'=>$configuration['session_profile'],
         'worker_settings_source'=>'volunteer_requested_v1',
         'capability_profile'=>vs_profile_definition($configuration['session_profile']),
-        'session_limits'=>['mode'=>$configuration['limit_mode'],'assignment_limit'=>$configuration['assignment_limit'],'minutes'=>$configuration['minutes']],
+        'session_limits'=>['mode'=>$configuration['limit_mode'],'assignment_limit'=>$configuration['assignment_limit'],'minutes'=>$configuration['minutes'],'concurrent_limit'=>$configuration['concurrent_limit']],
         'resource_confirmation'=>CONTRIBUTOR_RESOURCE_CONFIRMATION,
         'authorized_resources'=>'Volunteer confirmed own or explicitly authorized resources, provider rules and permission for public publication.'];
     // Recheck current public work before creating a session identity or capability.
     // The preview reserves nothing; pickup rechecks any subsequent queue change.
+    $actor=vs_startup_actor($configuration);$identityId=ri_capture($post,$actor)??($actor?ri_actor_identity($actor):null);
+    $configuration['identity_id']=$identityId;if($actor)$configuration['actor_hash']=$actor;
     $preview=vs_startup_preflight($configuration,$software);
     if(!$preview['eligible'])fail(409,$preview['summary'].' '.implode(' ',array_map(fn($reason)=>$reason['message'].' '.$reason['action'],array_slice($preview['reasons'],0,2))).' No session was created.');
     $id = uid();
     $secret = bin2hex(random_bytes(32));
     $row = ['id'=>$id, 'secret_hash'=>hash('sha256', $secret), 'actor_hash'=>wf_actor(),
         'scope_kind'=>$configuration['scope_kind'], 'scope_id'=>$configuration['scope_id'],
+        'concurrent_limit'=>$configuration['concurrent_limit'],'identity_id'=>$identityId,
         'session_profile'=>$configuration['session_profile'],
         'limit_mode'=>$configuration['limit_mode'], 'assignment_limit'=>$configuration['assignment_limit'], 'assignments_used'=>0,
         'capabilities'=>json_encode($configuration['capabilities'], JSON_THROW_ON_ERROR), 'consent'=>json_encode($consent, JSON_THROW_ON_ERROR),

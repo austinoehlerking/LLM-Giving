@@ -30,6 +30,7 @@ if($method==='POST') {
 if(str_starts_with($path,'/admin')) { require ROOT.'/src/admin.php'; exit; }
 if(setting('maintenance','0')==='1' && !admin()) fail(503,'Research is temporarily unavailable for maintenance.');
 if($path==='/volunteer/quick-start' && $method==='GET') { render('volunteer-quick-start',['title'=>'Volunteer quick start','description'=>'Use your authorized AI to help with a bounded Volunteer session or one research task.']); exit; }
+if(rtx_session_route($path,$method)) exit;
 if(vs_route($path,$method)) exit;
 if($method==='GET' && $path==='/sitemap.xml') { header('Content-Type: application/xml; charset=utf-8'); echo blog_sitemap(); exit; }
 if($method==='GET' && $path==='/blog/') { header('Location: /blog',true,301); exit; }
@@ -111,10 +112,10 @@ if(preg_match('~^/research/([^/]+)(?:/(.*))?$~',$path,$m)) {
     if($suffix==='contribute') {
         if($method==='POST') {
             throttle('contribution',(int)setting('submission_limit','12'));
-            $d=parse_contribution($_POST);
+            $d=parse_contribution($_POST,$r['id']);
             $d['human_disclosure']=ar_disclosure($_POST);
-            $d['human_interaction']??=empty($_POST['ai_level'])?['level'=>'unsure','details'=>'No AI human-input declaration was supplied; conversation integrity is unknown.']:['level'=>$_POST['ai_level'],'details'=>$_POST['ai_details']??''];
-            $d['human_influence']=wf_influence($d);$d['submission_method']='manual';
+            $d['human_interaction']??=empty($_POST['ai_level'])?['level'=>'unsure','details'=>'No AI human-input declaration was supplied; conversation integrity is unknown.']:['level'=>$_POST['ai_level'],'details'=>$_POST['ai_details']??'','category'=>$_POST['ai_level']==='formatting_only'?'formatting':''];
+            $d['human_influence']=wf_influence($d,['human_disclosure'=>$d['human_disclosure'],'influence_policy_version'=>'formatting-only-v1']);$d['submission_method']='manual';
             if(rt_is_tool($r)&&empty($_POST['tool_terms']))fail(422,'Accept the separate software terms.');
             $uploads=validate_uploads($_FILES['attachments']??[]);
             $id=tx(function() use($r,$d,$uploads) { $id=create_contribution($r['id'],$d); store_uploads($r['id'],$uploads,$id); return $id; });

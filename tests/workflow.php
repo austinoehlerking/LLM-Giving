@@ -17,7 +17,7 @@ try {
  wcheck(str_contains($agentPrompt,'ultra is allowed only with tool = Codex.')&&str_contains($agentPrompt,'THIS IS A PLANNING TASK.'),'Prompt includes mandatory planning and Ultra tool restriction');
  $guide=wf_agent_guide(research($rid));wcheck(str_contains($guide,'/tasks/'.$p['id'].'/prompt.md')&&str_contains($guide,'/package.json')&&str_contains($guide,'acceptance check'),'Agent guide links the real ready task and required context');
  $handoff=wf_handoff_text($rid);wcheck(str_contains($handoff,'NEXT READY TASK PROMPT')&&str_contains($handoff,'Task ID: '.$p['id'])&&str_contains($handoff,'REQUIRED OUTPUT JSON'),'Single handoff includes selected ready task and output schema');
- wcheck(substr_count($handoff,wf_snapshot($rid)['package_json'])===1&&str_contains($handoff,'THIS IS A PLANNING TASK.'),'Handoff includes exact complete context once and mandatory model instructions');
+ wcheck(!str_contains($handoff,wf_snapshot($rid)['package_json'])&&str_contains($handoff,'llm-task-context-v2')&&str_contains($handoff,'required_for_planning')&&str_contains($handoff,'THIS IS A PLANNING TASK.'),'Handoff includes a retrievable immutable complete-context directory and mandatory model instructions');
  $d=wf_test_payload($rid,$p);
  $beforeCounts=[count(all('SELECT id FROM workflow_submissions WHERE research_id=?',[$rid])),count(wf_ledger($rid,true)),count(all('SELECT id FROM workflow_attempts WHERE research_id=?',[$rid]))];
  $originalPolicyBase=setting('terms_version',TERMS_VERSION);

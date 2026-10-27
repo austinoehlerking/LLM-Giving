@@ -100,16 +100,15 @@ function wf_apply_result(array $row,array $t): void {
         }
 
 }
-function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnly=false,string $method='unknown',?array $consent=null): string {
+function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnly=false,string $method='unknown',?array $consent=null,?string $identityId=null): string {
     research($rid);$hash=hash('sha256',json_encode($d,JSON_THROW_ON_ERROR));
-    try{return tx(function()use($rid,$tid,$d,$actor,$hash,$checkOnly,$method,$consent){
+    try{return tx(function()use($rid,$tid,$d,$actor,$hash,$checkOnly,$method,$consent,$identityId){
         wr_actor_lock($actor);
         $r=one('SELECT * FROM research WHERE id=? FOR UPDATE',[$rid])??fail(404,'Research not found.');
         if($r['moderation']!=='Approved'||$r['status']==='Withdrawn')fail(404,'Research not found.');
         $nonce=text_field($d,'submission_key',32,32);if(!ctype_xdigit($nonce))fail(422,'Submission key must be 32 hexadecimal characters.');
         $existing=one('SELECT id,payload_hash,actor_hash FROM workflow_submissions WHERE research_id=? AND nonce=?',[$rid,$nonce]);
         if($existing){if(!hash_equals($existing['actor_hash'],$actor)||!hash_equals($existing['payload_hash'],$hash))fail(409,'Submission key already used for a different result.');return $existing['id'];}
-        rs_packet_budget($d);
         if(in_array($r['status'],['Needs Clarification','Blocked','Paused','Archived — Inactive','Solved','Review Complete'],true))fail(409,'Research is not accepting task results in its current state.');
         if(wf_quarantine($rid))fail(409,'Research is awaiting an admin decision on a quarantined packet. No task results can advance yet.');
         $p=wf_project($rid)??fail(422,'Topic must first be approved.');
@@ -123,6 +122,7 @@ function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnl
         $code=$d['handoff_code']??null;
         if(!is_string($code)||!hash_equals(wf_handoff_code($t,$s,$nonce),$code))fail(422,'Handoff code does not match this task, revision, context and submission key. Copy a fresh AI handoff and ask your AI to reassess against it; preserve its identifiers exactly.');
         if(empty($d['terms']))fail(422,'Accept the public-content and original-work terms.');
+        $packetErrors=wf_packet_errors($d,$t,$s);if($packetErrors)wf_packet_throw($packetErrors,wf_packet_contract_version($s));
         $outcome=text_field($d,'outcome',0,40);
         $allowed=['progress','needs_clarification','blocked'];
         $allowed=array_merge($allowed,$t['kind']==='review'?['verified','needs_correction']:($t['kind']==='planning'?['completed']:['completed','inconclusive']));
@@ -132,6 +132,8 @@ function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnl
         $meta=wf_metadata($d,$s,$t['kind']==='planning');
         if(!in_array($method,['unknown','manual','ai_browser'],true))throw new LogicException('Invalid submission method.');
         if($consent){if($consent['terms_version']!==terms_version())fail(409,'Fresh volunteer authorization is required for changed terms.');$meta['authorization']=$consent;}
+        $meta['packet_contract_version']=wf_packet_contract_version($s);
+        if($meta['packet_contract_version']===WF_PACKET_VERSION)$meta['usefulness']=wf_usefulness_validate($d);
         $meta['contribution_license']=RESEARCH_LICENSE;$meta['terms_version']=terms_version(record: !$checkOnly);
         if(rt_is_tool($r) && (!isset($consent['session_profile']) || vs_task_software_consent($r,$t))){
             if(!$checkOnly&&empty($d['tool_terms']))fail(422,'Accept the separate software terms for original tool source and tests.');
@@ -141,6 +143,7 @@ function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnl
         foreach(['reason'=>[10,500],'body'=>[30,100000],'methodology'=>[10,30000],'sources'=>[5,30000],'limitations'=>[5,10000],'next_action'=>[10,5000]] as $field=>$bounds)$row[$field]=text_field($d,$field,...$bounds);
         $plan=[];
         if($t['kind']==='planning'&&$outcome==='completed'){$calculationPolicy=calculation_policy($r);$plan=wf_validate_plan($d['tasks']??null,$calculationPolicy['allowed'],rt_is_tool($r),$calculationPolicy['required']);$row['plan_json']=json_encode($plan);}
+        if(in_array($t['kind'],['review','contribution_review'],true)&&function_exists('ri_review_guard'))ri_review_guard($r,$t,$actor,$identityId);
         if($t['kind']==='review'){
             $deps=json_decode($t['dependencies'],true);$synthesis=wf_task($rid,$deps[0]);
             $original=one('SELECT actor_hash,metadata FROM workflow_submissions WHERE id=? AND visibility=\'public\'',[$synthesis['accepted_id']])??fail(409,'Synthesis is not available for review.');
@@ -164,6 +167,7 @@ function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnl
         if($checkOnly)return '';
 
         insert('workflow_submissions',$row);
+        if(function_exists('ri_record_result'))ri_record_result($row['id'],$actor,$identityId);
         wr_finish($reservation,$row['id']);
         if($row['admission']==='quarantined'){
             wr_invalidate($rid);

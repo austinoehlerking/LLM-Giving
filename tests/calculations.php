@@ -1,5 +1,5 @@
 <?php
-require __DIR__.'/bootstrap.php';require __DIR__.'/calculation-fixture.php';
+require __DIR__.'/bootstrap.php';require __DIR__.'/calculation-fixture.php';require __DIR__.'/context-directory-fixture.php';
 
 session_start_safe();$_SESSION['admin']=1;$checks=[];$ids=[];
 function cc(bool $ok,string $label): void {global $checks;if(!$ok)throw new RuntimeException($label);$checks[]=$label;}
@@ -23,7 +23,8 @@ try{
  $bad=$progress;$bad['evidence']['calculation_checkpoint']=null;cd(fn()=>cp($rid,$task,$bad),'Interrupted work needs an actionable checkpoint');
  $before=count(wf_public_data($rid)['submissions']);cp($rid,$task,$progress);cc(count(wf_public_data($rid)['submissions'])===$before,'Check packet validates without recording work');
  $progressId=wf_test_submit($rid,$task['id'],$progress,str_repeat('a',64));cc(wf_task($rid,$task['id'])['state']==='Ready'&&rc_progress($task)['id']===$progressId,'Progress is retained without claiming task completion');
- $prompt=wf_prompt($rid,$task['id']);cc(str_contains($prompt,'RESUME ACCEPTED CHECKPOINT: '.$progressId)&&str_contains($prompt,'model.mjs'),'Fresh handoff includes complete checkpoint and reproducible files');
+ $prompt=wf_prompt($rid,$task['id']);$resume=qa_required_dependency($rid,$task['id'],$prompt,'accepted_result:'.$progressId);$resumeEvidence=json_decode($resume['value']['metadata'],true)['evidence'];$resumeModel=array_values(array_filter($resumeEvidence['calculations'][0]['files'],fn($file)=>$file['name']==='model.mjs'))[0];
+ cc(str_contains($prompt,'RESUME ACCEPTED CHECKPOINT: '.$progressId)&&$resume['value']['id']===$progressId&&$resumeEvidence['calculation_checkpoint']===$progress['evidence']['calculation_checkpoint']&&$resumeModel['content']===$progress['evidence']['calculations'][0]['files'][1]['content']&&$resumeModel['sha256']===hash('sha256',$resumeModel['content']),'Fresh handoff retrieves the complete pinned checkpoint and exact model bytes with directory digest and length verification');
  $complete=rc_test_calculation($rid,$task,'complete',$progressId);$bad=$complete;$bad['evidence']['calculation_checkpoint']['resume_from_result_id']='';cd(fn()=>cp($rid,$task,$bad,'b'),'Resumption must link an accepted progress record in the exact context');
  $bad=$complete;$bad['evidence']['calculation_checkpoint']['resume_from_result_id']=uid();cd(fn()=>cp($rid,$task,$bad,'b'),'Foreign checkpoint references rejected');
  $completeId=wf_test_submit($rid,$task['id'],$complete,str_repeat('b',64));cc(wf_task($rid,$task['id'])['state']==='Completed','Another contributor can resume and complete the same task');
@@ -50,7 +51,8 @@ try{
   if($withCalculations){
    $progress=rc_test_calculation($optional,$ordinary);$bad=$progress;$bad['evidence']['calculations'][0]['files'][0]['sha256']=str_repeat('0',64);cd(fn()=>cp($optional,$ordinary,$bad),'Optional calculations retain checksum enforcement');
    $bad=$progress;$bad['evidence']['calculation_checkpoint']=null;cd(fn()=>cp($optional,$ordinary,$bad),'Optional calculations require resumable evidence');
-   $saved=wf_test_submit($optional,$ordinary['id'],$progress,str_repeat('a',64));cc(rc_progress($ordinary)['id']===$saved&&str_contains(wf_prompt($optional,$ordinary['id']),'RESUME ACCEPTED CHECKPOINT: '.$saved),'Optional calculation progress is resumable on an ordinary task');
+   $saved=wf_test_submit($optional,$ordinary['id'],$progress,str_repeat('a',64));$optionalPrompt=wf_prompt($optional,$ordinary['id']);$optionalResume=qa_required_dependency($optional,$ordinary['id'],$optionalPrompt,'accepted_result:'.$saved);$optionalEvidence=json_decode($optionalResume['value']['metadata'],true)['evidence'];
+   cc(rc_progress($ordinary)['id']===$saved&&str_contains($optionalPrompt,'RESUME ACCEPTED CHECKPOINT: '.$saved)&&$optionalResume['value']['id']===$saved&&$optionalEvidence['calculation_checkpoint']===$progress['evidence']['calculation_checkpoint']&&$optionalEvidence['calculations'][0]['files']===$progress['evidence']['calculations'][0]['files'],'Optional calculation resumption retrieves every exact pinned file and checkpoint on an ordinary task');
    wf_test_submit($optional,$ordinary['id'],rc_test_calculation($optional,$ordinary,'complete',$saved),str_repeat('b',64));
   }else wf_test_submit($optional,$ordinary['id'],wf_test_payload($optional,$ordinary),str_repeat('a',64));
   $syn=ct($optional,'synthesis');wf_test_submit($optional,$syn['id'],$withCalculations?rc_test_synthesis($optional,$syn):wf_test_payload($optional,$syn),str_repeat('a',64));$review=ct($optional,'review');

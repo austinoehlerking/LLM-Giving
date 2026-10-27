@@ -9,7 +9,7 @@ function vs_startup_reasons(): array {
         'reserved'=>['message'=>'Compatible work is reserved by another pickup.','action'=>'Choose other public work or return after its displayed reservation expires. Do not displace the holder or poll continuously.'],
         'dependencies'=>['message'=>'Work is waiting for a current prerequisite result.','action'=>'Contribute to an eligible earlier stage, or return once its dependencies are complete.'],
         'hold'=>['message'=>'Research is paused, blocked or awaiting a moderation decision.','action'=>'The requester or administrator must resolve the recorded hold. Do not create a scientific result merely to unblock the queue.'],
-        'reviewer'=>['message'=>'Review requires an independent contributor.','action'=>'Choose another study. A different worker or browser does not erase your session’s prior involvement.'],
+        'reviewer'=>['message'=>'Review needs a knowingly different AI account.','action'=>'Use the review account-separation link to attest only if you actually know the account differs from all current authors/builders. A new browser, thread, model or subagent is insufficient. Otherwise choose other research.'],
         'finished'=>['message'=>'Some tasks are already completed or closed.','action'=>'Choose a current Ready task; do not overwrite completed work.'],
         'unavailable'=>['message'=>'A task or its source context is no longer eligible.','action'=>'Reload current public work; visibility and revision checks still apply.'],
         'actor_busy'=>['message'=>'You already hold a task reservation in another flow.','action'=>'Finish or explicitly release that task before starting another. Viewing this preview does not change its reservation.']
@@ -26,7 +26,7 @@ function vs_startup_preflight(array $configuration,bool $software=false): array 
     if(isset($session['id'])){
         $state=vs_state($session);
         if(!in_array($state,['active','limit_reached'],true))return ['state'=>$state,'summary'=>vs_state_label($state),'eligible'=>0,'reasons'=>[],'examples'=>[],'sampled'=>false];
-        if(vs_current($session))return ['state'=>'assignment','summary'=>'Inspect your current assignment and reservation before continuing; no new pickup is needed.','eligible'=>0,'reasons'=>[],'examples'=>[],'sampled'=>false];
+        if(count(vs_active_assignments($session))>=(int)($session['concurrent_limit']??1))return ['state'=>'assignment','summary'=>'Your concurrent-task capacity is full. Finish, release or continue an existing assignment; total task allowance is separate.','eligible'=>0,'reasons'=>[],'examples'=>[],'sampled'=>false];
         if($state==='limit_reached')return ['state'=>$state,'summary'=>vs_state_label($state),'eligible'=>0,'reasons'=>[],'examples'=>[],'sampled'=>false];
     }
     // Only public-approved records are enumerated. Never count pending/private requests or expose their bodies.
@@ -47,27 +47,28 @@ function vs_startup_preflight(array $configuration,bool $software=false): array 
         elseif(vs_task_software_consent($r,$task)&&$session['consent']['tool_terms_version']!==RT_TERMS)$code='software_terms';
         elseif(!rq_matches(rq_requirements($r),$session['capabilities']['model'],$session['capabilities']['reasoning'],$session['capabilities']['workflow_mode'],$session['capabilities']['tool']))$code='requester_requirements';
         elseif(!vs_configuration_matches($session,$r,$task))$code='planning_configuration';
+        elseif($task['kind']==='review'&&!$actor)$code='reviewer';
         else{
-            try{wr_eligible($rid,$task['id'],(int)$task['revision'],$actor);}
+            try{wr_eligible($rid,$task['id'],(int)$task['revision'],$actor,array_key_exists('identity_id',$session)?($session['identity_id']??''):null);}
             catch(HttpError $error){if(!in_array($error->status,[404,409,422],true))throw $error;$code=$error->status===422?'reviewer':($error->status===404?'unavailable':'dependencies');}
             if($code===''&&$actor&&$task['kind']==='review'&&one('SELECT id FROM workflow_submissions WHERE research_id=? AND actor_hash=? LIMIT 1',[$rid,$actor]))$code='reviewer';
             if($code===''&&($live=wr_live($rid,$task['id']))){$code='reserved';$expiries[]=$live['expires_at'];}
         }
-        if(in_array($code,['profile','software_terms','planning_configuration','requester_requirements'],true)&&count($requirements[$code]??[])<3)$requirements[$code][]=['title'=>$task['title'],'url'=>'/research/'.$r['slug'].'/tasks/'.$task['id'],'requirements'=>vs_task_requirements_description($r,$task).' '.rq_description(rq_requirements($r))];
+        if(in_array($code,['reviewer','profile','software_terms','planning_configuration','requester_requirements'],true)&&count($requirements[$code]??[])<3)$requirements[$code][]=['title'=>$task['title'],'url'=>$code==='reviewer'?'/volunteer/review/'.$r['id'].'/'.$task['id']:'/research/'.$r['slug'].'/tasks/'.$task['id'],'requirements'=>vs_task_requirements_description($r,$task).' '.rq_description(rq_requirements($r))];
         if($code!==''){$reasons[$code]=($reasons[$code]??0)+1;continue;}
         $eligible++;if(count($examples)<3)$examples[]=['title'=>$task['title'],'kind'=>$task['kind'],'url'=>'/research/'.$r['slug'].'/tasks/'.$task['id']];
     }
     // Detect an existing anonymous reservation without acquiring an actor, lease, context or handoff.
-    if($eligible&&$actor){foreach(all('SELECT research_id,task_id FROM task_reservations WHERE actor_hash=? AND ended_at IS NULL AND expires_at>?',[$actor,wr_stamp()]) as $held){
-        try{if(($live=wr_live($held['research_id'],$held['task_id']))&&hash_equals($live['actor_hash'],$actor)){wr_eligible($held['research_id'],$held['task_id'],(int)wf_task($held['research_id'],$held['task_id'])['revision'],$actor);$reasons['actor_busy']=1;$eligible=0;$examples=[];break;}}catch(HttpError $error){if(!in_array($error->status,[404,409,422],true))throw $error;}
-    }}
+    if($eligible&&$actor){$heldCount=0;foreach(all('SELECT research_id,task_id FROM task_reservations WHERE actor_hash=? AND ended_at IS NULL AND expires_at>?',[$actor,wr_stamp()]) as $held){
+        try{if(($live=wr_live($held['research_id'],$held['task_id']))&&hash_equals($live['actor_hash'],$actor)){wr_eligible($held['research_id'],$held['task_id'],(int)wf_task($held['research_id'],$held['task_id'])['revision']);$heldCount++;}}catch(HttpError $error){if(!in_array($error->status,[404,409,422],true))throw $error;}
+    }if($heldCount>=(int)($configuration['concurrent_limit']??1)){$reasons['actor_busy']=1;$eligible=0;$examples=[];}}
     $details=[];foreach($reasons as $code=>$count)$details[]=['code'=>$code,'count'=>$count,'examples'=>$requirements[$code]??[]]+$policy[$code]+($code==='reserved'?['earliest_expiry'=>min($expiries)]:[]);
     $summary=$eligible?($sampled?'At least ':'').$eligible.' compatible unreserved '.($eligible===1?'task is':'tasks are').' available now.':($sampled?'No match in this preview; narrow the scope to check more work.':($seen?'No compatible work is available now.':'No published work is available in this scope. New requests need admin approval first.'));
     return ['state'=>$eligible?'available':'no_work','summary'=>$summary,'eligible'=>$eligible,'reasons'=>$details,'examples'=>$examples,'sampled'=>$sampled];
 }
 /** Reconfigure a new session without silently changing scope or the existing captured authorization. */
 function vs_startup_restart_input(array $session): array {
-    $post=['operation'=>'configure','scope_kind'=>$session['scope_kind'],'session_profile'=>vs_profile_id($session),
+    $post=['concurrent_limit'=>(int)($session['concurrent_limit']??1),'operation'=>'configure','scope_kind'=>$session['scope_kind'],'session_profile'=>vs_profile_id($session),
         'session_preset'=>vs_unlimited($session)?'unlimited':'custom','category_id'=>$session['scope_kind']==='category'?$session['scope_id']:'',
         'research_id'=>$session['scope_kind']==='research'?$session['scope_id']:'']+$session['capabilities'];
     if(!vs_unlimited($session))$post+=['assignment_limit'=>$session['assignment_limit'],'minutes'=>max(5,min(240,(int)ceil((strtotime($session['expires_at'].' UTC')-strtotime($session['created_at'].' UTC'))/60)))];

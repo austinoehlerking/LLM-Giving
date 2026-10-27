@@ -42,5 +42,29 @@ function rs_test_materials(array $d,?array $task=null): array {
             $d['evidence']['material_reviews'][]=['task_id'=>$target['task']['id'],'result_id'=>$result['id'],'verdict'=>'complete','reason'=>'Synthetic test audit inspected the retained materials and their declared limits; historical completeness needs a manual whole-result audit.','checked_refs'=>array_values(array_unique($refs))];
         }
     }
+    return wf_test_contract_fields($d,$task);
+}
+/** Only newly authored synthetic packets adopt the contract selected by their stored snapshot. */
+function wf_test_contract_fields(array $d,?array $task): array {
+    if(!$task||!function_exists('wf_packet_contract_version')||!is_string($d['context_id']??null))return $d;
+    $snapshot=one('SELECT package_json FROM workflow_snapshots WHERE id=? AND research_id=?',[$d['context_id'],$task['research_id']]);
+    if(!$snapshot||wf_packet_contract_version($snapshot)!==WF_PACKET_VERSION)return $d;
+    $finding='This synthetic packet organizes a checkable workflow record and establishes no scientific conclusion.';
+    $d['usefulness']=['version'=>1,'question_helped'=>'Which parts of this explicitly synthetic workflow are checkable?',
+        'intended_user'=>'A local software reviewer exercising the declared workflow; this is not scientific research.','finding'=>$finding,
+        'why_it_matters'=>'The retained fixture exposes exactly what software behavior was checked and its limits.',
+        'increment'=>'This authored fixture organizes retained evidence and uncertainty into a reproducible local test.',
+        'established'=>'Only deterministic local workflow behavior is exercised; no scientific result is established.',
+        'uncertain'=>'Real-world effects, applicability and independent scientific source support remain unexamined.',
+        'reusable_output'=>'The retained synthetic packet, declared method and evidence can be checked in a local regression.',
+        'next_use'=>'A separate software reviewer can reproduce these local checks before real scientific work.'];
+    if(!str_contains($d['body'],$finding))$d['body'].="\n\n".$finding;
+    $d['evidence']['usefulness_reviews']=[];
+    foreach(wf_usefulness_review_template($task) as $review){
+        $target=one('SELECT body FROM workflow_submissions WHERE id=?',[$review['result_id']]);preg_match('/^.{1,500}/us',$target['body'],$quote);
+        $review['verdict']='useful';$review['reason']='This explicitly synthetic output retains checkable local workflow evidence for the requested fixture deliverable; it establishes no real scientific usefulness.';
+        $review['output_quote']=$quote[0];$review['next_use']='Reproduce the retained local software regression check only; no scientific verification is claimed.';
+        $d['evidence']['usefulness_reviews'][]=$review;
+    }
     return $d;
 }

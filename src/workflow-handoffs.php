@@ -22,6 +22,7 @@ function wf_issue_handoff(string $rid,?string $tid=null): array {
 // Parent locking serializes retention with packet submission and issuance.
 // Preserve all submitted evidence, irrespective of moderation or admission.
 function wf_prune_handoffs(): int {
+    rtx_prune();
     $cutoff=gmdate('Y-m-d H:i:s',time()-30*86400);$deleted=0;
     $parents=all('SELECT DISTINCT h.research_id FROM workflow_handoffs h WHERE h.created_at<? AND NOT EXISTS (SELECT 1 FROM workflow_submissions s WHERE s.research_id=h.research_id AND s.nonce=h.nonce) LIMIT 100',[$cutoff]);
     foreach($parents as $parent){$deleted+=tx(function()use($parent,$cutoff){
@@ -43,5 +44,8 @@ function wf_read_handoff(string $rid,string $id): array {
 function wf_send_handoff(array $archive): void {
     header('Content-Type: text/plain; charset=utf-8');header('Cache-Control: no-store');
     header('X-Handoff-ID: '.$archive['id']);header('X-Handoff-SHA256: '.$archive['sha256']);
+    header('X-Handoff-Bytes: '.strlen($archive['body']));
+    $parent=research($archive['research_id']);
+    header('Link: </research/'.$parent['slug'].'/issued/'.$archive['id'].'/transport/manifest>; rel="describedby"; type="application/json"');
     echo $archive['body'];
 }

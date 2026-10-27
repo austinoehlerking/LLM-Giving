@@ -77,7 +77,7 @@ try{
  $syn=array_values(array_filter(wf_tasks($foreign),fn($x)=>$x['kind']==='synthesis'))[0];wr_claim($foreign,$syn['id'],1,$builder);wf_submit($foreign,$syn['id'],wf_test_payload($foreign,$syn),$builder);
  $review=array_values(array_filter(wf_tasks($foreign),fn($x)=>$x['kind']==='review'))[0];
  vdeny(fn()=>wr_claim($foreign,$review['id'],1,$builder),422,'Synthesis author cannot pick up independent review');
- $reviewer=vactor();wr_claim($foreign,$review['id'],1,$reviewer);wr_release($foreign,$review['id'],$reviewer);
+ $reviewer=vactor();$reviewIdentity=ri_capture(['account_provider'=>'synthetic-qa','account_reference'=>'reservation-review-'.$reviewer,'account_attestation'=>1],$reviewer);ri_capture_review(research($foreign),$review,$reviewer,$reviewIdentity,['review_account_separation'=>'knowingly_different','review_target_digest'=>ri_review_target_digest(research($foreign),$review,$reviewer,$reviewIdentity)]);wr_claim($foreign,$review['id'],1,$reviewer);wr_release($foreign,$review['id'],$reviewer);
  query("UPDATE workflow_submissions SET visibility='private' WHERE id=?",[$syn['accepted_id']??wf_task($foreign,$syn['id'])['accepted_id']]);
  vdeny(fn()=>wr_claim($foreign,$review['id'],1,$reviewer),409,'Missing public prerequisite prevents pickup even when task says Ready');
  // Browser authorization delegates use of the original identity, never creates a second owner.
@@ -94,9 +94,10 @@ try{
  $clock+=20;ar_validate($ar,$grant);wf_issue_handoff($arid,$at['id']);
  vcheck(wr_live($arid,$at['id'])['expires_at']===$lease['expires_at'],'Grant checks and handoff copies do not renew');
  wr_renew($arid,$at['id'],1,$grant['actor_hash']);wr_release($arid,$at['id'],$grant['actor_hash']);
- // Existing/historical handoff and consent bytes remain unchanged while explicitly reacquiring.
- wr_claim($arid,$at['id'],1,$grant['actor_hash']);
- vcheck(one('SELECT scope,consent FROM browser_returns WHERE id=?',[$grantId])===$stored,'Reservation operations never rewrite historical scope or consent');
+ // Recovery updates only the private lease binding, never signed handoff fields or captured consent.
+ sr_grant_action($ar,$grantId,'reacquire');$grant=ar_read($ar,$grantId);
+ $after=one('SELECT scope,consent FROM browser_returns WHERE id=?',[$grantId]);$oldScope=json_decode($stored['scope'],true);$newScope=json_decode($after['scope'],true);$newBinding=$newScope['reservation_id'];unset($oldScope['reservation_id'],$newScope['reservation_id']);
+ vcheck($oldScope===$newScope&&$after['consent']===$stored['consent']&&$newBinding===wr_live($arid,$at['id'])['id'],'Explicit recovery changes only the private lease binding; signed identifiers and captured consent remain exact');
  $packet=wf_test_payload($arid,$at,'progress');
  foreach(['submission_key','context_id'] as $key)$packet[$key]=$grant['scope'][$key];
  $packet['handoff_code']=wf_handoff_code($at,wf_read_snapshot($arid,$packet['context_id']),$packet['submission_key']);
