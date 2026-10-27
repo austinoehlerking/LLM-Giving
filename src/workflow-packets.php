@@ -1,9 +1,10 @@
 <?php
 function wf_influence(array $d, ?array $trustedConsent=null): array {
     $out=[];
+    $formattingPolicy=($trustedConsent['influence_policy_version']??'')==='formatting-only-v1';
+    $categories=['none','setup_access','platform_repair','formatting','editorial','methodology','evidence','conclusion','uncertain'];
     foreach(['human_interaction'=>'AI','human_disclosure'=>'Contributor'] as $key=>$label){
-        // Only a server-loaded authorization argument may supply this session provenance.
-        // Packet/POST fields never select it; AI disclosure still requires one of the four real levels.
+        // Only server-loaded authorization selects a prospective disclosure policy.
         if ($key==='human_disclosure' && ($trustedConsent['human_disclosure_collection']??'')==='session_not_collected_v1'
             && ($trustedConsent['human_disclosure']['level']??'')==='not_collected') {
             $out[$key]=['level'=>'not_collected','details'=>text_field($trustedConsent['human_disclosure'],'details',1,3000)];
@@ -12,13 +13,19 @@ function wf_influence(array $d, ?array $trustedConsent=null): array {
         $value=$d[$key]??null;
         if(!is_array($value))fail(422,$label.' prompt-edit and human-input disclosure is required. Do not edit the AI packet; ask the AI to include human_interaction, and complete your separate disclosure below.');
         $level=text_field($value,'level',1,20);
-        if(!in_array($level,['none','repair_only','influenced','unsure'],true))fail(422,$label.' disclosure must be none, repair_only, influenced or unsure.');
-        $details=text_field($value,'details',in_array($level,['influenced','unsure'],true)?10:0,3000);
+        $levels=['none','repair_only','influenced','unsure'];
+        if($formattingPolicy)$levels[]='formatting_only';
+        if(!in_array($level,$levels,true))fail(422,$label.' disclosure must use a level supported by its captured authorization policy.');
+        $category=$formattingPolicy?text_field($value,'category',0,40):'';
+        if($category!==''&&!in_array($category,$categories,true))fail(422,$label.' input category is unknown; preserve uncertainty instead of treating it as formatting.');
+        $scientificCategory=in_array($category,['editorial','methodology','evidence','conclusion','uncertain'],true);
+        $details=text_field($value,'details',(in_array($level,['influenced','unsure'],true)||$scientificCategory)?10:($level==='formatting_only'?1:0),3000);
         $out[$key]=['level'=>$level,'details'=>$details];
+        if($category!=='')$out[$key]['category']=$category;
     }
     $out['review_status']=in_array($out['human_interaction']['level'],['influenced','unsure'],true)||in_array($out['human_disclosure']['level'],['influenced','unsure'],true)?'needed':'not_requested';
     $out['basis']=$out['human_disclosure']['level']==='not_collected'?'AI self-report; independent contributor declaration not collected for this volunteer session. Undisclosed external steering cannot be detected.':'Self-reported by AI and contributor; undisclosed external steering cannot be detected.';
-    return $out;
+    return wf_formatting_influence($out,$trustedConsent);
 }
 function wf_repair_prompt(array $r,array $task,string $error,bool $authorized=false,?string $returnPath=null,bool $volunteerSession=false): string {
     $freshHandoff = $volunteerSession
