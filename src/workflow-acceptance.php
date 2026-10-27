@@ -13,11 +13,12 @@ function wf_check_template(array $t): array {
  $out=[];foreach(wf_check_targets($t) as $target)foreach(wf_criteria($target['task']) as $id=>$criterion)$out[]=['task_id'=>$target['task']['id'],'result_id'=>$target['result']['id']??'self','criterion_id'=>$id,'status'=>'','evidence_quote'=>'','reason'=>'','correction_response'=>''];return $out;
 }
 function wf_acceptance(array $t,array $d,array $row): array {
+ $quoteMinimum=(json_decode($row['metadata']??'{}',true)['packet_contract_version']??'')===WF_PACKET_VERSION?1:20;
  $terminal=in_array($row['outcome'],['completed','inconclusive','verified'],true);$checks=$d['acceptance_checks']??[];$issues=$d['corrections']??[];
  if(!is_array($checks)||!array_is_list($checks)||count($checks)>300||!is_array($issues)||!array_is_list($issues)||count($issues)>300)fail(422,'Acceptance checks and corrections must be bounded lists.');
  $expected=[];$labels=[];foreach(wf_check_targets($t) as $target)foreach(wf_criteria($target['task']) as $id=>$criterion){$key=$target['task']['id'].'/'.($target['result']['id']??'self').'/'.$id;$expected[$key]=$target['result']??$row;$labels[$key]=$target['task']['title'].': '.$criterion;}
  $clean=[];$seen=[];foreach($checks as $c){if(!is_array($c))fail(422,'Each acceptance check must be an object.');$key=text_field($c,'task_id',32,32).'/'.text_field($c,'result_id',4,32).'/'.text_field($c,'criterion_id',1,50);if(!isset($expected[$key])||isset($seen[$key]))fail(422,'Acceptance check references an unknown, stale or duplicate criterion/result.');
- $quote=text_field($c,'evidence_quote',20,3000);$reason=text_field($c,'reason',10,1000);$status=text_field($c,'status',1,20);if(!in_array($status,['met','not_met'],true))fail(422,'Acceptance status must be met or not_met.');
+ $quote=text_field($c,'evidence_quote',$quoteMinimum,3000);$reason=text_field($c,'reason',10,1000);$status=text_field($c,'status',1,20);if(!in_array($status,['met','not_met'],true))fail(422,'Acceptance status must be met or not_met.');
  $e=$expected[$key];if(!str_contains(implode("\n",array_map(fn($f)=>$e[$f],['body','methodology','sources','limitations'])),$quote))fail(422,'Evidence quote must exactly match the referenced result for: '.$labels[$key].'. Ask the AI to quote its actual evidence; do not edit or invent a quote.');
  if($terminal&&$status!=='met')fail(422,'Unmet deliverable criteria cannot complete a task. Use progress, clarification or a targeted correction. Scientific uncertainty may still be a fully documented result.');
  $response=text_field($c,'correction_response',($terminal&&$c['result_id']==='self'&&(int)$t['revision']>1)?20:0,3000);
@@ -45,7 +46,7 @@ function wf_acceptance(array $t,array $d,array $row): array {
   $accepted=one("SELECT metadata FROM workflow_submissions WHERE id=? AND research_id=? AND visibility='public' AND admission='accepted'",[$target['accepted_id'],$t['research_id']]);
   $artifacts=json_decode($accepted['metadata'],true)['evidence']['artifacts']??[];
   if(!in_array($artifactId,array_column($artifacts,'id'),true))fail(422,'Visual correction must identify an artifact in the current accepted result.');
- }elseif($criterion==='supporting-materials'){
+ }elseif(in_array($criterion,['supporting-materials','usefulness-standard'],true)){
   if(!isset(wf_evidence_results($t)[$target['accepted_id']]))fail(422,'Material correction needs eligible current evidence.');
  }elseif(!isset(wf_criteria($target)[$criterion]))fail(422,'Correction criterion does not belong to its task.');
  $entry=['task_id'=>$target['id'],'result_id'=>$target['accepted_id'],'criterion_id'=>$criterion,'claim_id'=>$claimId,'artifact_id'=>$artifactId,'calculation_id'=>$calculationId,'tool_id'=>$toolId,'reason'=>text_field($c,'reason',10,1000),'required_change'=>text_field($c,'required_change',10,3000)];if($derivationId!=='')$entry['derivation_id']=$derivationId;$targets[]=$entry;
@@ -77,6 +78,8 @@ function wf_assessment_tasks(array $result): array {
 // A deterministic reading aid: retain complete sentences from the authored synthesis.
 // The full, unchanged result remains visible below; no new scientific claims are generated.
 function wf_findings_overview(array $finding): array {
+ $readable=json_decode($finding['metadata']??'{}',true)['usefulness']??null;
+ if(($readable['version']??null)===1){$takeaways=[];foreach(['why_it_matters'=>'Why it matters','increment'=>'Useful work added','established'=>'What this establishes','uncertain'=>'What remains uncertain','reusable_output'=>'Reusable output','next_use'=>'Next use'] as $key=>$label)$takeaways[]=['title'=>$label,'text'=>$readable[$key]];return ['summary'=>$readable['finding'],'takeaways'=>$takeaways];}
  $paragraphs=preg_split('/\R\s*\R/u',trim($finding['body']),-1,PREG_SPLIT_NO_EMPTY);
  // Prefer an explicitly labeled scientific conclusion; skip editorial bookkeeping.
  $paragraphs=array_values(array_filter($paragraphs,function($p){

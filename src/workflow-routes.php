@@ -63,7 +63,7 @@ function wf_route(array $r,string $suffix,string $method,?array $grant=null): bo
                 http_response_code($e->status);$error=$e->getMessage();// Only ar_read()'s stored private grant selects prose; packet fields never select this mode.
                 $sessionReturn=$grant&&!empty($grant['scope']['volunteer_session_id'])&&!empty($grant['scope']['volunteer_assignment_id']);
                 $repair=wf_repair_prompt($r,$t,$error,(bool)$grant,$grant?$base.'/return/'.$grant['id'].'/submit':null,$sessionReturn);
-                if($jsonCheck){header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode(['ok'=>false,'message'=>$error,'repair_prompt'=>$repair]);return true;}
+                if($jsonCheck){header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode(['ok'=>false,'message'=>$error,'repair_prompt'=>$repair,...wf_packet_exception_details($e)]);return true;}
                 // Private return drafts can contain pasted capabilities. Keep them in the response, never in attempt logs.
                 if(!$grant&&!$checkOnly&&(!isset($d)||!is_array($d)||array_is_list($d))){
                     insert('workflow_attempts',['id'=>uid(),'research_id'=>$rid,'task_id'=>$t['id'],'payload'=>$input,'reason'=>$error,'created_at'=>now()]);
