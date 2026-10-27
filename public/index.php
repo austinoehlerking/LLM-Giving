@@ -30,6 +30,7 @@ if($method==='POST') {
 if(str_starts_with($path,'/admin')) { require ROOT.'/src/admin.php'; exit; }
 if(setting('maintenance','0')==='1' && !admin()) fail(503,'Research is temporarily unavailable for maintenance.');
 if($path==='/volunteer/quick-start' && $method==='GET') { render('volunteer-quick-start',['title'=>'Volunteer quick start','description'=>'Use your authorized AI to help with a bounded Volunteer session or one research task.']); exit; }
+if(rtx_session_route($path,$method)) exit;
 if(vs_route($path,$method)) exit;
 if($method==='GET' && $path==='/sitemap.xml') { header('Content-Type: application/xml; charset=utf-8'); echo blog_sitemap(); exit; }
 if($method==='GET' && $path==='/blog/') { header('Location: /blog',true,301); exit; }
