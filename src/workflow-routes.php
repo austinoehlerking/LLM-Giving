@@ -6,6 +6,10 @@ function wf_route(array $r,string $suffix,string $method,?array $grant=null): bo
     if(!$grant&&ar_route($r,$suffix,$method))return true;
     if(rs_route($r,$suffix,$method)||ra_route($r,$suffix,$method)||rc_route($r,$suffix,$method)||rt_route($r,$suffix,$method))return true;
     if(preg_match('~^tasks/([a-f0-9]{32})/reservation$~D',$suffix,$reservationMatch)){wr_http($r,$reservationMatch[1],$method);return true;}
+    if($suffix==='findings'){
+        if($method!=='GET')fail(405,'Findings are read-only.');
+        render('reader-findings',['title'=>'Read findings','r'=>$r,'findings'=>reader_findings_data($rid),'readerState'=>reader_workflow_state($r)]);return true;
+    }
     if($suffix==='work'){
         if($method==='POST'){throttle('workflow-review-request',5);if(empty($_POST['terms']))fail(422,'Accept the public-content terms.');wf_request_review($rid,text_field($_POST,'reason',10,500),text_field($_POST,'display_name',0,120));flash('Another independent review is now available.');redirect($base.'/work');}
         render('workflow',['title'=>'Research tasks','r'=>$r]);return true;

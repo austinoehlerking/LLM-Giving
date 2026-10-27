@@ -91,3 +91,37 @@ function moderation_form(string $type,string $id,string $state,string $back,bool
     if($type==='contribution') field('Explicit metadata exception rationale, if needed','exception');
     echo '<button>Save moderation decision</button></form>';
 }
+
+/** One public, read-only presentation of availability; never return held packet content. */
+function reader_workflow_state(array $research): array {
+    $r=research($research['id']);$base='/research/'.$r['slug'];
+    $state=['label'=>$r['status'],'task'=>null,'guidance'=>'','unblocker'=>'','href'=>$base.'/work'];
+    if(wf_quarantine($r['id']))return array_replace($state,['label'=>'Awaiting admin decision','guidance'=>'Research cannot advance while a packet is quarantined. Accepted earlier work remains provisional.','unblocker'=>'An administrator must approve or reject the held packet.']);
+    if(in_array($r['status'],['Blocked','Needs Clarification'],true))return array_replace($state,['guidance'=>'Read the recorded blocker or clarification before starting more work.','unblocker'=>'The original requester can respond through their private management link, or an administrator can help.','href'=>$base.'/ledger']);
+    if(in_array($r['status'],['Paused','Archived — Inactive','Solved'],true))return array_replace($state,['guidance'=>'This study is not accepting task results. You can read its available findings.','unblocker'=>'The requester or an administrator must resume or reopen research before new work can start.']);
+    if($r['status']==='Review Complete')return array_replace($state,['guidance'=>'This research cycle is complete. Read the findings and their limitations; review completion does not guarantee scientific correctness.','unblocker'=>'A human can request another independent review for a specific concern.','href'=>$base.'/work#request-review']);
+    if(!wf_project($r['id']))return array_replace($state,['guidance'=>STATUSES[$r['status']]??'Read the research brief and available contributions.','unblocker'=>'Contributors can inspect the brief and publication requirements.','href'=>$base.'/contribute']);
+    $task=mp_next($r);
+    if($task)return array_replace($state,['task'=>$task,'guidance'=>'A '.str_replace('_',' ',$task['kind']).' task is available: '.$task['title'],'unblocker'=>'A volunteer can authorize an AI handoff and reserve the current task.']);
+    foreach(wf_tasks($r['id']) as $task){
+        if($task['visibility']!=='public')continue;$availability=mp_state($r,$task);
+        if($availability['eligible'])return array_replace($state,['label'=>'Work in progress','guidance'=>'All eligible tasks are currently reserved. No new task is available to you.','unblocker'=>'The current volunteer can finish or release their reservation; otherwise it must expire.']);
+    }
+    return array_replace($state,['label'=>'No task available','guidance'=>'No eligible task is ready. Read the task list and activity ledger for outstanding prerequisites.','unblocker'=>'Prerequisite work or an authorized workflow response is needed before another task becomes available.']);
+}
+/** Current public authored work only. No generated scientific summary or held evidence. */
+function reader_findings_data(string $rid): array {
+    research($rid);$items=[];
+    foreach(rs_records($rid) as $record){
+        $result=$record['result'];$task=$record['task'];
+        if(!in_array($task['kind'],['research','synthesis'],true)||$task['state']!=='Completed'||$task['accepted_id']!==$result['id'])continue;
+        $meta=json_decode($result['metadata'],true);$aid=($meta['usefulness']['version']??null)===1?$meta['usefulness']:null;
+        $items[]=['id'=>$result['id'],'title'=>$task['title'],'author'=>$result['display_name']?:'Anonymous volunteer','created_at'=>$result['created_at'],'kind'=>$task['kind'],'contribution'=>false,'finding'=>$aid['finding']??$result['reason'],'established'=>$aid['established']??null,'uncertain'=>$aid['uncertain']??$result['limitations'],'next_use'=>$aid['next_use']??$result['next_action'],'aid'=>($aid['version']??null)===1?$aid:null];
+    }
+    foreach(rs_contributions($rid) as $result){
+        if($result['kind']==='Independent review')continue;
+        $items[]=['id'=>$result['id'],'title'=>$result['summary'],'author'=>$result['display_name']?:'Anonymous volunteer','created_at'=>$result['created_at'],'kind'=>'supplementary contribution','contribution'=>true,'finding'=>$result['summary'],'established'=>null,'uncertain'=>$result['uncertainty']?:$result['limitations'],'next_use'=>$result['next_actions'],'aid'=>null];
+    }
+    usort($items,fn($a,$b)=>(($b['kind']==='synthesis')<=>($a['kind']==='synthesis'))?:strcmp($b['created_at'].$b['id'],$a['created_at'].$a['id']));
+    return $items;
+}
