@@ -196,11 +196,11 @@ function discovery_filters(array $input): array {
 }
 function discovery_categories(): array {
     $gate=rf_listing_filter();
-    return all("SELECT c.id,c.name,COUNT(r.id) request_count FROM categories c LEFT JOIN research r ON r.category_id=c.id AND r.moderation='Approved' AND r.status<>'Withdrawn' AND ".$gate['sql']." GROUP BY c.id,c.name ORDER BY c.name",$gate['params']);
+    return all("SELECT c.id,c.name,COUNT(r.id) request_count FROM categories c LEFT JOIN research r ON r.category_id=c.id AND r.moderation='Approved' AND r.status<>'Withdrawn' AND r.discovery_listed=1 AND ".$gate['sql']." GROUP BY c.id,c.name ORDER BY c.name",$gate['params']);
 }
 function discover(array $input): array {
     $filters=discovery_filters($input);
-    $where=["r.moderation='Approved'","r.status<>'Withdrawn'"]; $params=[];
+    $where=["r.moderation='Approved'","r.status<>'Withdrawn'",'r.discovery_listed=1']; $params=[];
     if($filters['project_type']!==''){$where[]='r.project_type=?';$params[]=$filters['project_type'];}
     if($filters['external_tools']!==''){$where[]="COALESCE(JSON_UNQUOTE(JSON_EXTRACT(r.external_requirements,'$.external_tools')),'unspecified')=?";$params[]=$filters['external_tools'];}
     $q=$filters['q'];

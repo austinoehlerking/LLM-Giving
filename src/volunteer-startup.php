@@ -31,6 +31,7 @@ function vs_startup_preflight(array $configuration,bool $software=false): array 
     }
     // Only public-approved records are enumerated. Never count pending/private requests or expose their bodies.
     $gate=rf_listing_filter();$where="r.moderation='Approved' AND r.status<>'Withdrawn' AND t.visibility='public' AND ".$gate['sql'];$parameters=$gate['params'];
+    if($session['scope_kind']!=='research')$where.=' AND r.discovery_listed=1';
     if($session['scope_kind']==='category'){$where.=' AND r.category_id=?';$parameters[]=$session['scope_id'];}
     if($session['scope_kind']==='research'){$where.=' AND r.id=?';$parameters[]=$session['scope_id'];}
     $rows=all("SELECT t.* FROM workflow_tasks t JOIN workflow_projects p ON p.research_id=t.research_id AND p.round_no=t.round_no JOIN research r ON r.id=t.research_id WHERE ".$where." ORDER BY (t.state='Ready') DESC,t.id LIMIT 301",$parameters);
