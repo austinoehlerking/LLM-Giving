@@ -107,7 +107,9 @@ function rtx_begin(array $r,array $g,string $direction,?array $manifest=null,?ar
         wr_actor_lock($g['actor_hash'],true);one('SELECT id FROM research WHERE id=? FOR UPDATE',[$r['id']]);
         $auth=rtx_authorize($r,$g,$session);$g=$auth['grant'];$session=$auth['session'];rtx_write_permission($r,$g,$session);rtx_prune();
         $encoded=rtx_json($manifest);
-        $existing=one('SELECT * FROM research_transports WHERE grant_id=? AND direction=? AND manifest=? AND expires_at>? ORDER BY created_at DESC LIMIT 1',[$g['id'],$direction,$encoded,now()]);
+        // Resume only checkpoints usable under this currently authenticated credential binding.
+        // Rotating a grant/session secret must never adopt its revoked predecessor's bytes.
+        $existing=one('SELECT * FROM research_transports WHERE research_id=? AND task_id=? AND grant_id=? AND owner_actor_hash=? AND credential_hash=? AND session_id<=>? AND session_credential_hash<=>? AND direction=? AND manifest=? AND expires_at>? ORDER BY created_at DESC LIMIT 1',[$r['id'],$g['task_id'],$g['id'],$g['actor_hash'],$g['secret_hash'],$session['id']??null,$session['secret_hash']??null,$direction,$encoded,now()]);
         if($existing)return rtx_status($existing);
         $quota=one('SELECT COUNT(*) AS streams,COALESCE(SUM(byte_length),0) AS bytes FROM research_transports WHERE owner_actor_hash=?',[$g['actor_hash']]);
         if((int)$quota['streams']>=8||(int)$quota['bytes']+$manifest['byte_length']>RTX_OWNER_BYTES)fail(429,'Private recovery quota reached (8 streams / 16 MiB per owner). Delete an unneeded draft or recover it before retrying.');

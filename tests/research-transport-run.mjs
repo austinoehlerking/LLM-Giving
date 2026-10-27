@@ -1,6 +1,7 @@
 /** One owned Node job: isolated MariaDB, actual app query, focused tests/HTTP, shutdown. */
 import fs from 'node:fs';import path from 'node:path';import {spawn,spawnSync} from 'node:child_process';import {randomBytes,createHash} from 'node:crypto';import assert from 'node:assert/strict';
 import {root,env,runPhp,spawnPhp,portOpen,ready} from '../tools/runtime.mjs';
+const rotationOnly=process.argv.includes('--rotation-only');
 const stamp=new Date().toISOString().replace(/[:.]/g,'-');const output=path.join(root,'storage/qa','research-transport-'+stamp);fs.mkdirSync(output,{recursive:true});
 const maria=process.env.MARIADB_BIN||path.join(process.env.USERPROFILE,'scoop/apps/mariadb/current/bin');const port=18944;const httpPort=18941;const password=randomBytes(24).toString('hex');const database='rtx_'+randomBytes(8).toString('hex');
 const datadir=path.join(output,'db');const defaults=path.join(output,'private-client.cnf');const extra={APP_ENV:'test',APP_URL:'http://127.0.0.1:'+httpPort,DB_HOST:'127.0.0.1',DB_PORT:String(port),DB_NAME:database,DB_USER:'root',DB_PASSWORD:password,GOOGLE_ANALYTICS_ENABLED:'0',RATE_LIMIT_NAMESPACE:'transport-'+stamp};
@@ -16,6 +17,8 @@ try{
   if(!await portOpen(port))throw new Error('Owned MariaDB failed readiness.');
   fs.writeFileSync(defaults,'[client]\nuser=root\npassword='+password+'\nhost=127.0.0.1\nport='+port+'\n',{mode:0o600});binary('mariadb',['--defaults-extra-file='+defaults],`CREATE DATABASE ${database} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
   php(['bin/console.php','migrate'],'migrate');php(['-r',"require 'src/bootstrap.php'; if(!one('SELECT id FROM categories LIMIT 1'))throw new RuntimeException('Actual app query failed'); echo 'Actual PDO application query passed.';"],'app-query');
+  if(rotationOnly){const focused=JSON.parse(php(['tests/research-transport-rotation.php'],'credential-rotation'));report.coverage='CR53-1 credential rotation only';report.checks=focused.checks;report.status='PASS';}
+  else{
   fs.writeFileSync(path.join(output,'unit.json'),php(['tests/research-transport-unit.php'],'unit'));php(['tests/research-transport.php'],'server');php(['tests/handoffs.php'],'handoffs');php(['tests/volunteer-orchestrator.php'],'orchestrator');
   fixture=JSON.parse(php(['tests/research-transport-fixture.php'],'private-http-fixture'));
   server=spawnPhp(['-S','127.0.0.1:'+httpPort,'-t','public','public/router.php'],extra);await ready(extra.APP_URL,server);
@@ -42,6 +45,7 @@ try{
   response=await fetchLocal(base+'/'+input.id,{operation:'finalize'});check('HTTP input requires and verifies every exact dependency resource',(await response.json()).state==='finalized');
   const savedCookie=cookie;cookie='';response=await fetchLocal(base+'/'+stream.id);check('Different browser without private capability cannot read drafts',response.status===403);cookie=savedCookie;
   report.status='PASS';
+  }
 }catch(error){report.status='FAIL';report.failure=error.stack;fs.writeFileSync(path.join(output,'failure.log'),error.stack);throw error;}
 finally{
   if(server){server.kill();await new Promise(resolve=>{if(server.exitCode!==null)return resolve();server.once('exit',resolve);setTimeout(resolve,3000);});}
