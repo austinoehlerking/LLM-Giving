@@ -82,7 +82,7 @@ function ar_validate(array $r,array $g,bool $requireLease=true): void {
     if($g['expires_at']!==null && strtotime($g['expires_at'].' UTC')<=wr_time())fail(403,'This return authorization expired. Ask the volunteer for fresh authorization; do not invent consent.');
     if($g['consent']['terms_version']!==terms_version()||(((!empty($g['scope']['volunteer_session_id'])||isset($g['scope']['recovery_profile']))&&$g['task_id']?vs_task_software_consent($r,wf_task($r['id'],$g['task_id'])):rt_is_tool($r))&&$g['consent']['tool_terms_version']!==RT_TERMS))fail(409,'The terms changed. Fresh volunteer authorization is required.');
     if(!rq_same_requirements($g['scope']['requirements']??null,rq_requirements($r)))fail(409,'Requester AI requirements changed. Obtain fresh authorization and reassess with a qualifying run.');
-    if($requireLease&&$g['task_id'])wr_require($r['id'],$g['task_id'],(int)$g['scope']['revision'],$g['actor_hash'],$g['identity_id']??'');
+    if($requireLease&&$g['task_id']){$lease=wr_require($r['id'],$g['task_id'],(int)$g['scope']['revision'],$g['actor_hash'],$g['identity_id']??'');if(empty($g['scope']['volunteer_session_id'])&&($g['scope']['reservation_id']??null)!==$lease['id'])fail(409,'A different assignment now holds this reservation. Preserve the original signed assignment; explicitly reacquire only when it is unheld.');}
 }
 function ar_record(array $r,array $grant,array $d,bool $checkOnly): string {
     // A separate session worker reads its grant before waiting for the parent lock.
@@ -188,7 +188,8 @@ function ar_route(array $r,string $suffix,string $method): bool {
         if($g['result_id']){
             if($method==='POST'){
                 throttle('browser-return-retry',60);
-                try{$packet=json_decode(text_field($_POST,'payload',2,200000),true,32,JSON_THROW_ON_ERROR);}
+                $retryBytes=$g['task_id']?rtx_packet_input($r,wf_task($r['id'],$g['task_id']),$g,$_POST):text_field($_POST,'payload',2,200000);
+                try{$packet=json_decode($retryBytes,true,32,JSON_THROW_ON_ERROR);}
                 catch(JsonException){fail(422,'Supply the identical complete JSON packet or open this return link to read the recorded receipt.');}
                 if(!is_array($packet)||array_is_list($packet))fail(422,'Supply one complete JSON object.');
                 // A stale form may retry the original packet, but cannot silently replace it.

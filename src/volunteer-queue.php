@@ -185,6 +185,8 @@ function vs_assignment_action(string $id,string $assignmentId,string $operation)
             vs_validate_grant($r,$grant);
             wr_renew($r['id'],$task['id'],(int)$task['revision'],$session['actor_hash'],$session['identity_id']??'');
         } elseif ($operation==='reacquire') {
+            $live=wr_live($r['id'],$task['id']);
+            if($live&&$live['id']!==$assignment['reservation_id'])fail(409,'A different assignment now holds this task. Keep the original assignment binding; do not adopt or release its reservation.');
             $reservation=wr_claim($r['id'],$task['id'],(int)$task['revision'],$session['actor_hash'],$session['id']);
             query('UPDATE volunteer_assignments SET reservation_id=? WHERE id=?',[$reservation['id'],$assignment['id']]);
         } else fail(422,'Choose renew, release or reacquire.');

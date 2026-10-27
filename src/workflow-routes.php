@@ -49,16 +49,18 @@ function wf_route(array $r,string $suffix,string $method,?array $grant=null): bo
                 try{$d=json_decode($input,true,32,JSON_THROW_ON_ERROR);}catch(JsonException){fail(422,'The AI output is not valid JSON. Paste only its complete JSON object, without code fences or extra text. Do not edit it yourself; return the repair prompt to your AI.');}
                 if(!is_array($d)||array_is_list($d))fail(422,'The AI must return one complete JSON object.');
                 // Authorization and the human declaration never come from AI packet fields.
+                $trustedConsent=$grant['consent']??null;
                 if($grant){$id=ar_record($r,$grant,$d,$checkOnly);$d['human_disclosure']=$grant['consent']['human_disclosure'];}
                 else{
                     $d['human_disclosure']=ar_disclosure($_POST);
                     $d['terms']=$checkOnly?1:($_POST['terms']??null);
                     $d['tool_terms']=$checkOnly?1:($_POST['tool_terms']??null);
-                    $id=wf_submit($rid,$t['id'],$d,wf_actor(),$checkOnly,'manual');
+                    $trustedConsent=['terms_version'=>terms_version(),'human_disclosure'=>$d['human_disclosure'],'influence_policy_version'=>'formatting-only-v1','disclosure_scope'=>'Human declaration supplied with this fresh manual submission; the AI separately reports its input.'];
+                    $id=wf_submit($rid,$t['id'],$d,wf_actor(),$checkOnly,'manual',$trustedConsent,ri_actor_identity(wf_actor()));
                 }
                 if($checkOnly){
                     $checked=true;
-                    if($jsonCheck){header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode(['ok'=>true,'message'=>'Packet checks passed. Nothing has been submitted. Submit the unchanged packet and inspect its recorded receipt; check success alone is not submission.','influence_review'=>wf_influence($d,$grant['consent']??null)['review_status']==='needed','packet_contract'=>function_exists('wf_packet_contract')?wf_packet_contract($t,wf_read_snapshot($rid,$d['context_id'])):null]);return true;}
+                    if($jsonCheck){header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode(['ok'=>true,'message'=>'Packet checks passed. Nothing has been submitted. Submit the unchanged packet and inspect its recorded receipt; check success alone is not submission.','influence_review'=>wf_influence($d,$trustedConsent)['review_status']==='needed','packet_contract'=>function_exists('wf_packet_contract')?wf_packet_contract($t,wf_read_snapshot($rid,$d['context_id'])):null]);return true;}
                 }else{flash('Packet recorded. See its acceptance or quarantine status below.');redirect($base.'/results/'.$id);}
             }catch(HttpError $e){
                 http_response_code($e->status);$error=$e->getMessage();// Only ar_read()'s stored private grant selects prose; packet fields never select this mode.
