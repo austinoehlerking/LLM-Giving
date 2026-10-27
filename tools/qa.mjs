@@ -38,6 +38,7 @@ const qaPort=env.QA_PORT?Number(env.QA_PORT):process.argv[2]==='requirements'?81
 assert.ok(Number.isInteger(qaPort)&&qaPort>=1024&&qaPort<=65535,'QA_PORT must be a local unprivileged port.');
 const base='http://127.0.0.1:'+qaPort;
 const mode=process.argv[2]||'full';
+const focusedHappyPath=['hp-forms','hp-reader','admin-catalogue'].includes(mode);
 if(!Object.hasOwn(qaReports,mode))throw new Error('Unknown QA mode. Choose: '+Object.keys(qaReports).join(', '));
 const report={browser:'Not launched',screenshots:[],checks:[],viewports:[]};
 const password=randomBytes(24).toString('hex');
@@ -70,7 +71,7 @@ const payload=(kind='Original research',target=null)=>{const d={
 };d.evidence=JSON.parse(runPhp(['tests/qa-state.php','evidence',d.body,d.methodology,d.sources]));return d;};
 try{
  await ready(base+'/',server);
- if(mode!=='research-transport'&&mode!=='session-reliability'&&mode!=='session-wizard'&&mode!=='phone-guide'&&mode!=='google'&&mode!=='viewport'&&mode!=='quarantine'&&mode!=='handoffs'&&mode!=='launch'&&mode!=='legal'&&mode!=='artifacts'&&mode!=='citations'&&mode!=='requirements'&&mode!=='tools'&&mode!=='setup')runPhp(['tests/qa-state.php','cleanup']);
+ if(!focusedHappyPath&&mode!=='research-transport'&&mode!=='session-reliability'&&mode!=='session-wizard'&&mode!=='phone-guide'&&mode!=='google'&&mode!=='viewport'&&mode!=='quarantine'&&mode!=='handoffs'&&mode!=='launch'&&mode!=='legal'&&mode!=='artifacts'&&mode!=='citations'&&mode!=='requirements'&&mode!=='tools'&&mode!=='setup')runPhp(['tests/qa-state.php','cleanup']);
  if(['session-wizard','orchestrator','phone-guide'].includes(mode))volunteerFixtures=JSON.parse(runPhp(['tests/volunteer-state.php','create']));
  const pw=await playwright();
  const executable=browserExecutable();
@@ -84,7 +85,7 @@ try{
  }
  const page=await ctx.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
  if(mode==='pickups')await manualPickupQa({page,ctx,base,runPhp,check,visibleActions});
- if(mode!=='research-transport'&&mode!=='schema'&&mode!=='session-reliability'&&mode!=='volunteer-real-start'&&mode!=='session-wizard'&&mode!=='volunteers'&&mode!=='phone-guide'&&mode!=='admin-approval'&&mode!=='volunteer-compact') {
+ if(!focusedHappyPath&&mode!=='research-transport'&&mode!=='schema'&&mode!=='session-reliability'&&mode!=='volunteer-real-start'&&mode!=='session-wizard'&&mode!=='volunteers'&&mode!=='phone-guide'&&mode!=='admin-approval'&&mode!=='volunteer-compact') {
  const sample=JSON.parse(runPhp(['tests/qa-state.php','preview']));
  for(const size of [{width:1366,height:768},{width:390,height:844},{width:375,height:667},{width:768,height:1024}]){
   await page.setViewportSize(size);await goto(page,'/');await shot(page,'home-'+size.width+'x'+size.height);await visibleActions(page,'.hero .primary-actions > *','Home '+size.width);
@@ -120,7 +121,12 @@ try{
  // 200% browser zoom equivalent: reduced CSS viewport plus text scaling checks.
  await page.setViewportSize({width:683,height:384});await goto(page,'/');await page.evaluate(()=>{document.body.style.fontSize='200%';});await shot(page,'home-enlarged-text');check('Enlarged text reflow without horizontal clipping',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  }
- if(mode==='research-transport'){const {researchTransportQa}=await import('../tests/research-transport-browser.mjs');await researchTransportQa({page,ctx,base,runPhp,check,visibleActions,report});}
+ if(focusedHappyPath){
+  const suites={'hp-forms':['happy-path-forms-browser.mjs','happyPathFormsQa'],'hp-reader':['happy-path-reader-browser.mjs','happyPathReaderQa'],'admin-catalogue':['admin-catalogue-browser.mjs','adminCatalogueQa']};
+  const [file,entry]=suites[mode];const suite=await import('../tests/'+file);
+  await suite[entry]({page,ctx,base,runPhp,check,visibleActions,report,password,shot,goto,moderate,payload,browser});
+ }
+ else if(mode==='research-transport'){const {researchTransportQa}=await import('../tests/research-transport-browser.mjs');await researchTransportQa({page,ctx,base,runPhp,check,visibleActions,report});}
  else if(mode==='session-reliability'){const {sessionReliabilityQa}=await import('../tests/session-reliability-browser.mjs');await sessionReliabilityQa({page,ctx,base,runPhp,check,visibleActions,report});}
  else if(mode==='schema'){await researchSchemaQa({page,ctx,base,runPhp,check,visibleActions,report});}
  else if(mode==='volunteer-real-start'){const {volunteerRealStartQa}=await import('../tests/volunteer-real-start-browser.mjs');await volunteerRealStartQa({page,ctx,base,runPhp,check,visibleActions,report});}
