@@ -37,18 +37,18 @@ export async function quarantineQa({page,ctx,base,runPhp,check,visibleActions,pa
   await page.goto(url+'/tasks/'+t.id);check('Return form unavailable during hold',await page.locator('[name=payload]').count()===0);
   await ap.goto(base+'/admin/research/'+fixture.id);
   let form=ap.locator('form').filter({has:ap.locator('[name=result_id][value="'+rejectedId+'"]')});
-  await form.getByLabel('Review assessment and reason').fill('Reject this synthetic preferred-conclusion packet. Do not apply its plan; return a fresh unsteered submission.');
+  await revealAdminControls(form);await form.getByLabel('Review assessment and reason').fill('Reject this synthetic preferred-conclusion packet. Do not apply its plan; return a fresh unsteered submission.');
   await form.scrollIntoViewIfNeeded();await shot(ap,'admin-reject');
   await form.getByRole('button',{name:'Reject packet',exact:true}).click();
   await viewports(page,rejectedUrl,'rejected','.workflow-heading .primary-actions > *');
   check('Rejection status clear',await page.getByRole('heading',{name:'Packet rejected',exact:true}).count()===1);
   check('Rejected plan never advanced',(await data()).workflow.tasks.length===1&&(await plan()).state==='Ready'&&(await data()).research.status==='Needs Research Plan');
   check('Rejected packet excluded from evidence',(await data()).workflow.submissions.length===0);
-  await page.locator('[data-influence-status] summary').click();await page.locator('[data-influence-status]').scrollIntoViewIfNeeded();await shot(page,'rejected-reason-disclosures');
+  await revealAdminControls(page.locator('[data-influence-status]'));await page.locator('[data-influence-status] summary').click();await page.locator('[data-influence-status]').scrollIntoViewIfNeeded();await shot(page,'rejected-reason-disclosures');
   t=await plan();const approvedUrl=await submit(t,packet(t)),approvedId=new URL(approvedUrl).pathname.split('/').pop();
   await ap.goto(base+'/admin');check('Admin queue contains quarantine',await ap.locator('#human-influence').innerText().then(x=>x.includes('Quarantined')));
   form=ap.locator('form').filter({has:ap.locator('[name=result_id][value="'+approvedId+'"]')});
-  await form.getByLabel('Review assessment and reason').fill('Approve this bounded synthetic QA plan after inspecting its disclosures. Tests workflow admission only; no scientific conclusion is validated.');
+  await revealAdminControls(form);await form.getByLabel('Review assessment and reason').fill('Approve this bounded synthetic QA plan after inspecting its disclosures. Tests workflow admission only; no scientific conclusion is validated.');
   await form.scrollIntoViewIfNeeded();await shot(ap,'admin-approve');
   await form.getByRole('button',{name:'Approve packet',exact:true}).click();
   await viewports(page,approvedUrl,'approved','.workflow-heading .primary-actions > *');
@@ -56,7 +56,7 @@ export async function quarantineQa({page,ctx,base,runPhp,check,visibleActions,pa
   const d=await data();check('Approval applies plan once',d.workflow.tasks.length===5&&d.research.status==='Open for Research'&&d.workflow.submissions.length===1&&d.workflow.submissions[0].id===approvedId);
   check('Original influence preserved after approval',JSON.parse(d.workflow.submissions[0].metadata).human_influence.human_interaction.level==='influenced');
   check('UTC audit records both decisions',['Quarantined packet rejected','Quarantined packet approved'].every(a=>d.workflow.ledger.some(e=>e.action===a&&e.actor_type==='administrator'&&e.created_at)));
-  await page.locator('[data-influence-status] summary').click();await page.locator('[data-influence-status]').scrollIntoViewIfNeeded();await shot(page,'approved-reason-disclosures');
+  await revealAdminControls(page.locator('[data-influence-status]'));await page.locator('[data-influence-status] summary').click();await page.locator('[data-influence-status]').scrollIntoViewIfNeeded();await shot(page,'approved-reason-disclosures');
   await page.goto(url);check('Research now offers next real task',(await page.locator('.handoff-state').innerText()).includes('Ready for research'));await shot(page,'research-advanced');
   for(const u of [rejectedUrl,approvedUrl]){await page.setViewportSize({width:683,height:384});await page.goto(u);await page.evaluate(()=>document.body.style.fontSize='200%');check('Decision receipt 200% text reflows',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await shot(page,u===rejectedUrl?'rejected-200-percent':'approved-200-percent');}
   await page.setViewportSize(sizes[0]);await page.goto(url+'/ledger');await shot(page,'utc-ledger-decisions');

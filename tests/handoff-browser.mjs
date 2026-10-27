@@ -58,20 +58,21 @@ export async function handoffQa({page,ctx,base,runPhp,check,visibleActions,passw
    const held=!['unchanged','platform-repair'].includes(name);
    await page.getByRole('heading',{name:held?'Packet quarantined — awaiting admin':'Submission accepted',exact:true}).waitFor();
    const resultUrl=page.url(),id=new URL(resultUrl).pathname.split('/').pop();cases.push({name,resultUrl,archiveId,sha256:headers['x-handoff-sha256']});
+   await revealAdminControls(page.locator('[data-verification]'));
    check(name+' verification label is qualified',(await page.locator('[data-verification]').innerText()).includes('Task signature valid.')&&(await page.locator('[data-verification]').innerText()).includes('Conversation integrity is self-reported'));
    await page.locator('[data-verification] summary').click();check(name+' exact issued copy linked',await page.getByRole('link',{name:'Open archived handoff'}).getAttribute('href')==='/research/'+f.slug+'/issued/'+archiveId);await shot(page,name+'-verification');
    if(name==='initial-edit')await viewports(resultUrl,'quarantined','.workflow-heading .primary-actions > *');
    if(held){
     const d=await data();check(name+' cannot advance or enter evidence',d.workflow.tasks.length===1&&d.workflow.tasks[0].state==='Awaiting Admin'&&!d.workflow.submissions.some(s=>s.id===id));
     await ap.goto(base+'/admin/research/'+f.id);const form=ap.locator('form').filter({has:ap.locator('[name=result_id][value="'+id+'"]')});
-    await form.getByLabel('Review assessment and reason').fill('Reject synthetic '+name+' packet. Preserve the exact issued prompt and disclose the reported alteration; no scientific evidence is established.');
+    await revealAdminControls(form);await form.getByLabel('Review assessment and reason').fill('Reject synthetic '+name+' packet. Preserve the exact issued prompt and disclose the reported alteration; no scientific evidence is established.');
     if(name==='initial-edit'){await form.scrollIntoViewIfNeeded();await shot(ap,'admin-initial-edit-review');}
     await form.getByRole('button',{name:'Reject packet',exact:true}).click();
     await page.goto(resultUrl);await page.getByRole('heading',{name:'Packet rejected',exact:true}).waitFor();check(name+' rejection preserves archived bytes',(await(await page.request.get(url+'/issued/'+archiveId)).body()).equals(raw));
    }else check(name+' accepted without quarantine',(await data()).workflow.tasks[0].state==='Ready');
   }
   await viewports(cases.at(-1).resultUrl,'repair-accepted','.workflow-heading .primary-actions > *');
-  await page.setViewportSize({width:683,height:384});await page.goto(cases[0].resultUrl);await page.locator('[data-verification] summary').click();await page.evaluate(()=>document.body.style.fontSize='200%');check('Expanded checksum reflows at 200% text',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await shot(page,'archive-200-percent');
+  await page.setViewportSize({width:683,height:384});await page.goto(cases[0].resultUrl);await revealAdminControls(page.locator('[data-verification]'));await page.locator('[data-verification] summary').click();await page.evaluate(()=>document.body.style.fontSize='200%');check('Expanded checksum reflows at 200% text',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await shot(page,'archive-200-percent');
   fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({research:url,cases},null,2));
  }finally{
   fs.writeFileSync(path.join(out,'index.html'),'<!doctype html><meta charset="utf-8"><title>V1 handoff safeguards</title><style>body{background:#14202b;color:#eee;font:16px system-ui;max-width:1100px;margin:30px auto}img{max-width:100%}a{color:#aac7ff}</style><h1>V1 handoff safeguards</h1><p>Synthetic alteration scenarios; no scientific findings or real AI runs asserted.</p>'+shots.map(n=>'<h2>'+n+'</h2><a href="'+n+'"><img loading="lazy" src="'+n+'"></a>').join(''));await ac.close();

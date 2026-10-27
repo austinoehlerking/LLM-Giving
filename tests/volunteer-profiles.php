@@ -17,9 +17,13 @@ function vp_project(array $extra=[],bool $plan=true): array {
 function vp_post(array $r,string $profile='restricted_web_v1'): array {
     return ['session_profile'=>$profile,'session_preset'=>'long','scope_kind'=>'research','research_id'=>$r['id'],'model'=>'gpt-6-astra','reasoning'=>'max','tool'=>'Codex','authorize'=>1,'terms'=>1,'authorized_resources'=>1,'policy_version'=>terms_version(),'human_level'=>'none'];
 }
-function vp_session(array $r,string $profile='restricted_web_v1'): array {
+function vp_session(array $r,string $profile='restricted_web_v1',?array $reviewTask=null): array {
     global $sessions;
     $_SESSION['workflow_actor']=bin2hex(random_bytes(32));putenv('RATE_LIMIT_NAMESPACE=profile-'.uid());
+    if($reviewTask){
+        $actor=wf_actor();$identity=ri_capture(['account_provider'=>'synthetic-qa','account_reference'=>'Synthetic profile reviewer '.uid(),'account_attestation'=>'1'],$actor);
+        ri_capture_review($r,$reviewTask,$actor,$identity,['review_account_separation'=>'knowingly_different','review_target_digest'=>ri_review_target_digest($r,$reviewTask,$actor,$identity)]);
+    }
     $created=vs_create(vp_post($r,$profile));$sessions[]=$created['id'];return $created;
 }
 function vp_packet(array $session,array $a): array {
@@ -88,7 +92,7 @@ try {
     $r5=vp_project(['external_tools'=>'licensed','required_software'=>'Synthetic required scientific package']);$s5=vp_session($r5);$narrative=vs_claim_next($s5['id']);vp_check(empty(wf_task($r5['id'],$narrative['task_id'])['computational']),'Narrative task remains eligible independently of future project software');vs_stop($s5['id']);
     $r6=vp_project();$s6=vp_session($r6);query("UPDATE research SET moderation='Pending' WHERE id=?",[$r6['id']]);vp_denied(fn()=>vs_claim_next($s6['id']),409,'Private parent cannot enter restricted queue');query("UPDATE research SET moderation='Approved' WHERE id=?",[$r6['id']]);
     $synthProject=vp_project();$rid=$synthProject['id'];for($i=0;$i<3;$i++){$ready=array_values(array_filter(wf_tasks($rid),fn($x)=>$x['state']==='Ready'));$next=$ready[0];wf_test_submit($rid,$next['id'],wf_test_payload($rid,$next),hash('sha256',uid()));}
-    $review=array_values(array_filter(wf_tasks($rid),fn($x)=>$x['kind']==='review'))[0];$reviewSession=vp_session(research($rid));$ss=vs_read($reviewSession['id']);vp_check(vs_profile_compatible($ss,research($rid),$review),'Narrative independent review remains compatible');
+    $review=array_values(array_filter(wf_tasks($rid),fn($x)=>$x['kind']==='review'))[0];$reviewSession=vp_session(research($rid),'restricted_web_v1',$review);$ss=vs_read($reviewSession['id']);vp_check(vs_profile_compatible($ss,research($rid),$review),'Narrative independent review remains compatible');
     $target=array_values(wf_evidence_results($review))[0]['result'];$metadata=json_decode($target['metadata'],true);$metadata['evidence']['calculations']=[['id'=>'synthetic_legacy_execution_marker','status'=>'executed']];query('UPDATE workflow_submissions SET metadata=? WHERE id=?',[json_encode($metadata),$target['id']]);
     vp_check(!vs_profile_compatible($ss,research($rid),$review),'Review requiring legacy computational reproduction excluded');vp_denied(fn()=>vs_claim_next($reviewSession['id']),409,'Reproduction review excluded at pickup');
     $public=json_encode(context_data($r['id']));vp_check(!str_contains($public,$id)&&!str_contains($public,$session['secret_hash'])&&!str_contains($public,$session['actor_hash']),'Public context omits profile session credentials and lineage');

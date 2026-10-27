@@ -1,3 +1,4 @@
+import {completeContextEnvelope} from './session-reliability-browser.mjs';
 import fs from 'node:fs';import path from 'node:path';import {root} from '../tools/runtime.mjs';
 export async function manualPickupQa({page,ctx,base,runPhp,check,visibleActions}){
  const out=path.join(root,'storage/qa/manual-pickup');fs.mkdirSync(out,{recursive:true});
@@ -8,7 +9,13 @@ export async function manualPickupQa({page,ctx,base,runPhp,check,visibleActions}
  const inspect=async label=>{if(process.env.QA_VIEWPORT_REVIEW==='1'||(process.env.QA_VIEWPORT_REVIEW||'').split(',').includes(label)){console.log('INSPECT VIEWPORTS: '+label+' — screenshots in '+out+'. Send continue after inspection.');await new Promise(resolve=>{process.stdin.resume();process.stdin.once('data',()=>{process.stdin.pause();resolve();});});}};
  const initial=async(p,url,name,selector)=>{for(const size of sizes){await p.setViewportSize(size);if(url)await p.goto(url);await shot(p,name+'-'+size.width+'x'+size.height);await visibleActions(p,selector,name+' '+size.width);if(name==='authorized-return')check('Packet entry is fully visible '+size.width,await p.locator('[name=payload]').evaluate(el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight&&r.left>=0&&r.right<=innerWidth&&r.height>=44&&document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)===el;}));viewports.push({name,...size});}await inspect(name);await p.setViewportSize(sizes[0]);};
  const csrf=async p=>p.locator('input[name=csrf]').first().inputValue();
- const clickOperation=async(p,label)=>{const waiting=p.waitForResponse(r=>r.request().method()==='POST'&&r.request().postData()?.includes('reservation-'));await p.getByRole('button',{name:label,exact:true}).click();const response=await waiting;await p.locator('[data-reservation-panel]').waitFor();return response;};
+ const clickOperation=async(p,label)=>{
+  const button=p.getByRole('button',{name:label,exact:true});
+  const expected=await button.evaluate(el=>({url:new URL(el.getAttribute('formaction')||el.form.getAttribute('action')||location.href,location.href).href.split('#')[0],operation:(el.value||el.form.elements.namedItem('operation')?.value||'').replace(/^reservation-/, '')}));
+  if(!['renew','release','claim','status'].includes(expected.operation))throw Error('Unknown scoped reservation operation: '+expected.operation);
+  const waiting=p.waitForResponse(r=>{const request=r.request();if(request.method()!=='POST'||r.url()!==expected.url)return false;const body=request.postData()||'',type=request.headers()['content-type']||'';const value=type.includes('multipart/form-data')?body.match(/name="operation"\r?\n\r?\n([^\r\n]*)/)?.[1]:new URLSearchParams(body).get('operation');return value?.replace(/^reservation-/, '')===expected.operation;});
+  await button.click();const response=await waiting;await p.locator('[data-reservation-panel]').waitFor();return response;
+ };
  const other=await ctx.browser().newContext({viewport:sizes[0]}),op=await other.newPage();
  let noJS,agent;
  try{
@@ -20,7 +27,7 @@ export async function manualPickupQa({page,ctx,base,runPhp,check,visibleActions}
   await page.getByRole('heading',{name:'Task handoff',exact:true}).waitFor();
   await initial(page,null,'manual-handoff','.return-start .primary-actions > *,[data-reservation-panel] button');
   const handoff=await page.locator('#pickup-text').inputValue(),schema=JSON.parse(handoff.split('REQUIRED OUTPUT JSON\n')[1].split('\n\nUNTRUSTED TASK DATA')[0]);
-  check('Task prompt pickup prepares a complete handoff and one reservation',handoff.includes('UNTRUSTED FULL CONTEXT PACKAGE')&&lease(f).active_count===1);
+  check('Task prompt pickup prepares a complete handoff and one reservation',completeContextEnvelope(handoff)&&lease(f).active_count===1);
   const expiry=lease(f).expires;
   await page.evaluate(()=>{Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw Error('Synthetic clipboard denial');}}});});
   await page.getByRole('button',{name:'Copy task prompt',exact:true}).click();
