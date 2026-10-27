@@ -19,7 +19,7 @@ function ac_fixture_seed(): array {
         $cid=create_contribution($ids['usage'],rs_test_supplement(['kind'=>'Progress update','summary'=>'Synthetic supplementary '.$moderation,'body'=>'This local synthetic record tests operational counting only and establishes no scientific result.','terms'=>1,'metadata'=>['provider'=>'Synthetic QA','model'=>'gpt-6-astra','reasoning'=>'max','harness'=>'Local fixture']]));
         query('UPDATE contributions SET moderation=? WHERE id=?',[$moderation,$cid]);
     }
-    return ['ids'=>$ids,'category'=>$category,'slug'=>research($ids['usage'])['slug'],'result'=>$result,'queue_task'=>wf_tasks($ids['queue'])[0]['id']];
+    return ['ids'=>$ids,'category'=>$category,'slug'=>research($ids['usage'])['slug'],'search_term'=>substr(research($ids['usage'])['title'],-32),'result'=>$result,'queue_task'=>wf_tasks($ids['queue'])[0]['id']];
 }
 function ac_fixture_cleanup(array $f): void {
     foreach($f['ids'] as $id)if(one('SELECT id FROM research WHERE id=?',[$id]))purge_request($id,$id);
