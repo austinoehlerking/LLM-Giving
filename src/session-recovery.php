@@ -23,6 +23,21 @@ function sr_authority(array $r,string $grantId,bool $mutation=false): array {
     return ['binding'=>sr_binding($g),'grant'=>$g,'status'=>sr_status($r,$g)];
 }
 
+/** Read-only compatibility for the exact pre-reservation_id standalone scope.
+ * A unique lease must span BOTH archived handoff issuance and stored grant creation.
+ * Inclusive end timestamps deliberately reject same-second ambiguous histories.
+ * Never infer ownership merely from the current same-actor lease or rewrite consent. */
+function sr_expected_reservation(array $g): ?string {
+    $scope=$g['scope'];
+    if(array_key_exists('reservation_id',$scope))return is_string($scope['reservation_id'])&&preg_match('/^[a-f0-9]{32}$/D',$scope['reservation_id'])?$scope['reservation_id']:null;
+    $legacy=['kind','revision','context_id','submission_key','archive_id','requirements'];
+    if(!$g['task_id']||($scope['kind']??'')!=='task'||array_diff(array_keys($scope),$legacy)||array_diff($legacy,array_keys($scope))||!is_int($scope['revision'])||$scope['revision']<1)return null;
+    $issued=one('SELECT created_at FROM workflow_handoffs WHERE id=? AND research_id=? AND task_id=? AND snapshot_id=? AND nonce=?',[$scope['archive_id'],$g['research_id'],$g['task_id'],$scope['context_id'],$scope['submission_key']]);
+    if(!$issued||$issued['created_at']>$g['created_at'])return null;
+    $candidates=all('SELECT id FROM task_reservations WHERE research_id=? AND task_id=? AND task_revision=? AND actor_hash=? AND created_at<=? AND expires_at>? AND (ended_at IS NULL OR ended_at>=?) ORDER BY created_at,id LIMIT 2',[$g['research_id'],$g['task_id'],$scope['revision'],$g['actor_hash'],$issued['created_at'],$g['created_at'],$g['created_at']]);
+    return count($candidates)===1?$candidates[0]['id']:null;
+}
+
 function sr_status(array $r,array $g): array {
     $permission='active';$reason='Captured consent applies to this exact assignment.';$assignment=null;
     if(!empty($g['revoked_at'])){$permission='revoked';$reason='Private capability revoked.';}
@@ -31,8 +46,8 @@ function sr_status(array $r,array $g): array {
     if($permission==='active'&&($g['consent']['terms_version']!==terms_version()||($g['consent']['tool_terms_version']!==null&&$g['consent']['tool_terms_version']!==RT_TERMS))){$permission='terms_changed';$reason='Changed terms require fresh human authorization.';}
     $task=$g['task_id']?wf_task($r['id'],$g['task_id']):null;$taskState=$task?$task['state']:'supplementary';$lease='not_applicable';$leaseExpiry=null;$canReacquire=false;
     if($task){if((int)$task['revision']!==(int)$g['scope']['revision'])$taskState='revision_changed';
-        $live=wr_live($r['id'],$task['id']);if($live){$expected=$assignment['reservation_id']??($g['scope']['reservation_id']??null);$lease=!hash_equals($live['actor_hash'],$g['actor_hash'])?'other_holder':($expected&&$live['id']===$expected?'owned':'other_assignment');$leaseExpiry=$live['expires_at'];}else{$last=one('SELECT end_reason,expires_at FROM task_reservations WHERE research_id=? AND task_id=? AND task_revision=? AND actor_hash=? ORDER BY created_at DESC,id DESC LIMIT 1',[$r['id'],$task['id'],$g['scope']['revision'],$g['actor_hash']]);$lease=$last['end_reason']??($last?(strtotime($last['expires_at'].' UTC')>wr_time()&&$permission!=='active'?'permission_ended':'expired'):'not_reserved');$leaseExpiry=$last['expires_at']??null;}
-        try{wr_eligible($r['id'],$task['id'],(int)$g['scope']['revision'],$g['actor_hash'],$g['identity_id']??null);$canReacquire=$permission==='active'&&!in_array($lease,['other_holder','other_assignment'],true)&&!$g['result_id'];}catch(HttpError $e){if(!in_array($e->status,[403,404,409,422],true))throw $e;if($taskState==='Ready')$taskState='unavailable';}
+        $live=wr_live($r['id'],$task['id']);if($live){$expected=$assignment['reservation_id']??sr_expected_reservation($g);$lease=!hash_equals($live['actor_hash'],$g['actor_hash'])?'other_holder':($expected&&$live['id']===$expected?'owned':'other_assignment');$leaseExpiry=$live['expires_at'];}else{$last=one('SELECT end_reason,expires_at FROM task_reservations WHERE research_id=? AND task_id=? AND task_revision=? AND actor_hash=? ORDER BY created_at DESC,id DESC LIMIT 1',[$r['id'],$task['id'],$g['scope']['revision'],$g['actor_hash']]);$lease=$last['end_reason']??($last?(strtotime($last['expires_at'].' UTC')>wr_time()&&$permission!=='active'?'permission_ended':'expired'):'not_reserved');$leaseExpiry=$last['expires_at']??null;}
+        try{wr_eligible($r['id'],$task['id'],(int)$g['scope']['revision'],$g['actor_hash'],$g['identity_id']??null);$canReacquire=$permission==='active'&&($assignment||sr_expected_reservation($g)!==null)&&!in_array($lease,['other_holder','other_assignment'],true)&&!$g['result_id'];}catch(HttpError $e){if(!in_array($e->status,[403,404,409,422],true))throw $e;if($taskState==='Ready')$taskState='unavailable';}
     }
     if($permission==='active'&&!$g['result_id']){try{ar_validate($r,$g,false);}catch(HttpError $e){if(!in_array($e->status,[403,404,409,422],true))throw $e;$permission='requires_review';$reason=$e->getMessage();$canReacquire=false;}}
     $result=$g['result_id']?one('SELECT admission,outcome FROM workflow_submissions WHERE id=? AND research_id=?',[$g['result_id'],$r['id']]):null;
@@ -62,12 +77,13 @@ function sr_grant_action(array $r,string $grantId,string $operation): void {
     tx(function()use($r,$grantId,$operation,$hint){wr_actor_lock($hint['actor_hash'],true);if(!empty($hint['scope']['volunteer_session_id']))vs_read($hint['scope']['volunteer_session_id'],false,true);one('SELECT id FROM research WHERE id=? FOR UPDATE',[$r['id']]);$g=sr_authority(research($r['id']),$grantId)['grant'];
         if($g['result_id'])fail(409,'Already recorded. Open the existing receipt.');
         $a=!empty($g['scope']['volunteer_assignment_id'])?vs_assignment(vs_read($g['scope']['volunteer_session_id'],false),$g['scope']['volunteer_assignment_id']):null;
-        $expectedLease=$a['reservation_id']??($g['scope']['reservation_id']??null);$currentLease=wr_live($r['id'],$g['task_id']);
+        $expectedLease=$a['reservation_id']??sr_expected_reservation($g);$currentLease=wr_live($r['id'],$g['task_id']);
+        if(!$a&&!$expectedLease)fail(409,'The original reservation cannot be proven from this legacy authorization. Do not adopt a current lease; obtain fresh scoped authorization when this task is unheld.');
         if($operation==='release'){if($a){vs_release_assignment(vs_read($g['scope']['volunteer_session_id'],false),$a);return;}if($currentLease&&(!$expectedLease||$currentLease['id']!==$expectedLease||!hash_equals($currentLease['actor_hash'],$g['actor_hash'])))fail(409,'This reservation belongs to another assignment. The old credential cannot release it.');if($currentLease)wr_release($r['id'],$g['task_id'],$g['actor_hash']);return;}
         if($currentLease&&(!$expectedLease||$currentLease['id']!==$expectedLease))fail(409,'A different assignment now holds this task. Do not adopt its reservation, even under the same owner.');
         ar_validate($r,$g,false);
         if($operation==='renew'){ar_validate($r,$g);wr_renew($r['id'],$g['task_id'],(int)$g['scope']['revision'],$g['actor_hash'],$g['identity_id']??'');}
-        elseif($operation==='reacquire'){$lease=wr_claim($r['id'],$g['task_id'],(int)$g['scope']['revision'],$g['actor_hash'],$g['scope']['volunteer_session_id']??null,$g['identity_id']??'');if(!empty($g['scope']['volunteer_assignment_id']))query('UPDATE volunteer_assignments SET reservation_id=? WHERE id=?',[$lease['id'],$g['scope']['volunteer_assignment_id']]);else{$scope=$g['scope'];$scope['reservation_id']=$lease['id'];query('UPDATE browser_returns SET scope=? WHERE id=?',[json_encode($scope,JSON_THROW_ON_ERROR),$g['id']]);}}
+        elseif($operation==='reacquire'){$lease=wr_claim($r['id'],$g['task_id'],(int)$g['scope']['revision'],$g['actor_hash'],$g['scope']['volunteer_session_id']??null,$g['identity_id']??'');if(!empty($g['scope']['volunteer_assignment_id']))query('UPDATE volunteer_assignments SET reservation_id=? WHERE id=?',[$lease['id'],$g['scope']['volunteer_assignment_id']]);elseif(array_key_exists('reservation_id',$g['scope'])||$lease['id']!==$expectedLease){$scope=$g['scope'];$scope['reservation_id']=$lease['id'];query('UPDATE browser_returns SET scope=? WHERE id=?',[json_encode($scope,JSON_THROW_ON_ERROR),$g['id']]);}}
         else fail(422,'Choose renew, reacquire or release.');
     });
 }
@@ -104,6 +120,8 @@ function sr_reauthorize(array $r,string $grantId,array $post): array {
         if($sourceSession){$scope['recovery_profile']=vs_profile_id($sourceSession);$scope['recovery_worker']=$sourceSession['capabilities'];}
         $consent=$old['consent'];$consent['terms_version']=$version;$consent['captured_at_utc']=wr_stamp();$consent['source']='Human same-assignment recovery authorization (self-attested)';$consent['influence_policy_version']='formatting-only-v1';$consent['tool_terms_version']=$software?RT_TERMS:null;$consent['software_license']=$software?RT_LICENSE:null;$consent['permission']='Only the same previously authored assignment, same worker and signed identifiers; '.$minutes.' minutes. No queue access or parallel-worker expansion.';
         // Keep initial disclosure/collection status exactly as originally captured.
+        $oldAssignment=$sourceSession?vs_assignment($sourceSession,$old['scope']['volunteer_assignment_id']):null;$expected=$oldAssignment['reservation_id']??sr_expected_reservation($old);$live=wr_live($r['id'],$t['id']);
+        if($live&&(!$expected||$live['id']!==$expected||!hash_equals($live['actor_hash'],$old['actor_hash'])))fail(409,'Another assignment holds this task. Fresh authorization cannot adopt or displace its reservation.');
         $lease=wr_claim($r['id'],$t['id'],(int)$scope['revision'],$old['actor_hash'],null,$old['identity_id']??'');$scope['reservation_id']=$lease['id'];$id=uid();$secret=bin2hex(random_bytes(32));
         insert('browser_returns',['id'=>$id,'research_id'=>$r['id'],'task_id'=>$t['id'],'secret_hash'=>hash('sha256',$secret),'actor_hash'=>$old['actor_hash'],'identity_id'=>$old['identity_id']??null,'scope'=>json_encode($scope,JSON_THROW_ON_ERROR),'consent'=>json_encode($consent,JSON_THROW_ON_ERROR),'created_at'=>wr_stamp(),'expires_at'=>wr_stamp(wr_time()+$minutes*60)]);
         insert('task_reauthorizations',['old_grant_id'=>$old['id'],'request_key'=>$key,'new_grant_id'=>$id]);$_SESSION['browser_returns'][$id]=hash('sha256',$secret);return sr_continue($r,$id);
