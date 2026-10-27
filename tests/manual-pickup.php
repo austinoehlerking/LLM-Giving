@@ -1,10 +1,18 @@
 <?php
-require __DIR__.'/bootstrap.php';require __DIR__.'/workflow-fixture.php';
+require __DIR__.'/bootstrap.php';require __DIR__.'/workflow-fixture.php';require_once ROOT.'/src/view.php';
 session_start_safe();$_SESSION['admin']=1;putenv('RATE_LIMIT_NAMESPACE=manual-pickup-'.uid());
 $checks=[];$ids=[];$clock=time();$GLOBALS['wr_test_clock']=function()use(&$clock){return $clock;};
 function pc(bool $ok,string $label):void {global $checks;if(!$ok)throw new RuntimeException($label);$checks[]=$label;}
 function pd(callable $f,int $code,string $label):void {try{$f();}catch(HttpError $e){pc($e->status===$code,$label.' ('.$e->getMessage().')');return;}throw new RuntimeException('Expected rejection: '.$label);}
 function pf(): array {global $ids;$c=create_research(['title'=>'[QA] Manual reservation pickup '.uid(),'question'=>'Synthetic manual pickup and handoff preparation only; no scientific result.','category_id'=>1,'terms'=>1]);$ids[]=$c['id'];moderate('request',$c['id'],'Approved','Disposable manual pickup integration fixture.');$r=research($c['id']);return [$r,wf_tasks($r['id'])[0]];}
+/** Render the real private controls; reads may never renew, release, submit or rewrite authority. */
+function pview(array $r,array $task,array $grant,?array $continuation=null): string {
+ $fingerprint=fn()=>[one('SELECT scope,consent,identity_id,result_id FROM browser_returns WHERE id=?',[$grant['id']]),all('SELECT * FROM task_reservations WHERE research_id=? AND task_id=? ORDER BY id',[$r['id'],$task['id']]),one('SELECT COUNT(*) n FROM workflow_submissions WHERE research_id=?',[$r['id']])];$before=$fingerprint();
+ $reservationForm='workflow-result';$reservationMessage='';$reservationHandoff='';$error='';$status=$continuation?sr_status($r,$grant):null;$issuedLink=$continuation['link']??null;
+ ob_start();include ROOT.'/views/'.($continuation?'volunteer-continuation':'task-reservation').'.php';$html=ob_get_clean();
+ pc($fingerprint()===$before,'Rendering private recovery controls preserves leases, signed scope, consent, identity and result count');return $html;
+}
+function pactions(string $html): array {preg_match_all('~value="reservation-(renew|release|claim)"~',$html,$matches);return $matches[1];}
 try{
  [$r,$task]=pf();$actor=wf_actor();$other=hash('sha256',uid());
  pc(mp_next($r)['id']===$task['id'],'Study pickup finds an eligible task');
@@ -40,18 +48,39 @@ try{
  $issued=mp_issued($r,mp_authorized_pickup($r,$post));$grant=$issued['grant'];$originalActor=$grant['actor_hash'];
  pc($issued['task']['id']===$task['id'],'Authorized study pickup binds its actual selected task');
  pc($originalActor===$actor&&wr_live($r['id'],$task['id'])['actor_hash']===$actor,'Authorized pickup retains original volunteer actor');
+ pc(pactions(pview($r,$task,$grant))===['renew','release'],'Exact original active lease shows only Renew and Release authority');
  $public=wf_read_handoff($r['id'],$issued['archive_id'])['body'];
  pc(!str_contains($public,'PRIVATE VOLUNTEER AUTHORIZATION SUPPLEMENT')&&!str_contains($public,'Private return link:'),'Private authorization is not in public archives');
  mp_control($r,$task,'renew',1,$grant);
  pc(wr_live($r['id'],$task['id'])['actor_hash']===$originalActor,'Original volunteer can renew a just-issued handoff without a fragment exchange');
+ $original=one('SELECT scope,consent,identity_id,expires_at FROM browser_returns WHERE id=?',[$grant['id']]);mp_control($r,$task,'release',1,$grant);
+ pc(pactions(pview($r,$task,$grant))===['claim'],'Released original authorized handoff visibly offers explicit Reacquire reservation');
+ $continuation=sr_continue($r,$grant['id']);query('UPDATE browser_returns SET expires_at=? WHERE id=?',[wr_stamp($clock),$grant['id']]);
+ pc(pactions(pview($r,$task,$grant))===[],'Expired permission offers no lease mutation controls');
+ $expiredGrant=ar_read($r,$grant['id'],false);$recoveryHtml=pview($r,$task,$expiredGrant,$continuation);
+ pc(substr_count($recoveryHtml,'action="/continue/'.$continuation['id'].'"')===2&&str_contains($recoveryHtml,'class="continuation-controls"')&&str_contains($recoveryHtml,'name="operation" value="reauthorize"'),'Operational and human reauthorization forms use the explicit scoped continuation route, including the initial issuance response');
+ preg_match_all('~<input[^>]*type="checkbox"[^>]*>~',$recoveryHtml,$agreements);pc(count($agreements[0])===3&&count(array_filter($agreements[0],fn($input)=>str_contains($input,'required')&&!str_contains($input,'checked')))===3&&str_contains($recoveryHtml,'name="csrf" value="'.e($_SESSION['csrf']).'"'),'Recovery retains deliberate unchecked legal/resource authorization and CSRF');
+ query('UPDATE browser_returns SET expires_at=? WHERE id=?',[$original['expires_at'],$grant['id']]);$changedConsent=json_decode($original['consent'],true);$changedConsent['terms_version']='obsolete-qa-terms';query('UPDATE browser_returns SET consent=? WHERE id=?',[json_encode($changedConsent),$grant['id']]);
+ pc(pactions(pview($r,$task,$grant))===[],'Changed terms cannot expose reacquisition through a released grant');query('UPDATE browser_returns SET consent=? WHERE id=?',[$original['consent'],$grant['id']]);
+ query('UPDATE browser_returns SET revoked_at=? WHERE id=?',[wr_stamp(),$grant['id']]);pc(pactions(pview($r,$task,$grant))===[],'Revoked private grant exposes no lease mutation controls');query('UPDATE browser_returns SET revoked_at=NULL WHERE id=?',[$grant['id']]);
+ query('UPDATE workflow_tasks SET revision=revision+1 WHERE id=?',[$task['id']]);pc(pactions(pview($r,wf_task($r['id'],$task['id']),$grant))===[],'Changed task revision cannot expose reacquisition');query('UPDATE workflow_tasks SET revision=? WHERE id=?',[$task['revision'],$task['id']]);
+ $unproven=json_decode($original['scope'],true);unset($unproven['reservation_id']);$unproven['archive_id']=uid();query('UPDATE browser_returns SET scope=? WHERE id=?',[json_encode($unproven),$grant['id']]);pc(pactions(pview($r,$task,$grant))===[],'An unproven legacy original lease exposes no reacquisition authority');query('UPDATE browser_returns SET scope=? WHERE id=?',[$original['scope'],$grant['id']]);
+ mp_control($r,$task,'claim',1,$grant);$recovered=one('SELECT scope,consent,identity_id FROM browser_returns WHERE id=?',[$grant['id']]);$signedBefore=json_decode($original['scope'],true);$signedAfter=json_decode($recovered['scope'],true);unset($signedBefore['reservation_id'],$signedAfter['reservation_id']);
+ pc($signedBefore===$signedAfter&&$recovered['consent']===$original['consent']&&$recovered['identity_id']===$original['identity_id']&&pactions(pview($r,$task,$grant))===['renew','release'],'Explicit same-task reacquisition restores exact-bound controls without changing signed fields, consent or identity');
  $_SESSION['browser_returns'][$grant['id']]=$grant['secret_hash'];
  $_SESSION['workflow_actor']=bin2hex(random_bytes(32));
  $clock+=20;mp_control($r,$task,'renew',1,$grant);
  pc(wr_live($r['id'],$task['id'])['actor_hash']===$originalActor,'Authorized separate-browser controls preserve volunteer ownership');
  $clock+=3600;pc(mp_state($r,$task,$originalActor)['expired'],'Exact expiry offers explicit reacquisition');
+ pc(pactions(pview($r,$task,$grant))===['claim'],'Expired lease with still-active captured permission visibly offers explicit reacquisition');
  $claim=mp_control($r,$task,'claim',1,$grant);
  pc($claim['handoff']===$public,'Reacquisition retains original authorized research instructions and identifiers');
- mp_control($r,$task,'release',1,$grant);wr_claim($r['id'],$task['id'],1,$other);
+ mp_control($r,$task,'release',1,$grant);$replacement=wr_claim($r['id'],$task['id'],1,$originalActor);
+ pc(pactions(pview($r,$task,$grant))===[],'Same-actor replacement lease grants no Renew, Release or Reacquire control to the old credential');
+ foreach(['renew','release','claim'] as $operation)pd(fn()=>mp_control($r,$task,$operation,1,$grant),409,'Old scoped credential cannot '.$operation.' another assignment lease');
+ pc(wr_live($r['id'],$task['id'])['id']===$replacement['id']&&wr_live($r['id'],$task['id'])['expires_at']===$replacement['expires_at'],'Rejected old controls leave the same-owner replacement lease exact');
+ wr_release($r['id'],$task['id'],$originalActor);wr_claim($r['id'],$task['id'],1,$other);
+ pc(pactions(pview($r,$task,$grant))===[],'A different holder exposes no mutation controls to the original private grant');
  pd(fn()=>mp_control($r,$task,'claim',1,$grant),409,'Expired authorized worker cannot displace another holder');
  pc(wr_live($r['id'],$task['id'])['actor_hash']===$other,'Conflicting holder remains unchanged');
  pd(fn()=>mp_control($r,$task,'claim',2,$grant),409,'Control cannot silently replace a signed revision');
