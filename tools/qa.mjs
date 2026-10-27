@@ -250,6 +250,7 @@ try{
   state=JSON.parse(runPhp(['tests/qa-state.php','lookup',rid]));const review=state.contributions.find(c=>c.kind==='Independent review').id;
   await goto(ap,'/admin/research/'+rid);await moderate(ap,'contribution',review);
   const ledger=ap.locator('#ledger form');await revealAdminControls(ledger);await ledger.locator('[name=classification]').selectOption('Verified');await ledger.locator('[name=statement]').fill('Synthetic fixture: a documented independent check was recorded.');await ledger.locator('[name=rationale]').fill('The approved review checks this synthetic fixture only, not a scientific claim.');await ledger.locator('[name=evidence]').fill(cid+','+review);await ledger.getByRole('button',{name:'Add finding to ledger'}).click();
+  await revealAdminControls(ap.getByText('Synthetic fixture: a documented independent check was recorded.',{exact:true}));
   check('Finding saved',await ap.getByText('Synthetic fixture: a documented independent check was recorded.',{exact:true}).isVisible());
   const statusForm=ap.locator('form').filter({has:ap.locator('input[name=action][value=status]')});
   await revealAdminControls(statusForm);await statusForm.locator('[name=status]').selectOption('Potential Answer — Needs Verification');await statusForm.locator('[name=reason]').fill('A proposed answer is available for broader verification.');await statusForm.getByRole('button').click();

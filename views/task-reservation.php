@@ -1,5 +1,22 @@
-<?php $reservation=mp_state($r,$task,$grant['actor_hash']??null);
-if(!empty($grant)){try{$grant=ar_read($r,$grant['id'],false);if($grant['result_id'])fail(409,'This authorization already has a recorded receipt.');ar_validate($r,$grant);}catch(HttpError $e){$reservation=['eligible'=>false,'owned'=>false,'available'=>false,'expired'=>false,'message'=>$e->getMessage().' Keep your entered work; do not replace signed identifiers.'];}}
+<?php
+if(empty($grant))$reservation=mp_state($r,$task);
+else{
+    try{
+        // Use the current scoped capability, never ownership inferred only from the actor's live lease.
+        $authority=sr_authority($r,$grant['id']);$grant=$authority['grant'];$status=$authority['status'];
+        if($status['recorded'])fail(409,'This authorization already has a recorded receipt.');
+        $owned=$status['can_renew'];$available=$status['can_reacquire']&&!$owned;
+        $message=match(true){
+            $owned=>'Reserved for you until '.$status['lease_expires_at'].' UTC',
+            $available=>'No active reservation. Reacquire this assignment before submitting; your entered work and signed identifiers are unchanged.',
+            $status['permission']!=='active'=>$status['permission_reason'],
+            $status['lease']==='other_holder'=>'In progress — reserved until '.$status['lease_expires_at'].' UTC. This assignment cannot displace its holder.',
+            $status['lease']==='other_assignment'=>'A different assignment now holds this task. This authorization cannot manage its reservation.',
+            default=>'The original reservation is unavailable or cannot be proven. Use private recovery controls; do not replace signed identifiers.'
+        };
+        $reservation=['eligible'=>$owned||$available,'owned'=>$owned,'available'=>$available,'expired'=>$status['lease']==='expired','message'=>$message];
+    }catch(HttpError $e){$reservation=['eligible'=>false,'owned'=>false,'available'=>false,'expired'=>false,'message'=>$e->getMessage().' Keep your entered work; do not replace signed identifiers.'];}
+}
 ?>
 <aside class="task-reservation" data-reservation-panel>
 <p class="fine" data-reservation-status role="status" aria-live="polite"><strong><?=e($reservation['message'])?></strong></p>
