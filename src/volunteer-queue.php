@@ -89,13 +89,16 @@ function vs_claim_next(string $id,?string $claimKey=null): array {
         $after='';
         do {
             $parameters=[$after];
-            $scope='';
-            if ($session['scope_kind']==='category') { $scope=' AND r.category_id=?'; $parameters[]=$session['scope_id']; }
+            $scope=$session['scope_kind']==='research'?'':' AND r.discovery_listed=1';
+            if ($session['scope_kind']==='category') { $scope.=' AND r.category_id=?'; $parameters[]=$session['scope_id']; }
             if ($session['scope_kind']==='research') { $scope=' AND r.id=?'; $parameters[]=$session['scope_id']; }
             $candidates=all("SELECT t.id,t.research_id FROM workflow_tasks t JOIN workflow_projects p ON p.research_id=t.research_id AND p.round_no=t.round_no JOIN research r ON r.id=t.research_id WHERE t.id>? AND t.state='Ready' AND t.visibility='public' AND r.moderation='Approved' AND r.status NOT IN ('Withdrawn','Paused','Solved','Archived — Inactive','Review Complete','Blocked','Needs Clarification')".$scope.' ORDER BY t.id LIMIT 50',$parameters);
             foreach ($candidates as $candidate) {
                 $after=$candidate['id'];
                 try {
+                    // Serialize a new default pickup with the audited listing choice. Existing assignments retain permission.
+                    $listing=one('SELECT discovery_listed FROM research WHERE id=? FOR UPDATE',[$candidate['research_id']]);
+                    if(!$listing||($session['scope_kind']!=='research'&&!$listing['discovery_listed']))continue;
                     $r=research($candidate['research_id']); $task=wf_task($r['id'],$candidate['id']);
                     vs_task_eligible($session,$r,$task);
                     $live=wr_live($r['id'],$task['id']);

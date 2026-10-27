@@ -14,6 +14,7 @@ if($path==='/admin/login') {
     render('login',['title'=>'Administrator sign in']); return;
 }
 if(!admin()) redirect('/admin/login');
+require_once __DIR__.'/admin-catalogue.php';
 if($path==='/admin/audit'){render('audit-site',['title'=>'Site audit ledger']);return;}
 if($path==='/admin/workflow-policy'){
     if($method==='POST'){wf_save_policy(text_field($_POST,'models',2,10000),text_field($_POST,'reason',10,500));flash('Planning policy updated. Existing runs retain their captured policy.');redirect('/admin/workflow-policy');}
@@ -111,6 +112,13 @@ if(preg_match('~^/admin/research/([a-f0-9]{32})$~',$path,$m)) {
         elseif($action==='workflow-influence-review')wf_review_influence($rid,text_field($_POST,'result_id',32,32),text_field($_POST,'reason',10,1000),text_field($_POST,'decision',1,20));
         elseif($action==='workflow-remove')wf_remove_result($rid,text_field($_POST,'result_id',32,32),text_field($_POST,'reason',10,500));
         elseif($action==='workflow-restart'){tx(function()use($rid){one('SELECT id FROM research WHERE id=? FOR UPDATE',[$rid]);wf_restart($rid,text_field($_POST,'reason',10,500));});}
+        elseif($action==='discovery-listing') {
+            $listed=text_field($_POST,'discovery_listed',1,1);
+            if(!in_array($listed,['0','1'],true))fail(422,'Choose listed or unlisted.');
+            admin_set_discovery_listing($rid,$listed==='1',text_field($_POST,'reason',10,500));
+            flash($listed==='1'?'Research listed in discovery.':'Research unlisted from discovery. Direct links retain their normal access checks.');
+            redirect('/admin/research/'.$rid);
+        }
         elseif($action==='status') change_status($rid,text_field($_POST,'status'),text_field($_POST,'reason',10),'administrator');
         elseif($action==='finding') add_finding($rid,$_POST);
         elseif($action==='purge') { purge_request($rid,text_field($_POST,'confirmation')); flash('Research purged. Check system maintenance for any file-cleanup retries.'); redirect('/admin'); }
