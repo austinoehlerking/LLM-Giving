@@ -2,5 +2,5 @@ Options -Indexes
 DirectoryIndex index.php
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} -f
-RewriteRule ^(assets/(app\.css|library\.css|brand\.css|app\.js|ai-selection\.js|analytics\.js|submission\.css|submission\.js|receipt\.css|receipt\.js|orchestrator\.js|volunteer-wizard\.css|volunteer-wizard\.js|volunteer\.css|volunteer\.js|request-setup\.js|workflow\.css|workflow\.js|pickup\.js|blog\.css|forks\.css|artifacts\.css|artifacts\.js|home-hero\.css|home-hero\.js|research-community\.webp|llm-giving-social-v1\.jpg)|favicon\.svg)$ - [L]
+RewriteRule ^(assets/(app\.css|library\.css|brand\.css|app\.js|ai-selection\.js|analytics\.js|submission\.css|submission\.js|receipt\.css|receipt\.js|orchestrator\.js|volunteer-wizard\.css|volunteer-wizard\.js|volunteer\.css|volunteer\.js|request-setup\.js|workflow\.css|workflow\.js|research-transport\.js|pickup\.js|blog\.css|forks\.css|artifacts\.css|artifacts\.js|home-hero\.css|home-hero\.js|research-community\.webp|llm-giving-social-v1\.jpg)|favicon\.svg)$ - [L]
 RewriteRule ^ index.php [QSA,L]
