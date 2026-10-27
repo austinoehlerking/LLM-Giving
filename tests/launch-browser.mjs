@@ -1,5 +1,5 @@
 import {revealAdminControls} from './admin-controls.mjs';
-import {authorizedHandoff} from './browser-authorization.mjs';
+import {authorizedHandoff,openResearchHelp} from './browser-authorization.mjs';
 import fs from 'node:fs';import path from 'node:path';import {root} from '../tools/runtime.mjs';
 export async function launchQa({page,ctx,base,runPhp,check,visibleActions,password}){
  const out=path.join(root,'storage/qa/launch-safeguards');fs.mkdirSync(out,{recursive:true});const shots=[];
@@ -20,7 +20,7 @@ export async function launchQa({page,ctx,base,runPhp,check,visibleActions,passwo
  const url=base+'/research/'+f.slug;await page.goto(url);
  const copied=await authorizedHandoff(page);const archiveHref=await page.locator('[data-issued-archive]').getAttribute('href'),id=archiveHref.split('/').pop();const issued=await page.request.get(base+archiveHref),original=await issued.body();check('Copy succeeds below quota',issued.status()===200);check('Private handoff preserves public archive bytes',copied.split('\n\nPRIVATE VOLUNTEER AUTHORIZATION SUPPLEMENT')[0]===original.toString('utf8'));await page.goto(url);await shot('copy-success');
  for(let i=1;i<60;i++){const r=await page.request.get(url+'/handoff.md');check('Copy quota allows issuance '+(i+1),r.status()===200);}
- await page.locator('[data-authorize-url]').click();await page.locator('[name=authorize]').check();await page.locator('[name=terms]').check();await page.locator('[name=human_level]').selectOption('none');const blocked=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/authorize/'));await page.getByRole('button',{name:'Copy authorized handoff'}).click();const denied=await blocked;check('61st copy blocked with retry guidance',denied.status()===429&&denied.headers()['retry-after']==='3600');await page.getByRole('alert').filter({hasText:'Copy limit reached'}).waitFor();await shot('copy-limit');
+ await openResearchHelp(page);await page.locator('[data-authorize-url]').click();await page.locator('[name=authorize]').check();await page.locator('[name=terms]').check();await page.locator('[name=human_level]').selectOption('none');const blocked=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/authorize/'));await page.getByRole('button',{name:'Copy authorized handoff'}).click();const denied=await blocked;check('61st copy blocked with retry guidance',denied.status()===429&&denied.headers()['retry-after']==='3600');await page.getByRole('alert').filter({hasText:'Copy limit reached'}).waitFor();await shot('copy-limit');
  const archive=await page.request.get(url+'/issued/'+id);check('Archive still readable after copy limit',archive.status()===200&&(await archive.body()).equals(original));
  fs.writeFileSync(path.join(out,'index.html'),'<meta charset="utf-8"><title>Launch safeguards QA</title><style>body{background:#14202a;color:#fff;font:16px system-ui}img{max-width:100%;border:1px solid #789}section{margin:2rem}</style><h1>Summary and archive safeguards</h1>'+shots.map(s=>'<section><h2>'+s+'</h2><img src="'+s+'"></section>').join(''));
 }

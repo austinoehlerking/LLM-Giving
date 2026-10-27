@@ -1,6 +1,6 @@
 import {revealAdminControls} from './admin-controls.mjs';
 import {reservationPickup} from './reservation-browser-support.mjs';
-import {authorizedHandoff} from './browser-authorization.mjs';
+import {authorizedHandoff,openResearchHelp} from './browser-authorization.mjs';
 import fs from 'node:fs';import path from 'node:path';import {root} from '../tools/runtime.mjs';
 export async function citationQa({page,ctx,base,runPhp,check,visibleActions,password}){
  const out=path.join(root,'storage/qa/citations');fs.mkdirSync(out,{recursive:true});const shots=[];
@@ -8,10 +8,10 @@ export async function citationQa({page,ctx,base,runPhp,check,visibleActions,pass
  const completed=JSON.parse(runPhp(['tests/completed-workflow-state.php']));const real=base+'/research/'+completed.slug;
  for(const size of [{width:1366,height:768},{width:390,height:844},{width:375,height:667}]){
   await page.setViewportSize(size);await page.goto(real);await shot('research-'+size.width);await visibleActions(page,'.research-heading .primary-actions > *','Cite research '+size.width);
-  await page.getByRole('button',{name:'Cite this research',exact:true}).first().click();await page.getByText('Citation copied. Include it when reusing this research.',{exact:true}).waitFor();const text=await page.evaluate(()=>navigator.clipboard.readText());
+  await openResearchHelp(page);await page.getByRole('button',{name:'Cite this research',exact:true}).first().click();await page.getByText('Citation copied. Include it when reusing this research.',{exact:true}).waitFor();const text=await page.evaluate(()=>navigator.clipboard.readText());
   check('Clipboard includes exact result URL and CC BY '+size.width,text.includes('/results/')&&text.includes('UTC')&&text.includes('https://creativecommons.org/licenses/by/4.0/'));
  }
- await page.setViewportSize({width:1366,height:768});await page.goto(real);await page.evaluate(()=>{navigator.clipboard.writeText=async()=>{throw new Error('Clipboard denied by test');};});await page.getByRole('button',{name:'Cite this research',exact:true}).first().click();check('Denied clipboard reveals selected manual citation',await page.locator('.research-citation details').evaluate(el=>el.open));await shot('manual-citation');
+ await page.setViewportSize({width:1366,height:768});await page.goto(real);await page.evaluate(()=>{navigator.clipboard.writeText=async()=>{throw new Error('Clipboard denied by test');};});await openResearchHelp(page);await page.getByRole('button',{name:'Cite this research',exact:true}).first().click();check('Denied clipboard reveals selected manual citation',await page.locator('.research-citation details').evaluate(el=>el.open));await shot('manual-citation');
  const licenseResponse=await page.request.get(base+'/legal/licensing');console.log('Licensing HTTP status: '+licenseResponse.status());fs.writeFileSync(path.join(out,'licensing-response.html'),await licenseResponse.text());
  await page.goto(base+'/legal/licensing');check('Live licensing no longer says CC0',!(await page.locator('main').innerText()).includes('CC0'));await shot('licensing');
  const f=JSON.parse(runPhp(['tests/workflow-browser-state.php','create']));

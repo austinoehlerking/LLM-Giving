@@ -1,3 +1,4 @@
+import {openResearchHelp} from './browser-authorization.mjs';
 import {completeContextEnvelope} from './session-reliability-browser.mjs';
 import fs from 'node:fs';import path from 'node:path';import {root} from '../tools/runtime.mjs';
 export async function manualPickupQa({page,ctx,base,runPhp,check,visibleActions}){
@@ -45,7 +46,7 @@ export async function manualPickupQa({page,ctx,base,runPhp,check,visibleActions}
   check('Missing CSRF cannot renew',(await page.request.post(task+'/reservation',{form:{operation:'renew',task_revision:'1'}})).status()===403);
   await op.goto(task);check('Competing browser sees reserved-until status',(await op.locator('[data-reservation-status]').innerText()).startsWith('In progress — reserved until '));
   const denied=await op.request.post(task+'/pickup',{form:{csrf:await csrf(op),task_revision:'1'}});check('Competing anonymous pickup is rejected atomically',denied.status()===409&&lease(f).expires===expiry);
-  await op.goto(url);check('Study with no available task explains reserved state',(await op.locator('[data-handoff-status]').innerText()).includes('reserved')&&await op.getByRole('link',{name:'Copy AI handoff',exact:true}).count()===0);
+  await op.goto(url);check('Study with no available task explains reserved state',(await op.locator('.reader-availability').innerText()).includes('reserved')&&await op.getByRole('link',{name:'Copy AI handoff',exact:true}).count()===0);
   await initial(page,task,'holder-task','.workflow-heading .primary-actions > *,[data-reservation-panel] button');
   const draft='{"submission_key":"keep-original","task_revision":1,"draft":"Unfinished synthetic work must survive lease actions."}';
   await page.locator('[name=payload]').fill(draft);await page.locator('[name=human_level]').selectOption('none');
@@ -71,7 +72,7 @@ export async function manualPickupQa({page,ctx,base,runPhp,check,visibleActions}
   await np.getByRole('button',{name:'Reserve task',exact:true}).press('Enter');check('Native reacquisition retains entered work and complete research text',(await np.locator('[name=payload]').inputValue())===draft&&await np.getByLabel('Reservation research handoff').count()===1);
   await np.getByRole('button',{name:'Release task',exact:true}).press('Enter');
   const af=make(),au=base+'/research/'+af.slug;
-  await page.goto(au);await page.getByRole('link',{name:'Copy AI handoff',exact:true}).click();check('Authorization GET does not claim',lease(af).active_count===0);
+  await page.goto(au);await openResearchHelp(page);await page.getByRole('link',{name:'Copy AI handoff',exact:true}).click();check('Authorization GET does not claim',lease(af).active_count===0);
   await page.locator('[name=authorize]').check();await page.locator('[name=terms]').check();await page.locator('[name=human_level]').selectOption('none');await page.getByRole('button',{name:'Copy authorized handoff',exact:true}).click();
   await initial(page,null,'authorized-handoff','.return-start .primary-actions > *,[data-reservation-panel] button');
   const text=await page.locator('#authorized-handoff').inputValue(),link=text.match(/Private return link: (http[^\s]+)/)[1],gid=new URL(link).pathname.split('/').pop();let authorizationExpiry=lease(af).expires;

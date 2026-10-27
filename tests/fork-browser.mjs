@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {openResearchHelp} from './browser-authorization.mjs';
 import path from 'node:path';
 import {root} from '../tools/runtime.mjs';
 import {saveManagementLink} from './receipt-actions.mjs';
@@ -13,7 +14,7 @@ export async function forkQa({page,ctx,base,runPhp,check,visibleActions,report})
   for(const size of sizes){
    await page.setViewportSize(size);await page.goto(source);await shot(page,'source-'+size.width+'x'+size.height);
    await visibleActions(page,'.research-heading .primary-actions > *','Fork source '+size.width);viewports.push({size,source:true});
-   await page.getByRole('link',{name:'Fork this question',exact:true}).press('Enter');
+   await openResearchHelp(page);await page.getByRole('link',{name:'Fork this question',exact:true}).press('Enter');
    await page.locator('#copy-setup-prompt').waitFor({state:'visible'});await shot(page,'form-'+size.width+'x'+size.height);
    await visibleActions(page,'#copy-setup-prompt,.fork-form input[name=title],.fork-form textarea[name=question]','Fork creation '+size.width);viewports.push({size,creation:true});
    check('New question starts blank '+size.width,await page.locator('[name=title]').inputValue()===''&&await page.locator('[name=question]').inputValue()==='');
@@ -80,7 +81,7 @@ export async function forkQa({page,ctx,base,runPhp,check,visibleActions,report})
   check('Enlarged inherited text reflows',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
   const native=await ctx.browser().newContext({javaScriptEnabled:false,viewport:sizes[2]});const nojs=await native.newPage();
   try{
-   await nojs.goto(source);await nojs.getByRole('link',{name:'Fork this question',exact:true}).press('Enter');await shot(nojs,'no-js-initial');
+   await nojs.goto(source);await openResearchHelp(nojs);await nojs.getByRole('link',{name:'Fork this question',exact:true}).press('Enter');await shot(nojs,'no-js-initial');
    await visibleActions(nojs,'.fork-form input[name=title],.fork-form textarea[name=question]','No-JS fork creation');
    await nojs.locator('[data-fork-background] > details > summary').press('Enter');check('No-JS inherited disclosure works',await nojs.locator('[data-fork-background]').innerText().then(text=>text.includes('Synthetic research contributor')));
    await nojs.locator('[name=title]').fill('[QA] Native HTML related question');await nojs.locator('[name=question]').fill('Can an independent related request be created with native HTML forms and no JavaScript?');

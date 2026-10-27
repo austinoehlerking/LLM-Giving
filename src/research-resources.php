@@ -202,7 +202,7 @@ function rs_read(string $rid,string $resultId): array {
 function rs_route(array $r,string $suffix,string $method): bool {
     if($suffix==='resources'){
         if($method!=='GET')fail(405,'Resources are read-only.');
-        render('research-resources',['title'=>'Resources & sources','r'=>$r,'resources'=>rs_catalogue($r['id'])]);return true;
+        render('research-resources',['title'=>'Resources & sources','r'=>$r,'resources'=>rs_source_index(rs_catalogue($r['id']),$_GET)]);return true;
     }
     if(!preg_match('~^(results|contributions)/([a-f0-9]{32})/resources/(datasets/([a-z][a-z0-9_-]{0,39})\.csv|files/([a-z][a-z0-9_-]{0,39}))$~D',$suffix,$m))return false;
     if($method!=='GET')fail(405,'Supporting material is read-only.');
@@ -215,4 +215,24 @@ function rs_route(array $r,string $suffix,string $method): bool {
         header('Content-Type: text/plain; charset=utf-8');header('Content-Disposition: attachment; filename="'.$file['name'].'"');echo $file['content'];return true;
     }
     fail(404,'Supporting material not found.');
+}
+
+/** Search/paginate the public catalogue without changing any retained source or provenance. */
+function rs_source_index(array $catalogue,array $input): array {
+    $filters=[];
+    foreach(['q','access','use'] as $key){if(isset($input[$key])&&!is_string($input[$key]))fail(400,'Invalid source filter.');$filters[$key]=trim($input[$key]??'');}
+    if(strlen($filters['q'])>200)fail(400,'Source search is limited to 200 bytes.');
+    if(!in_array($filters['access'],['','full_text','abstract_only','unavailable'],true)||!in_array($filters['use'],['','used','background','rejected','historical'],true))fail(400,'Choose an available source filter.');
+    $results=[];$records=0;$matches=[];
+    foreach($catalogue['sources'] as $group){
+        foreach($group['contributions'] as $entry){$results[$entry['result_id']]=true;$records++;}
+        $eligible=array_filter($group['contributions'],function($entry)use($filters){
+            $source=$entry['source'];
+            return (!$filters['access']||$source['access']===$filters['access'])&&(!$filters['use']||($source['use']??'historical')===$filters['use'])&&(!$filters['q']||stripos(json_encode([$source,$entry['display_name'],$entry['uses']],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),$filters['q'])!==false);
+        });
+        // A matching source keeps every attribution and use, including those that differ from the filter.
+        if($eligible)$matches[]=$group;
+    }
+    $total=count($matches);$page=max(1,min(max(1,(int)ceil($total/12)),(int)(is_scalar($input['page']??1)?($input['page']??1):1)));
+    return array_replace($catalogue,['sources'=>array_slice($matches,($page-1)*12,12),'filters'=>$filters,'page'=>$page,'pages'=>max(1,(int)ceil($total/12)),'matching_sources'=>$total,'source_count'=>count($catalogue['sources']),'contribution_count'=>count($results),'source_record_count'=>$records]);
 }
