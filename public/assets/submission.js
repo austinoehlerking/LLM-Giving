@@ -77,30 +77,39 @@ if(requestForm){
  resizeAll();updateProjectType();validateRequest();
  const preview=document.getElementById('request-preview');
  const content=document.getElementById('request-preview-content');
- const labels={calculation_help:'Calculation help needed',external_tools:'External tool access',required_software:'Required software and versions',setup_needs:'Downloads and setup needed',project_type:'Project type',tool_intended_users:'Intended users and scientific use',tool_requirements:'Bounded requirements and exclusions',tool_inputs_outputs:'Inputs, outputs and units',tool_validation_plan:'Reference cases and test expectations',tool_maintenance:'Maintenance plan or experimental status',title:'Research title',question:'Research objective',category_id:'Category',context:'Background and context',success:'Desired outcome',previous:'Previous research',constraints_text:'Limitations or constraints',questions:'Specific questions',references_text:'References and source URLs',tags:'Tags',display_name:'Public attribution',linkedin:'LinkedIn URL',github:'GitHub URL',website:'Website URL',email:'Private email (not published)'};
+ const labels={title:'Research title',question:'Research objective',category_id:'Category',calculation_help:'Calculation help needed',external_tools:'External tool access',required_software:'Required software and versions',setup_needs:'Downloads and setup needed',project_type:'Project type',tool_intended_users:'Intended users and scientific use',tool_requirements:'Bounded requirements and exclusions',tool_inputs_outputs:'Inputs, outputs and units',tool_validation_plan:'Reference cases and test expectations',tool_maintenance:'Maintenance plan or experimental status',context:'Background and context',success:'Desired outcome',previous:'Previous research',constraints_text:'Limitations or constraints',questions:'Specific questions',references_text:'References and source URLs',tags:'Tags',display_name:'Public attribution',linkedin:'LinkedIn URL',github:'GitHub URL',website:'Website URL',email:'Private email (not published)'};
  const editButton=document.getElementById('edit-request');
  const reviewButton=document.getElementById('review-request');
+ requestForm.dataset.requestEnhanced='';
+ const basics=requestForm.querySelector('[data-request-basics]'),nextStep=requestForm.querySelector('[data-request-next-step]'),editBasics=requestForm.querySelector('[data-request-edit-basics]');
+ function showBasics(){basics.hidden=false;nextStep.open=false;editBasics.hidden=true;preview.hidden=true;requestForm.hidden=false;basics.querySelector('[name=title]').focus({preventScroll:true});scrollTo(0,0);}
+ nextStep.addEventListener('toggle',()=>{if(nextStep.open){basics.hidden=true;editBasics.hidden=false;scrollTo(0,0);}else{basics.hidden=false;editBasics.hidden=true;}});
+ editBasics.addEventListener('click',showBasics);
  reviewButton.hidden=false;
  reviewButton.addEventListener('click',()=>{
   content.replaceChildren();
+  const settings=document.createElement('section'),settingsTitle=document.createElement('h3'),settingsList=document.createElement('dl');settingsTitle.textContent='Research settings';settings.className='request-settings-summary';settings.append(settingsTitle,settingsList);
+  const settingNames=['category_id','project_type','calculation_help','external_tools','required_software','setup_needs'];
   for(const [name,label] of Object.entries(labels)){
    const field=requestForm.elements.namedItem(name);
    if(field.disabled)continue;
    const value=field.tagName==='SELECT'?(field.value?field.selectedOptions[0].textContent:''):field.value.trim()||(name==='setup_needs'?'None specified':'');
    if(!value && !['title','question','category_id'].includes(name))continue;
+   if(settingNames.includes(name)){const term=document.createElement('dt'),description=document.createElement('dd');term.textContent=label;description.textContent=value;settingsList.append(term,description);continue;}
    const section=document.createElement('section'),heading=document.createElement('h3'),body=document.createElement('p');
    heading.textContent=label;body.textContent=value||'Not provided — complete before submitting.';
    section.append(heading,body);content.append(section);
   }
+  content.insertBefore(settings,content.children[2]||null);
   const inherited=requestForm.querySelector('[data-fork-background]');if(inherited)content.append(inherited.cloneNode(true));
   const ai=document.createElement('section'),aiHeading=document.createElement('h3'),aiBody=document.createElement('p');aiHeading.textContent='AI requirements';aiBody.textContent=requestForm.querySelector('[data-ai-summary]').textContent;ai.append(aiHeading,aiBody);content.append(ai);
   const files=requestForm.elements.namedItem('attachments[]').files;
   if(files.length){const heading=document.createElement('h3'),list=document.createElement('ul');heading.textContent='Files (require separate approval)';for(const file of files){const item=document.createElement('li');item.textContent=file.name;list.append(item);}content.append(heading,list);}
-  preview.hidden=false;preview.focus();preview.scrollIntoView({block:'start',behavior:'instant'});
+  requestForm.hidden=true;preview.hidden=false;preview.focus({preventScroll:true});scrollTo(0,0);
  });
- editButton.addEventListener('click',()=>{preview.hidden=true;reviewButton.focus();});
+ editButton.addEventListener('click',()=>{preview.hidden=true;requestForm.hidden=false;basics.hidden=false;editBasics.hidden=false;basics.querySelector('[name=title]').focus({preventScroll:true});scrollTo(0,0);});
  // A native validation error can be inside a collapsed optional section.
- requestForm.addEventListener('invalid',event=>{validationAttempted=true;validateRequest();const details=event.target.closest('details');if(details)details.open=true;},true);
+ requestForm.addEventListener('invalid',event=>{validationAttempted=true;requestForm.hidden=false;preview.hidden=true;validateRequest();if([...basics.querySelectorAll('input,textarea,select')].some(field=>field.willValidate&&!field.validity.valid)){basics.hidden=false;nextStep.open=false;}else{nextStep.open=true;const details=event.target.closest('details');if(details)details.open=true;}},true);
  requestForm.addEventListener('input',()=>{preview.hidden=true;});
  requestForm.addEventListener('change',()=>{preview.hidden=true;});
 }

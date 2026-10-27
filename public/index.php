@@ -74,11 +74,14 @@ if(preg_match('~^/manage/([a-f0-9]{32})(/exchange|/rotate)?$~',$path,$m)) {
         require_manager($rid);
         if(($_POST['action']??'')==='ai-requirements'){rq_update($rid,$_POST);flash('AI requirements saved. Copy a fresh handoff before starting research.');redirect('/manage/'.$rid);}
         if(($_POST['action']??'')==='workflow-resolve'){wf_resolve($rid,text_field($_POST,'response',20,30000),text_field($_POST,'reason',10,500),'requester',(int)($_POST['round_no']??0));flash('Response recorded. A new planning task is ready.');redirect('/manage/'.$rid);}
-        if(($_POST['action']??'')==='status') change_status($rid,text_field($_POST,'status'),text_field($_POST,'reason',10),'requester');
+        if(($_POST['action']??'')==='status') {
+            $newStatus=text_field($_POST,'status');change_status($rid,$newStatus,text_field($_POST,'reason',10),'requester');
+            flash(match($newStatus){'Withdrawn'=>'Request withdrawn. It and its associated content are hidden from the public.','Paused'=>'Request paused. New research work is on hold.','Solved'=>'Request marked solved.',default=>'Request status updated.'});redirect('/manage/'.$rid);
+        }
         elseif(($_POST['action']??'')==='revision') {
             insert('revisions',['id'=>uid(),'research_id'=>$rid,'title'=>text_field($_POST,'title',8,180),'question'=>text_field($_POST,'question',20),'context'=>text_field($_POST,'context'),'moderation'=>'Pending Approval','moderation_reason'=>'','flags'=>suspicious(json_encode($_POST))?'Suspicious instructions':'','created_at'=>now()]);
         } else fail(422,'Invalid request action.');
-        flash('Saved. Proposed content changes require administrative approval.'); redirect('/manage/'.$rid);
+        flash('Update submitted for approval. Published content stays unchanged until an administrator approves it.'); redirect('/manage/'.$rid);
     }
     $authorized=true;
     try { require_manager($rid); } catch(HttpError) { $authorized=false; }

@@ -75,7 +75,16 @@ if(typeof document!=='undefined'){
    setChoices(form.querySelector('[data-ai-selection]'),draft);
    for(const key of ['project_type','external_tools','calculation_help'])control(key).dispatchEvent(new Event('change',{bubbles:true}));
    for(const key of [...textKeys,...toolKeys])control(key).dispatchEvent(new Event('input',{bubbles:true}));
-   form.querySelectorAll('details').forEach(section=>{if([...section.querySelectorAll('input,textarea,select')].some(input=>!input.disabled&&input.value&&input.type!=='checkbox'&&Object.hasOwn(draft,input.name)))section.open=true;});
+   form.querySelectorAll('details:not([data-request-next-step])').forEach(section=>{
+    const populated=[...section.querySelectorAll('input:not([type=hidden]),textarea,select')].some(input=>{
+     if(input.disabled||input.hasAttribute('data-setup-text'))return false;
+     if(input.type==='checkbox')return input.checked&&input.value!=='any'&&['required_models[]','reasoning_levels[]'].includes(input.name);
+     if(!Object.hasOwn(draft,input.name))return false;
+     const value=String(draft[input.name]).trim();
+     return !!value&&!(input.name==='setup_needs'&&value==='None specified')&&!(input.name==='external_tools'&&value==='unspecified');
+    });
+    section.open=populated;
+   });
    // Filled content needs fresh human review/consent, never consent supplied by AI.
    control('terms').checked=false;control('terms').dispatchEvent(new Event('change',{bubbles:true}));document.getElementById('request-preview').hidden=true;paste.removeAttribute('aria-invalid');panel.hidden=true;button.setAttribute('aria-expanded','false');feedback.textContent='';showStatus('Draft filled — review your request','Review and edit the fields below, then confirm the terms and submit when ready.');control('title').focus({preventScroll:true});
   });

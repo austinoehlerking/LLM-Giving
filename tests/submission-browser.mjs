@@ -28,7 +28,7 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
  await shot('12-touched-title-error');
  await page.locator('[name=title]').fill(brief.title);check('Correcting a touched title clears its error immediately',!await invalid('title')&&!await page.locator('#request-error-title').isVisible());
  await page.goto(base+'/submit');
- await page.locator('[name=project_type]').selectOption('research_tool');
+ await page.locator('[data-request-next-step]>summary').click();await page.locator('[name=project_type]').selectOption('research_tool');
  check('New tool requirements stay neutral before use',await page.locator('[data-tool-requirements] textarea').evaluateAll(els=>els.every(el=>el.required&&!el.hasAttribute('aria-invalid')&&getComputedStyle(el).borderColor!=='rgb(255, 157, 157)')));
  await page.locator('[name=tool_maintenance]').fill('Short');check('First partial tool entry stays neutral while typing',!await invalid('tool_maintenance'));await page.locator('[name=tool_maintenance]').press('Tab');check('Leaving a short tool entry shows its error',await invalid('tool_maintenance'));
  await page.locator('[name=project_type]').selectOption('research');check('Disabling a touched invalid tool field clears its error',!await invalid('tool_maintenance'));
@@ -40,7 +40,7 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
  await page.goto(base+'/submit');
  check('Optional empty fields are not errors',!await invalid('email')&&!await invalid('context'));
  let posts=0;const countPost=request=>{if(request.method()==='POST'&&new URL(request.url()).pathname==='/submit')posts++;};page.on('request',countPost);
- await page.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).click();
+ await page.locator('[data-request-next-step]>summary').click();await page.locator('.request-submit-actions').getByRole('button',{name:'Submit for approval',exact:true}).click();
  check('Empty request focuses first error without posting',posts===0&&await page.locator('[name=title]').evaluate(el=>el===document.activeElement));
  await page.waitForFunction(()=>{const r=document.querySelector('[name=title]').getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;});
  check('First required error is in view after a failed submit',await page.locator('[name=title]').evaluate(el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}));
@@ -56,14 +56,14 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
  await page.locator('[name=question]').fill('Not enough detail');check('Short question stays invalid',await invalid('question'));
  await page.locator('[name=question]').fill(brief.question);check('Complete question clears error',!await invalid('question'));
  await page.locator('[name=category_id]').selectOption({label:'Environment & Climate'});check('Choosing category clears error',!await invalid('category_id'));
- await page.locator('[name=terms]').check();check('Confirming terms clears error',!await invalid('terms'));
+ await page.locator('[data-request-next-step]>summary').click();await page.locator('[name=terms]').check();check('Confirming terms clears error',!await invalid('terms'));
  await page.locator('[name=project_type]').selectOption('research_tool');
  const toolNames=await page.locator('[data-tool-requirements] textarea').evaluateAll(els=>els.map(el=>el.name));
  for(const name of toolNames){check('Tool requirement turns red '+name,await invalid(name));await page.locator('[name='+name+']').fill('Short');check('Short tool requirement remains invalid '+name,await invalid(name));await page.locator('[name='+name+']').fill('A sufficiently detailed synthetic tool requirement.');check('Completed tool requirement clears '+name,!await invalid(name));}
  await page.locator('[name=tool_maintenance]').fill('');await page.locator('[name=project_type]').selectOption('research');check('Switching back disables and clears tool errors',await page.locator('[data-tool-requirements] textarea').evaluateAll(els=>els.every(el=>el.disabled&&!el.hasAttribute('aria-invalid')&&!el.required)));
  const software=page.locator('[name=required_software]'),external=software.locator('xpath=ancestor::details');await external.locator('summary').click();
  await page.locator('[name=external_tools]').selectOption('free');check('Selected software access requires software name',await invalid('required_software'));
- await external.locator('summary').click();await page.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).click();
+ await external.locator('summary').click();await page.locator('.request-submit-actions').getByRole('button',{name:'Submit for approval',exact:true}).click();
  check('Submit reveals collapsed required field without posting',posts===0&&await external.getAttribute('open')!==null&&await software.evaluate(el=>el===document.activeElement));await shot('11-conditional-validation');
  await software.fill('Synthetic local software');check('Naming required software clears error',!await invalid('required_software'));
  await software.fill('');await page.locator('[name=external_tools]').selectOption('none');check('Unneeded software field clears required state',!await invalid('required_software')&&await software.getAttribute('required')===null);
@@ -71,7 +71,7 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
  page.off('request',countPost);
  await page.goto(base+'/submit');
  await page.locator('[name=title]').fill(brief.title);await page.locator('[name=question]').fill(brief.question);await page.locator('[name=category_id]').selectOption({label:'Environment & Climate'});
- await page.getByText('Background, objectives & references',{exact:true}).click();
+ await page.locator('[data-request-next-step]>summary').click();await page.getByText('Background, objectives & references',{exact:true}).click();
  for(const key of ['context','success','previous','constraints_text','questions','references_text','tags'])await page.locator('[name='+key+']').fill(brief[key]);
  // Details toggle and viewport resizing finish in animation frames; assert the same sizing invariant after layout settles.
  try{await page.waitForFunction(()=>[...document.querySelectorAll('textarea')].every(el=>el.scrollHeight<=el.clientHeight+2),null,{timeout:5000});}
@@ -128,14 +128,14 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
  }
  const nojs=await ctx.browser().newContext({javaScriptEnabled:false});
  const np=await nojs.newPage();await np.goto(base+'/submit');
- check('No-JS submission remains available',await np.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).isVisible());
+ await np.locator('[data-request-next-step]>summary').click();check('No-JS submission remains available',await np.locator('.request-submit-actions').getByRole('button',{name:'Submit for approval',exact:true}).isVisible());
  check('No-JS preview control is hidden',!await np.locator('#review-request').isVisible());
  check('No-JS category is natively required',await np.locator('[name=category_id]').getAttribute('required')!==null);
  check('No-JS untouched required field stays neutral',await np.locator('[name=title]').evaluate(el=>getComputedStyle(el).borderColor!=='rgb(255, 157, 157)'));
- await np.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).press('Enter');
+ await np.locator('.request-submit-actions').getByRole('button',{name:'Submit for approval',exact:true}).press('Enter');
  check('No-JS failed submission highlights missing title',await np.locator('[name=title]').evaluate(el=>el.matches(':user-invalid')&&getComputedStyle(el).borderColor==='rgb(255, 157, 157)'));
  await np.locator('[name=title]').fill('[QA] Native request validation fixture');await np.locator('[name=question]').fill('A synthetic local question verifying the normal HTML submission path without JavaScript.');await np.locator('[name=category_id]').selectOption({label:'Environment & Climate'});await np.locator('[name=terms]').focus();await np.locator('[name=terms]').press('Space');check('No-JS consent can be confirmed with keyboard',await np.locator('[name=terms]').isChecked());
- await np.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).press('Enter');await np.locator('#management-link').waitFor();check('No-JS bottom submit records a pending request',await np.getByRole('heading',{name:'Research request submitted',exact:true}).isVisible());await nojs.close();
+ await np.locator('.request-submit-actions').getByRole('button',{name:'Submit for approval',exact:true}).press('Enter');await np.locator('#management-link').waitFor();check('No-JS bottom submit records a pending request',await np.getByRole('heading',{name:'Research request submitted',exact:true}).isVisible());await nojs.close();
  const after=JSON.parse(runPhp(['tools/local-research-state.php','inspect'])).research.find(r=>r.id===rid);
  check('Synthetic pending request unchanged by inspection',JSON.stringify(before)===JSON.stringify(after));
  check('No browser errors in updated workflow: '+JSON.stringify(errors.map(text=>text.replace(/#[a-f0-9]{64}/gi,'#[REDACTED]'))),errors.length===0);
