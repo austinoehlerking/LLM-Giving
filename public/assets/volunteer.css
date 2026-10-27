@@ -103,3 +103,6 @@
 .review-account-page p,.review-account-page label{font-size:14px;line-height:1.4}.review-account-page .account-declaration legend{font-size:18px}.review-account-page .account-declaration label{margin:6px 0}.review-account-page .account-declaration p{margin:6px 0}.review-account-page .account-declaration input:not([type=checkbox]){display:block;width:100%}.review-account-page .account-declaration{border:0;padding:0;margin:0 0 8px}
 
 .session-active-picker{flex:1 1 26rem;min-width:0;max-width:100%}.session-active-picker select{display:block;width:100%;max-width:100%;margin-bottom:8px}
+
+/* Leave a comfortable action margin on short phones with classic scrollbars. */
+@media(max-width:600px) and (max-height:700px){.volunteer-landing .volunteer-start h1{margin-bottom:4px}.volunteer-design .volunteer-profile-choice{margin-top:4px}.volunteer-design .worker-settings .fine{margin:2px 0}.volunteer-design .time-settings,.volunteer-design .cause-settings{margin-top:4px}}
