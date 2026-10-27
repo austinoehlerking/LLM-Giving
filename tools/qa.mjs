@@ -75,7 +75,7 @@ try{
  if(['session-wizard','orchestrator','phone-guide'].includes(mode))volunteerFixtures=JSON.parse(runPhp(['tests/volunteer-state.php','create']));
  const pw=await playwright();
  const executable=browserExecutable();
- browser=await pw.chromium.launch({headless:true,executablePath:executable,env,args:['--no-sandbox'],downloadsPath:path.join(output,'downloads')});
+ browser=await pw.chromium.launch({headless:true,executablePath:executable,env,...(mode==='hp-forms'?{ignoreDefaultArgs:['--hide-scrollbars']}:{}),args:['--no-sandbox',...(mode==='hp-forms'?['--disable-features=OverlayScrollbar,FluentOverlayScrollbar']:[])],downloadsPath:path.join(output,'downloads')});
  report.browser=path.basename(executable||'playwright-chromium')+' '+browser.version();
  report.browserExecutable=executable||'Playwright managed Chromium';
  const ctx=await browser.newContext({permissions:['clipboard-read','clipboard-write'],viewport:{width:1366,height:768}});
