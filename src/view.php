@@ -116,11 +116,11 @@ function reader_findings_data(string $rid): array {
         $result=$record['result'];$task=$record['task'];
         if(!in_array($task['kind'],['research','synthesis'],true)||$task['state']!=='Completed'||$task['accepted_id']!==$result['id'])continue;
         $meta=json_decode($result['metadata'],true);$aid=($meta['usefulness']['version']??null)===1?$meta['usefulness']:null;
-        $items[]=['id'=>$result['id'],'title'=>$task['title'],'author'=>$result['display_name']?:'Anonymous volunteer','created_at'=>$result['created_at'],'kind'=>$task['kind'],'contribution'=>false,'finding'=>$aid['finding']??$result['reason'],'established'=>$aid['established']??null,'uncertain'=>$aid['uncertain']??$result['limitations'],'next_use'=>$aid['next_use']??$result['next_action'],'aid'=>($aid['version']??null)===1?$aid:null];
+        $items[]=['id'=>$result['id'],'title'=>$task['title'],'author'=>$result['display_name']?:'Anonymous volunteer','created_at'=>$result['created_at'],'kind'=>$task['kind'],'contribution'=>false,'finding'=>$aid['finding']??$result['reason'],'established'=>$aid['established']??null,'uncertain'=>$aid['uncertain']??$result['limitations'],'next_use'=>$aid['next_use']??null,'workflow_next_actions'=>$result['next_action'],'aid'=>($aid['version']??null)===1?$aid:null];
     }
     foreach(rs_contributions($rid) as $result){
         if($result['kind']==='Independent review')continue;
-        $items[]=['id'=>$result['id'],'title'=>$result['summary'],'author'=>$result['display_name']?:'Anonymous volunteer','created_at'=>$result['created_at'],'kind'=>'supplementary contribution','contribution'=>true,'finding'=>$result['summary'],'established'=>null,'uncertain'=>$result['uncertainty']?:$result['limitations'],'next_use'=>$result['next_actions'],'aid'=>null];
+        $items[]=['id'=>$result['id'],'title'=>$result['summary'],'author'=>$result['display_name']?:'Anonymous volunteer','created_at'=>$result['created_at'],'kind'=>'supplementary contribution','contribution'=>true,'finding'=>$result['summary'],'established'=>null,'uncertain'=>$result['uncertainty']?:$result['limitations'],'next_use'=>null,'workflow_next_actions'=>$result['next_actions'],'aid'=>null];
     }
     usort($items,fn($a,$b)=>(($b['kind']==='synthesis')<=>($a['kind']==='synthesis'))?:strcmp($b['created_at'].$b['id'],$a['created_at'].$a['id']));
     return $items;
