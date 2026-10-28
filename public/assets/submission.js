@@ -8,7 +8,21 @@ if(requestForm){
  const textLimits={title:[8,180],question:[20,Number(requestForm.dataset.maxText)],required_software:[1,3000]};
  for(const field of requestForm.querySelectorAll('[data-tool-requirements] textarea'))textLimits[field.name]=[20,3000];
  const requiredMessages={category_id:'Choose a category.',required_reasoning:'Choose a reasoning level.',terms:'Confirm the terms before submitting.',required_software:'Name the required software.'};
+ function normalizeTags(value){
+  if(typeof value!=='string')throw Error('Tags must be text.');
+  // Match text_field + set_tags: PHP trim, raw byte cap, case-sensitive uniqueness.
+  const trim=value=>value.replace(/^[\0\t\n\r\v ]+|[\0\t\n\r\v ]+$/g,'');
+  const clean=trim(value),encoder=new TextEncoder();
+  if(encoder.encode(clean).length>800)throw Error('Tags must total at most 800 UTF-8 bytes.');
+  if(clean.includes('\0'))throw Error('Remove unsupported characters from tags.');
+  // PHP array_filter also drops the exact string "0"; do not fold case or Unicode.
+  const tags=[...new Set(clean.split(',').map(trim).filter(tag=>tag!==''&&tag!=='0'))];
+  if(tags.length>12)throw Error('Use at most 12 unique tags.');
+  if(tags.some(tag=>encoder.encode(tag).length>60))throw Error('Each tag must be at most 60 UTF-8 bytes.');
+  return tags.join(', ');
+ }
  const encoder=new TextEncoder();
+ requestForm.elements.namedItem('tags').setAttribute('aria-describedby','request-tags-help');
  function validateRequest(){
   const access=requestForm.elements.namedItem('external_tools').value,software=requestForm.elements.namedItem('required_software');
   software.disabled=access==='none';
@@ -19,7 +33,10 @@ if(requestForm){
    if(field.hasAttribute('data-ai-choice'))continue;
    field.setCustomValidity('');
    let message='';
-   if(field.required&&!field.disabled){
+   if(field.name==='tags'&&!field.disabled){
+    try{normalizeTags(field.value);}catch(error){message=error.message;}
+    field.setCustomValidity(message);
+   }else if(field.required&&!field.disabled){
     const value=field.type==='checkbox'?(field.checked?'1':''):field.value.replace(/^[\0\t\n\r\v ]+|[\0\t\n\r\v ]+$/g,'');
     const limits=textLimits[field.name],bytes=encoder.encode(value.replace(/\r?\n/g,'\r\n')).length;
     if(!value)message=requiredMessages[field.name]||'Required.';
@@ -54,7 +71,10 @@ if(requestForm){
   validateRequest();
  });
  requestForm.addEventListener('focusout',event=>{
-  if(event.target.matches(validationFields)){touchedFields.add(event.target);validateRequest();}
+  if(event.target.matches(validationFields)){
+   if(event.target.name==='tags'){try{event.target.value=normalizeTags(event.target.value);}catch{/* Retain invalid text for correction. */}}
+   touchedFields.add(event.target);validateRequest();
+  }
  });
  requestForm.addEventListener('reset',()=>{touchedFields.clear();validationAttempted=false;setTimeout(()=>{updateProjectType();validateRequest();},0);});
  window.addEventListener('pageshow',validateRequest);
@@ -87,6 +107,7 @@ if(requestForm){
  editBasics.addEventListener('click',showBasics);
  reviewButton.hidden=false;
  reviewButton.addEventListener('click',()=>{
+  validateRequest();if(!requestForm.elements.namedItem('tags').reportValidity())return;
   content.replaceChildren();
   const settings=document.createElement('section'),settingsTitle=document.createElement('h3'),settingsList=document.createElement('dl');settingsTitle.textContent='Research settings';settings.className='request-settings-summary';settings.append(settingsTitle,settingsList);
   const settingNames=['category_id','project_type','calculation_help','external_tools','required_software','setup_needs'];

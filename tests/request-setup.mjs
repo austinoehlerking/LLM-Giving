@@ -1,8 +1,33 @@
-import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {root} from '../tools/runtime.mjs';import {setupSchema,setupPrompt,parseSetupDraft} from '../public/assets/request-setup.js';
+import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {root,runPhp} from '../tools/runtime.mjs';import {setupSchema,setupPrompt,parseSetupDraft} from '../public/assets/request-setup.js';
 const config={instructions:fs.readFileSync(path.join(root,'templates/request-setup.txt'),'utf8'),categories:[{id:42,name:'Science & Research'}],policy:[{model:'fixture-model',efforts:['max','ultra'],ultra_tool:'Codex'}],registry:{'fixture-model':{efforts:['low','medium','high','xhigh','max','ultra'],modes:[]}},maxText:100000};
 const checks=[];const check=(name,value)=>{assert.ok(value,name);checks.push(name);};const rejects=(name,draft)=>{assert.throws(()=>parseSetupDraft(typeof draft==='string'?draft:JSON.stringify(draft),config));checks.push(name);};
 const draft={...setupSchema(),title:'Compare reliable dataset conversion methods',question:'Which bounded methods make a scientific dataset conversion reproducible and independently verifiable?',category:'Science & Research',context:'User-provided research context; no invented findings.',success:'A documented comparison with sources, uncertainty and stopping boundaries.',tags:'data, reproducibility'};
 let parsed=parseSetupDraft(JSON.stringify(draft),config);check('Complete research draft maps category names to current IDs',parsed.category_id==='42'&&parsed.title===draft.title&&parsed.project_type==='research');check('No consent/private/admin controls enter normalized fields',!Object.hasOwn(parsed,'terms')&&!Object.hasOwn(parsed,'email')&&!Object.hasOwn(parsed,'format'));
+
+const tagCases=[
+ ['60-byte tag with 12 unique entries',['a'.repeat(60),...Array.from({length:11},(_,i)=>'tag'+i)].join(',')],
+ ['61-byte ASCII tag','a'.repeat(61)],
+ ['13 unique tags',Array.from({length:13},(_,i)=>'tag'+i).join(',')],
+ ['60-byte multibyte tag','é'.repeat(30)],['62-byte multibyte tag','é'.repeat(31)],
+ ['60-byte emoji tag','🌊'.repeat(15)],['64-byte emoji tag','🌊'.repeat(16)],
+ ['PHP trimming, empty and zero filtering',' \tdata, data, ,0,\v DATA ,data\r\n '],
+ ['Unicode spaces and forms stay distinct','é,e\u0301,\u00a0data\u00a0,data,\fdata\f'],
+ ['many repeated tags count once',Array(20).fill('repeated').join(',')],
+ ['800 raw bytes before deduplication','a,'.repeat(399)+'aa'],
+ ['801 raw bytes rejected before deduplication','a,'.repeat(399)+'aaa'],
+ ['PHP edge NUL trimming','\0 data,\0other\0 \0'],['embedded NUL rejected','data,an\0other'],
+];
+// Exercise the actual unchanged PHP text_field/set_tags functions without a database.
+// Capture their tag inserts only; this verifies the browser contract against its authority.
+const serverTags=JSON.parse(runPhp(['-r',"require 'src/security.php';require 'src/domain.php';function query($sql,$values=[]){if(str_starts_with($sql,'INSERT IGNORE INTO tags'))$GLOBALS['seen'][]=$values[0];}$out=[];foreach(json_decode(stream_get_contents(STDIN),true,512,JSON_THROW_ON_ERROR) as $value){$GLOBALS['seen']=[];try{set_tags('fixture',text_field(['tags'=>$value],'tags',0,800));$out[]=['tags'=>$GLOBALS['seen']];}catch(HttpError $e){$out[]=['error'=>$e->status];}}echo json_encode($out,JSON_THROW_ON_ERROR);"],JSON.stringify(tagCases.map(([,tags])=>tags))));
+for(const [index,[name,tags]] of tagCases.entries()){
+ const authoritative=serverTags[index];
+ if(authoritative.error)rejects('Server-matched tag rejection: '+name,{...draft,tags});
+ else check('Server-matched tag normalization: '+name,parseSetupDraft(JSON.stringify({...draft,tags}),config).tags===authoritative.tags.join(', '));
+}
+check('Tag normalization preserves case and drops only PHP-filtered entries',parseSetupDraft(JSON.stringify({...draft,tags:tagCases[7][1]}),config).tags==='data, DATA');
+check('Prompt states unique tag count, per-tag bytes and raw total limit',config.instructions.includes('12 unique entries')&&config.instructions.includes('60 UTF-8 bytes')&&config.instructions.includes('800 UTF-8 bytes combined before removing duplicates'));
+
 const external=parseSetupDraft(JSON.stringify({...draft,calculation_help:'run',external_tools:'free',required_software:'PySCF',setup_needs:'Download required'}),config);check('External requirements survive guided setup and enable execution',external.required_software==='PySCF'&&external.calculation_help==='run'&&external.external_tools==='free');
 const tool={...draft,project_type:'research_tool',calculation_help:'run'};for(const key of Object.keys(tool).filter(key=>key.startsWith('tool_')))tool[key]='Explicit bounded tool requirement with reproducible reference tests and honest limitations.';
 parsed=parseSetupDraft(JSON.stringify(tool),config);check('Tool draft retains all five required tool fields and computational opt-in',parsed.calculation_help==='run'&&!Object.hasOwn(parsed,'computational_models')&&Object.keys(parsed).filter(key=>key.startsWith('tool_')).length===5);check('Single fenced JSON output is accepted safely',parseSetupDraft('```json\n'+JSON.stringify(draft)+'\n```',config).title===draft.title);

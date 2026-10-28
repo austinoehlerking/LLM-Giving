@@ -1,5 +1,6 @@
 import fs from 'node:fs';import path from 'node:path';import {root} from '../tools/runtime.mjs';import {setupSchema} from '../public/assets/request-setup.js';
 export async function requestSetupQa({page,ctx,base,runPhp,check,visibleActions}){
+ if(process.env.QA_SETUP_TAGS_ONLY==='1')return requestSetupTagQa({page,ctx,base,runPhp,check,visibleActions});
  const output=path.join(root,'storage/qa/setup-assist');fs.mkdirSync(output,{recursive:true});const shots=[],errors=[];page.on('pageerror',error=>errors.push(error.message));
  const shot=async name=>{const file=path.join(output,name+'.png');await page.screenshot({path:file,fullPage:false});shots.push(file);};
  const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}];
@@ -58,4 +59,60 @@ export async function requestSetupQa({page,ctx,base,runPhp,check,visibleActions}
   check('Copied-prompt notice reflows at 200% viewport/device scale',await enlarged.locator('#request-setup-status').evaluate(el=>el.scrollWidth<=el.clientWidth+1&&document.documentElement.scrollWidth<=innerWidth+1));
  }finally{await zoom.close();}
  check('Setup assistant has no browser errors',errors.length===0);fs.writeFileSync(path.join(output,'browser-evidence.json'),JSON.stringify({shots,errors},null,2));
+}
+// Focused contract regression; the standard setup suite remains available above.
+async function requestSetupTagQa({page,base,runPhp,check,visibleActions}){
+ const output=path.join(root,'storage/qa/setup-assist/tags');fs.mkdirSync(output,{recursive:true});
+ const shots=[],errors=[];page.on('pageerror',error=>errors.push(error.message));
+ const shot=async name=>{const file=path.join(output,name+'.png');await page.screenshot({path:file,fullPage:false});shots.push(file);};
+ const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}];
+ const snapshot=()=>page.locator('[data-request-form]').evaluate(form=>[...form.elements].filter(el=>el.name).map(el=>({name:el.name,type:el.type,value:el.value,checked:el.checked,disabled:el.disabled})));
+ let posts=0;page.on('request',request=>{if(request.method()==='POST'&&new URL(request.url()).pathname==='/submit')posts++;});
+ const badTags=[['61-ascii','a'.repeat(61),'60 UTF-8 bytes'],['13-unique',Array.from({length:13},(_,i)=>'tag'+i).join(','),'12 unique'],['62-multibyte','é'.repeat(31),'60 UTF-8 bytes']];
+ let config;
+ for(const size of sizes){
+  await page.setViewportSize(size);await page.goto(base+'/submit');await page.locator('#copy-setup-prompt').waitFor({state:'visible'});
+  check('Tag flow page identity '+size.width,new URL(page.url()).pathname==='/submit'&&(await page.title()).includes('LLM.Giving')&&await page.locator('[name=question]').count()===1);
+  await shot('initial-'+size.width);await visibleActions(page,'.form-actions button,#request-next-step > summary','Tag flow initial '+size.width);
+  await page.locator('[name=title]').fill('Existing tag validation draft');await page.locator('[name=question]').fill('Preserve every existing public and private draft field during an invalid tag import.');
+  await page.locator('[data-request-next-step]>summary').click();await page.locator('[name=terms]').check();await page.getByText('Optional attribution & private email',{exact:true}).click();await page.locator('[name=email]').fill('tag-fixture@example.invalid');await page.locator('[name=display_name]').fill('Tag fixture attribution');await page.locator('[data-request-edit-basics]').click();await page.locator('#copy-setup-prompt').click();
+  config=await page.locator('#request-setup-config').evaluate(node=>JSON.parse(node.content.textContent));
+  const draft={...setupSchema(),title:'[QA] Tag boundary research request',question:'Which tag boundaries can be accepted consistently by the setup importer and ordinary server submission?',category:config.categories[0].name};
+  check('Copied prompt includes full tag limits '+size.width,(await page.locator('#request-setup-prompt').inputValue()).includes('at most 12 unique entries')&&(await page.locator('#request-setup-prompt').inputValue()).includes('60 UTF-8 bytes'));
+  for(const [name,tags,message] of badTags){
+   const before=await snapshot();await page.locator('#paste-setup-prompt').fill(JSON.stringify({...draft,tags}));await page.locator('#fill-request-fields').click();
+   check('Invalid '+name+' import preserves all fields and consent '+size.width,JSON.stringify(await snapshot())===JSON.stringify(before));
+   check('Invalid '+name+' rejected before Draft filled '+size.width,(await page.locator('#request-setup-feedback').innerText()).includes(message)&&!(await page.locator('#request-setup-status').innerText()).includes('Draft filled')&&await page.locator('#paste-setup-prompt').getAttribute('aria-invalid')==='true');
+  }
+  await page.locator('#request-setup-feedback').scrollIntoViewIfNeeded();await shot('import-error-'+size.width);
+  const validTags=['a'.repeat(60),...Array.from({length:11},(_,i)=>'tag'+i)].join(',');
+  await page.locator('#paste-setup-prompt').fill(JSON.stringify({...draft,tags:validTags+',tag0, ,0'}));await page.locator('#fill-request-fields').click();
+  check('60 bytes and 12 unique import succeeds '+size.width,await page.locator('[name=tags]').inputValue()===validTags.split(',').join(', ')&&(await page.locator('#request-setup-status').innerText()).includes('Draft filled'));
+  check('Successful import requires fresh consent and keeps private data '+size.width,!await page.locator('[name=terms]').isChecked()&&await page.locator('[name=email]').inputValue()==='tag-fixture@example.invalid');
+  await page.locator('[data-request-next-step]>summary').click();
+  const tags=page.locator('[name=tags]');await tags.scrollIntoViewIfNeeded();check('Visible guidance states matching limits '+size.width,(await page.locator('#request-tags-help').innerText()).includes('12 unique tags')&&(await page.locator('#request-tags-help').innerText()).includes('60 UTF-8 bytes'));
+  for(const [name,value,message] of badTags){
+   await tags.fill(value);await tags.press('Tab');
+   check('Manual '+name+' gets field-specific feedback '+size.width,await tags.getAttribute('aria-invalid')==='true'&&(await page.locator('#request-error-tags').innerText()).includes(message));
+  }
+  await tags.scrollIntoViewIfNeeded();await shot('manual-error-'+size.width);
+  await page.getByRole('button',{name:'Review your request',exact:true}).click();
+  check('Invalid manual tags cannot enter review '+size.width,!await page.locator('#request-preview').isVisible()&&await tags.evaluate(el=>document.activeElement===el));
+  check('Invalid manual tags never POST '+size.width,posts===0);
+  await tags.fill(' data, data, ,0, DATA ,é,é ');await tags.press('Tab');
+  check('Manual repeated tags normalize with server case rules '+size.width,await tags.inputValue()==='data, DATA, é'&&await tags.getAttribute('aria-invalid')===null);
+  await page.getByRole('button',{name:'Review your request',exact:true}).click();check('Corrected manual tags enter real preview '+size.width,await page.locator('#request-preview').isVisible()&&(await page.locator('#request-preview-content').innerText()).includes('data, DATA, é'));
+ }
+ // Enlarge every rendered font separately; scrolling is expected in this accessible state.
+ await page.setViewportSize(sizes[0]);await page.goto(base+'/submit');await page.evaluate(()=>{const fonts=[...document.querySelectorAll('body,body *')].filter(el=>el instanceof HTMLElement).map(el=>[el,parseFloat(getComputedStyle(el).fontSize)]);for(const [el,size]of fonts)if(Number.isFinite(size))el.style.fontSize=(size*2)+'px';});
+ await shot('initial-200-percent');await page.locator('[data-request-next-step]>summary').click();await page.getByText('Background, objectives & references',{exact:true}).click();const tags=page.locator('[name=tags]');await tags.fill('é'.repeat(31));await tags.press('Tab');await page.locator('#request-error-tags').evaluate(el=>el.style.fontSize=(parseFloat(getComputedStyle(el).fontSize)*2)+'px');await tags.scrollIntoViewIfNeeded();await shot('manual-error-200-percent');
+ check('Tag guidance/error reflow at 200% text',await page.locator('#request-tags-help,#request-error-tags').evaluateAll(els=>els.every(el=>el.scrollWidth<=el.clientWidth+1))&&await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+ // Real ordinary submit succeeds at the valid 60-byte / 12-unique boundary.
+ await page.setViewportSize(sizes[0]);await page.goto(base+'/submit');await page.locator('#copy-setup-prompt').click();const tagsBoundary=['é'.repeat(30),...Array.from({length:11},(_,i)=>'boundary'+i)].join(',');
+ const valid={...setupSchema(),title:'[QA] Tag boundary ordinary submission',question:'Does the ordinary submission accept the imported maximum valid tag size and unique count?',category:config.categories[0].name,tags:tagsBoundary};
+ const beforeCount=Number(runPhp(['-r',"require 'tests/bootstrap.php';echo one('SELECT COUNT(*) n FROM research')['n'];"]));
+ await page.locator('#paste-setup-prompt').fill(JSON.stringify(valid));await page.locator('#fill-request-fields').click();await page.locator('[data-request-next-step]>summary').click();await page.locator('[name=terms]').check();await page.getByRole('button',{name:'Review your request',exact:true}).click();await page.locator('#request-preview').getByRole('button',{name:'Submit for approval',exact:true}).click();await page.getByRole('heading',{name:'Research request submitted',exact:true}).waitFor();
+ check('Valid boundary reaches actual server receipt once',posts===1&&Number(runPhp(['-r',"require 'tests/bootstrap.php';echo one('SELECT COUNT(*) n FROM research')['n'];"]))===beforeCount+1);
+ check('Valid boundary stores 12 normalized server tags',Number(runPhp(['-r',"require 'tests/bootstrap.php';echo one(\"SELECT COUNT(*) n FROM research_tags rt JOIN research r ON r.id=rt.research_id WHERE r.title='[QA] Tag boundary ordinary submission'\")['n'];"]))===12);
+ check('Focused tag flow has no browser exceptions',errors.length===0);fs.writeFileSync(path.join(output,'browser-evidence.json'),JSON.stringify({shots,errors,scope:'Focused tag importer/manual/server-submit regression; unchanged layout suites reused.'},null,2));
 }
