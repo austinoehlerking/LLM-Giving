@@ -9,4 +9,4 @@
 <details><summary>Read or manually copy the outgoing AI prompt</summary><label for="request-setup-prompt">Outgoing prompt for your AI</label><textarea data-setup-text id="request-setup-prompt" readonly rows="8"><?=e($setupConfig['instructions'])?></textarea></details>
 </div>
 
-<script type="module" src="/assets/request-setup.js?v=happy-path1"></script>
+<script type="module" src="/assets/request-setup.js?v=setup-tags1"></script>
