@@ -18,7 +18,6 @@ if(setup){
   if(cause?.value==='custom')place=scope.value==='research'?'One research question':scope.value==='category'?(category.selectedOptions[0]?.textContent||'Choose a category'):'Wherever needed';
   setup.querySelector('[data-volunteer-summary]').textContent=time+' · '+place;
   setup.elements.worker_reasoning.disabled=setup.elements.worker_choice.value==='custom';
-  const concurrent=setup.querySelector('[data-concurrent-summary]');if(concurrent)concurrent.textContent=setup.elements.concurrent_limit.value;
  };
  setup.addEventListener('input',event=>{
   if(['model','reasoning','tool','workflow_mode'].includes(event.target.name))setup.elements.worker_choice.value='custom';
