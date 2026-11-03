@@ -13,6 +13,7 @@ foreach (['','sessions','uploads','mail','logs','qa','private'] as $dir) if (!is
 require __DIR__.'/db.php';
 require __DIR__.'/google.php';
 require __DIR__.'/security.php';
+require __DIR__.'/contact.php';
 require __DIR__.'/domain.php';
 require __DIR__.'/citation.php';
 require __DIR__.'/research-requirements.php';
