@@ -50,12 +50,18 @@ function vs_permission_end(array $session): string {
 const VS_WORKERS = [
     'sol_max'=>['model'=>'gpt-6.1-sol','reasoning'=>'max','tool'=>'Codex','workflow_mode'=>''],
     'astra_max'=>['model'=>'gpt-6-astra','reasoning'=>'max','tool'=>'Codex','workflow_mode'=>''],
+    'opus_max'=>['model'=>'claude-opus-5-5','reasoning'=>'max','tool'=>'Claude Code','workflow_mode'=>''],
+    'fable_max'=>['model'=>'claude-fable-5-1','reasoning'=>'max','tool'=>'Claude Code','workflow_mode'=>''],
 ];
 function vs_worker_input(array $post): array {
     $choice=text_field($post,'worker_choice',0,24);
     if($choice!=='' && $choice!=='custom') {
         if(!isset(VS_WORKERS[$choice]))fail(422,'Choose an available research worker.');
         foreach(VS_WORKERS[$choice] as $field=>$value)$post[$field]=$value;
+        // Historical preset posts omit this field and retain their original Max setting.
+        $effort=array_key_exists('worker_reasoning',$post)?text_field($post,'worker_reasoning',1,8):'max';
+        if(!in_array($effort,['max','xhigh','high'],true))fail(422,'Choose Max, Extra High or High reasoning.');
+        $post['reasoning']=$post['worker_reasoning']=$effort;
     }
     return $post;
 }

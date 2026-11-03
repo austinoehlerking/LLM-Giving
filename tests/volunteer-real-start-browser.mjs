@@ -1,6 +1,7 @@
 import fs from 'node:fs';import path from 'node:path';import {root,env} from '../tools/runtime.mjs';import {readyInstructions} from './session-wizard-actions.mjs';
 /** Real controls and public-contract shapes; synthetic author packets, not a native AI acceptance claim. */
 export async function volunteerRealStartQa({page,ctx,base,runPhp,check,visibleActions,report}){
+ if(env.QA_WORKER_SETTINGS_ONLY==='1'){const {workerSettingsQa}=await import('./worker-settings-browser.mjs');return workerSettingsQa({page,ctx,base,runPhp,check,visibleActions,report});}
  const out=path.join(root,'storage/qa/volunteer-real-start');fs.mkdirSync(out,{recursive:true});const projects=[],sessions=[],contexts=[],errors=[];
  const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}];page.on('pageerror',e=>errors.push(e.message));
  const count=()=>JSON.parse(runPhp(['tests/volunteer-real-start-state.php','counts']));const inspect=id=>JSON.parse(runPhp(['tests/volunteer-real-start-state.php','inspect',id]));
