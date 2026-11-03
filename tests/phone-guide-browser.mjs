@@ -26,8 +26,8 @@ export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) 
   await initial(page,'/volunteer?session_profile=restricted_web_v1','restricted-setup','.volunteer-profile-choice label,.time-card,.connect-ai');
   check('Restricted profile preselection is real',await page.locator('[name=session_profile]:checked').inputValue()==='restricted_web_v1');
   check('Setup omits internal proof/debug status',await page.locator('[data-volunteer-profile-note]').count()===0);
-  await page.getByLabel('Web + tools',{exact:true}).check();check('General choice is a real native selection',await page.locator('[name=session_profile]:checked').inputValue()==='general');
-  await page.getByLabel('Web only',{exact:true}).check();check('Web-only selection is restored',await page.locator('[name=session_profile]:checked').inputValue()==='restricted_web_v1');
+  await page.getByLabel('Research + tools',{exact:true}).check();check('General choice is a real native selection',await page.locator('[name=session_profile]:checked').inputValue()==='general');
+  await page.getByLabel('Research only',{exact:true}).check();check('Web-only selection is restored',await page.locator('[name=session_profile]:checked').inputValue()==='restricted_web_v1');
   await page.locator('[data-volunteer-advanced] > summary').click();await page.getByLabel('Exact worker model',{exact:true}).selectOption('gpt-6.1-sol');await page.getByLabel('Actual reasoning effort',{exact:true}).selectOption('high');await page.getByLabel('AI tool or harness name',{exact:true}).fill('Codex cloud worker; Dot browser controller');await page.locator('[data-volunteer-advanced] > summary').click();
   check('Guide worker configuration is selectable without expanding consent',await page.locator('[name=model]').inputValue()==='gpt-6.1-sol'&&await page.locator('[name=reasoning]').inputValue()==='high');
   await connectVolunteer(page);await page.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();
