@@ -1,6 +1,7 @@
 import fs from 'node:fs';import path from 'node:path';import {root,env} from '../tools/runtime.mjs';import {readyInstructions} from './session-wizard-actions.mjs';
 /** Real controls and public-contract shapes; synthetic author packets, not a native AI acceptance claim. */
 export async function volunteerRealStartQa({page,ctx,base,runPhp,check,visibleActions,report}){
+ if(env.QA_WORKER_SETTINGS_ONLY==='1'){const {workerSettingsQa}=await import('./worker-settings-browser.mjs');return workerSettingsQa({page,ctx,base,runPhp,check,visibleActions,report});}
  const out=path.join(root,'storage/qa/volunteer-real-start');fs.mkdirSync(out,{recursive:true});const projects=[],sessions=[],contexts=[],errors=[];
  const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}];page.on('pageerror',e=>errors.push(e.message));
  const count=()=>JSON.parse(runPhp(['tests/volunteer-real-start-state.php','counts']));const inspect=id=>JSON.parse(runPhp(['tests/volunteer-real-start-state.php','inspect',id]));
@@ -14,7 +15,7 @@ export async function volunteerRealStartQa({page,ctx,base,runPhp,check,visibleAc
    const r=JSON.parse(runPhp(['tests/volunteer-real-start-state.php','create',tool?'tool':'research']));projects.push(r.id);
    await page.goto(base+'/volunteer');if(!tool)await initial(page,'setup','.profile-options label,#volunteer-worker,.time-card,.connect-ai');
    const before=count();await page.getByRole('button',{name:'Connect my AI',exact:true}).click();check('Unchosen worker is blocked before authorization '+tool,await page.locator('#volunteer-worker').evaluate(e=>!e.checkValidity())&&await page.locator('[data-volunteer-consent]').count()===0&&JSON.stringify(count())===JSON.stringify(before));
-   await page.getByLabel('Web only',{exact:true}).check();await page.getByLabel('Research worker',{exact:true}).selectOption('sol_max');await page.getByRole('button',{name:'Connect my AI',exact:true}).click();
+   await page.getByLabel('Research only',{exact:true}).check();await page.getByLabel('Research worker',{exact:true}).selectOption('sol_max');await page.getByRole('button',{name:'Connect my AI',exact:true}).click();
    await page.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();check('Needs Research Plan is eligible before authorization '+tool,(await page.locator('[data-startup-preflight]').first().innerText()).includes('1 compatible unreserved task'));
    check('Worker settings are visible, requested and consistent '+tool,(await page.locator('.worker-summary').innerText()).includes('gpt-6.1-sol')&&await page.locator('[data-volunteer-consent] input[name=model]').inputValue()==='gpt-6.1-sol'&&await page.locator('[data-volunteer-consent] input[name=reasoning]').inputValue()==='max');
    check('Web-only planning needs no software-publication consent '+tool,await page.locator('[name=tool_terms]').count()===0);
