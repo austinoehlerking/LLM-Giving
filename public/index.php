@@ -23,6 +23,7 @@ set_exception_handler(function(Throwable $error) {
 $path=rawurldecode(parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH)?:'/');
 if(strlen($path)>1000) fail(404,'Page not found.');
 $method=$_SERVER['REQUEST_METHOD'];
+if($path==='/contact'){contact_route($method);exit;}
 if($method==='POST') {
     if((int)($_SERVER['CONTENT_LENGTH']??0)>32*1024*1024) fail(413,'Submission exceeds the 32 MB request limit.');
     check_csrf();
@@ -138,7 +139,6 @@ if(preg_match('~^/research/([^/]+)(?:/(.*))?$~',$path,$m)) {
     if($suffix!=='') fail(404,'Page not found.');
     render('research',['title'=>$r['title'],'r'=>$r,'context'=>context_data($r['id'])]); exit;
 }
-if($path==='/contact'){render('legal',['title'=>'Contact LLM.Giving','body'=>'For privacy, copyright, moderation or general inquiries, use the email below. Include the relevant research URL. Do not send private management links or passwords.']);exit;}
 if($path==='/about') { render('legal',['title'=>'How LLM.Giving works','body'=>setting('page_about',file_get_contents(ROOT.'/content/about.txt'))]); exit; }
 if(preg_match('~^/legal/(terms|privacy|licensing|moderation|copyright)$~',$path,$m)) {
     render('legal',['title'=>ucfirst($m[1]),'body'=>setting('page_'.$m[1],file_get_contents(ROOT.'/content/'.$m[1].'.txt'))]); exit;

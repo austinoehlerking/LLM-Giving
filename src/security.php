@@ -76,15 +76,25 @@ function text_field(array $data,string $key,int $min=0,int $max=0): string {
 function suspicious(string $s): bool {
     return (bool)preg_match('/ignore.{0,40}(instructions|previous)|system\s*:?\s*role|environment.variable|exfiltrat|private.key|base64|<script|javascript:|execute.{0,20}(command|shell)/is',$s);
 }
+function mail_address_valid(string $email): bool {
+    return strlen($email)<=254 && !preg_match('/[\r\n\x00]/',$email) && (bool)filter_var($email,FILTER_VALIDATE_EMAIL);
+}
 /** Shared configured transport. Callers provide a server-generated private sink name. */
-function mail_deliver(string $to,string $subject,string $body,string $sink): void {
-    if (strlen($to)>254 || preg_match('/[\r\n\x00]/',$to) || !filter_var($to,FILTER_VALIDATE_EMAIL) || strlen($subject)>180 || preg_match('/[\r\n\x00]/',$subject) || !preg_match('/^(?:[0-9]+|volunteer-[a-f0-9]{32})$/D',$sink)) throw new RuntimeException('Mail transport unavailable.');
+function mail_deliver(string $to,string $subject,string $body,string $sink,?string $replyTo=null): void {
+    if (strlen($to)>254 || preg_match('/[\r\n\x00]/',$to) || !filter_var($to,FILTER_VALIDATE_EMAIL) || strlen($subject)>180 || preg_match('/[\r\n\x00]/',$subject) || !preg_match('/^(?:[0-9]+|(?:volunteer|contact)-[a-f0-9]{32})$/D',$sink)) throw new RuntimeException('Mail transport unavailable.');
+    // Optional contact headers preserve the original four-argument file payload and transport behavior.
+    $headers=null;
+    if($replyTo!==null) {
+        $from=setting('mail_from',env('MAIL_FROM'));
+        if(!mail_address_valid($from) || !mail_address_valid($replyTo))throw new RuntimeException('Mail transport unavailable.');
+        $headers=['From'=>$from,'Reply-To'=>$replyTo,'MIME-Version'=>'1.0','Content-Type'=>'text/plain; charset=UTF-8','Content-Transfer-Encoding'=>'8bit'];
+    }
     $driver=setting('mail_driver',env('MAIL_DRIVER','file'));
     if ($driver==='file') {
-        if (@file_put_contents(storage('mail/'.$sink.'.json'),json_encode(['to'=>$to,'subject'=>$subject,'body'=>$body],JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR),LOCK_EX)===false) throw new RuntimeException('Mail transport unavailable.');
+        if (@file_put_contents(storage('mail/'.$sink.'.json'),json_encode(['to'=>$to,'subject'=>$subject,'body'=>$body]+($headers===null?[]:['headers'=>$headers]),JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR),LOCK_EX)===false) throw new RuntimeException('Mail transport unavailable.');
     } elseif ($driver==='mail') {
         $from=setting('mail_from',env('MAIL_FROM'));
-        if (preg_match('/[\r\n\x00]/',$from) || !filter_var($from,FILTER_VALIDATE_EMAIL) || !@mail($to,$subject,$body,['From'=>$from])) throw new RuntimeException('Mail transport unavailable.');
+        if (preg_match('/[\r\n\x00]/',$from) || !filter_var($from,FILTER_VALIDATE_EMAIL) || !@mail($to,$subject,$body,$headers??['From'=>$from])) throw new RuntimeException('Mail transport unavailable.');
     } else throw new RuntimeException('Mail transport unavailable.');
 }
 function mail_notice(string $rid,string $subject,string $body): void {
