@@ -24,10 +24,10 @@ export async function volunteerCompactQa({page,ctx,base,runPhp,check,visibleActi
    await initial(p,label+'-setup','.volunteer-profile-choice label,.time-card,.connect-ai,[data-volunteer-advanced] > summary',url);
    check(label+' true default/query selection',await p.locator('[name=session_profile]:checked').inputValue()===profile);
    check(label+' setup omits debug/status chatter',!(await p.locator('main').innerText()).includes('Dot + worker flow verified; phone start untested')&&await p.locator('[data-volunteer-profile-note]').count()===0);
-   check(label+' native compact choice is accessible',await p.getByLabel('Web only',{exact:true}).count()===1&&await p.getByLabel('Web + tools',{exact:true}).count()===1);
+   check(label+' native compact choice is accessible',await p.getByLabel('Research only',{exact:true}).count()===1&&await p.getByLabel('Research + tools',{exact:true}).count()===1);
    check(label+' advanced settings start closed',await p.locator('[data-volunteer-advanced]').getAttribute('open')===null);
    if(js)await reflow(p,label+'-setup');
-   await p.getByLabel(profile==='general'?'Web only':'Web + tools',{exact:true}).check();await p.getByLabel(profile==='general'?'Web + tools':'Web only',{exact:true}).check();
+   await p.getByLabel(profile==='general'?'Research only':'Research + tools',{exact:true}).check();await p.getByLabel(profile==='general'?'Research + tools':'Research only',{exact:true}).check();
    const fixture=fixtures[scenario%fixtures.length];await configure(p,fixture);
    await initial(p,label+'-authorization','[data-volunteer-consent] > .check,.volunteer-authorization .primary-actions > *');
    check(label+' validated scope/profile/model survive configuration',await p.locator('[data-volunteer-consent] input[name=session_profile]').inputValue()===profile&&await p.locator('[data-volunteer-consent] input[name=research_id]').inputValue()===fixture.id&&await p.locator('[data-volunteer-consent] input[name=model]').inputValue()==='gpt-6-astra'&&await p.locator('[data-volunteer-consent] input[name=reasoning]').inputValue()==='max');
