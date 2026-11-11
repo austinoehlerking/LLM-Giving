@@ -189,7 +189,7 @@
  .inline-setup form:not(.is-enhanced) .setup-advanced,.inline-setup form:not(.is-enhanced) .setup-continue{margin-top:8px}
 }
 @media(min-width:360px) and (max-width:640px){
- .inline-setup form:not(.is-enhanced) .setup-ai-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .inline-setup form:not(.is-enhanced) .setup-ai-fields{grid-template-columns:repeat(auto-fit,minmax(min(100%,9em),1fr))}
  .inline-setup form:not(.is-enhanced) .setup-ai-fields select{padding-inline:8px}
 }
 @media(prefers-reduced-motion:reduce){.inline-setup .is-enhanced [data-ai-open],.inline-setup .is-enhanced [data-time-body]{animation:none}}
