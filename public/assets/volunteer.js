@@ -37,7 +37,10 @@ if(setup){
   const current=effort.value,definition=models.get(model.value);effort.replaceChildren();
   for(const value of definition?.efforts||[]){const option=document.createElement('option');option.value=value;option.textContent=effortLabel(value);effort.append(option);}
   effort.value=definition?.efforts.includes(current)?current:(definition?.efforts.includes('max')?'max':definition?.efforts[0]||'');
-  if(setup.elements.tool_source.value==='default')setup.elements.tool.value=definition?.tool||'';
+  if(setup.elements.tool_source.value==='default'){
+   setup.elements.tool.value=definition?.tool||'';
+   setup.elements.tool_default.value=setup.elements.tool.value;
+  }
   model.setCustomValidity('');effort.setCustomValidity('');
  });
  effort.addEventListener('change',()=>effort.setCustomValidity(''));

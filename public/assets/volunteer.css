@@ -180,4 +180,16 @@
  .inline-setup .setup-advanced-grid{grid-template-columns:minmax(0,1fr);gap:16px}
  .volunteer-landing:has(.inline-setup) .volunteer-compact-footer{padding:0 16px 8px;margin-top:0}
 }
+@media(max-width:640px){
+ .inline-setup form:not(.is-enhanced) .setup-ai-step{margin-top:16px}
+ .inline-setup form:not(.is-enhanced) .setup-ai-fields{gap:10px;margin-top:10px}
+ .inline-setup form:not(.is-enhanced) .setup-time-step{margin-top:14px;padding-top:14px}
+ .inline-setup form:not(.is-enhanced) .setup-time-options{margin-top:12px}
+ .inline-setup form:not(.is-enhanced) .setup-time-card{min-height:68px}
+ .inline-setup form:not(.is-enhanced) .setup-advanced,.inline-setup form:not(.is-enhanced) .setup-continue{margin-top:8px}
+}
+@media(min-width:360px) and (max-width:640px){
+ .inline-setup form:not(.is-enhanced) .setup-ai-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .inline-setup form:not(.is-enhanced) .setup-ai-fields select{padding-inline:8px}
+}
 @media(prefers-reduced-motion:reduce){.inline-setup .is-enhanced [data-ai-open],.inline-setup .is-enhanced [data-time-body]{animation:none}}
