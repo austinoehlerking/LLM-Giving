@@ -41,4 +41,4 @@ Extract only into the intended website directory after checking the existing hos
 
 ## Protected release promotion
 
-Before promotion, follow [GitHub delivery enforcement](github-delivery.md). The release PR must contain exactly the QA-approved develop head and pass delivery/release, including a successful owner-approved Manual release authorization run. The main-only manual-release environment has no production credentials and its workflow does not merge/deploy. Once the human-authorized promotion is verified, perform the manual hosting sequence above and record its actual result separately.
+Before promotion, follow [GitHub delivery enforcement](github-delivery.md). The release PR must contain exactly the QA-approved develop head. Verify the original human deploy command, the local check-release receipt and the live release PR before merging through branch protection. Once the human-authorized promotion is verified, perform the manual hosting sequence above and record its actual result separately.
