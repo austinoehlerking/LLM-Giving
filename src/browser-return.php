@@ -2,7 +2,7 @@
 /** Private, single-assignment anonymous browser authorization. Never exported in context. */
 function ar_method(?string $method): string {
     return match($method){
-        'ai_browser'=>'AI browser submission','manual'=>'Manually submitted',default=>'Submission method not recorded'
+        'ai_api'=>'Agent API submission','ai_browser'=>'AI browser submission','manual'=>'Manually submitted',default=>'Submission method not recorded'
     };
 }
 function ar_disclosure(array $post): array {
@@ -84,13 +84,14 @@ function ar_validate(array $r,array $g,bool $requireLease=true): void {
     if(!rq_same_requirements($g['scope']['requirements']??null,rq_requirements($r)))fail(409,'Requester AI requirements changed. Obtain fresh authorization and reassess with a qualifying run.');
     if($requireLease&&$g['task_id']){$lease=wr_require($r['id'],$g['task_id'],(int)$g['scope']['revision'],$g['actor_hash'],$g['identity_id']??'');if(empty($g['scope']['volunteer_session_id'])&&sr_expected_reservation($g)!==$lease['id'])fail(409,'A different assignment now holds this reservation. Preserve the original signed assignment; explicitly reacquire only when it is unheld.');}
 }
-function ar_record(array $r,array $grant,array $d,bool $checkOnly): string {
+function ar_record(array $r,array $grant,array $d,bool $checkOnly,string $method='ai_browser'): string {
+    if(!in_array($method,['ai_browser','ai_api'],true)||($method==='ai_api'&&empty($GLOBALS['volunteer_api_auth'])))throw new LogicException('Invalid authorized transport.');
     // A separate session worker reads its grant before waiting for the parent lock.
     // Keep later eligibility reads current; the controller already owns READ COMMITTED.
     if (!db()->inTransaction() && !empty($grant['scope']['volunteer_session_id'])) {
         query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
     }
-    return tx(function()use($r,$grant,$d,$checkOnly){
+    return tx(function()use($r,$grant,$d,$checkOnly,$method){
         wr_actor_lock($grant['actor_hash']);
         if (!empty($grant['scope']['volunteer_session_id'])) {
             $currentGrant=ar_read($r,$grant['id']);
@@ -123,11 +124,11 @@ function ar_record(array $r,array $grant,array $d,bool $checkOnly): string {
         $d['terms']=1;
         if($g['task_id'])ri_review_guard($r,wf_task($r['id'],$g['task_id']),$g['actor_hash'],$g['identity_id']??null);
         $d['tool_terms']=($g['consent']['tool_terms_version']??null)===RT_TERMS?1:null;
-        if($g['task_id'])$id=wf_submit($r['id'],$g['task_id'],$d,$g['actor_hash'],$checkOnly,'ai_browser',$g['consent'],$g['identity_id']??null);
+        if($g['task_id'])$id=wf_submit($r['id'],$g['task_id'],$d,$g['actor_hash'],$checkOnly,$method,$g['consent'],$g['identity_id']??null);
         else{
             $d['human_influence']=wf_influence($d,$g['consent']);
             $d['human_influence']['authorization']=$g['consent'];
-            $d['submission_method']='ai_browser';
+            $d['submission_method']=$method;
             $id=create_contribution($r['id'],$d,$checkOnly,$g['actor_hash'],$g['identity_id']??null);
         }
         if(!$checkOnly){

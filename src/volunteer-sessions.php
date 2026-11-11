@@ -167,6 +167,7 @@ function vs_read(string $id, bool $requireAccess=true, bool $lock=false): array 
     if ($requireAccess && (!is_string($_SESSION['volunteer_sessions'][$id] ?? null) || !hash_equals($session['secret_hash'], $_SESSION['volunteer_sessions'][$id]))) {
         fail(403, 'Open your private volunteer session link. A public prompt does not authorize a session.');
     }
+    if($requireAccess&&function_exists('va_session_guard'))va_session_guard($session);
     $session['capabilities'] = json_decode($session['capabilities'], true, 16, JSON_THROW_ON_ERROR);
     $session['consent'] = json_decode($session['consent'], true, 16, JSON_THROW_ON_ERROR);
     return $session;

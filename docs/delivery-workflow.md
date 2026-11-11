@@ -45,7 +45,7 @@ QA writes one local report with executed/reused coverage and findings. Publish o
 
 QA never promotes or deploys automatically. A human DEPLOY command is the only human approval step. Record it once; do not ask again or ask the human to approve a second GitHub environment.
 
-Deploy runs check-release once, opens the approved develop-to-main release PR, and dispatches Manual release authorization to record the command's exact PR/candidate/batch binding. That metadata-only workflow has no approval environment or production credentials. It does not merge or deploy.
+Deploy runs check-release once, opens the approved develop-to-main release PR, and records the direct human deploy command with its exact PR, candidate and batch. Verify that binding and the live refs before promotion.
 
 Merge the exact QA-approved source, verify main's tree, then follow docs/siteground.md for backups, migrations, data/key preservation and deployment. Review and batch QA are already complete; Deploy does not restart them. Governance-only publication does not deploy the site.
 
