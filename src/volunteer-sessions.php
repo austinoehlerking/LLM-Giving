@@ -59,7 +59,11 @@ function vs_worker_input(array $post): array {
         if(text_field($post,'setup_version',1,1)!=='2')fail(422,'Refresh the volunteer setup form.');
         $source=text_field($post,'tool_source',0,8)?:'explicit';
         if(!in_array($source,['default','explicit'],true))fail(422,'Choose a supported worker tool setting.');
-        if($source==='default')$post['tool']=vs_setup_tool(text_field($post,'model',0,100));
+        if ($source==='default' && isset($post['tool_default']) && text_field($post,'tool',0,100)!==text_field($post,'tool_default',0,100)) {
+            $source='explicit';
+        }
+        if ($source==='default') $post['tool']=vs_setup_tool(text_field($post,'model',0,100));
+        $post['tool_source']=$source;
         return $post;
     }
     $choice=text_field($post,'worker_choice',0,24);
