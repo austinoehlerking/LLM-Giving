@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__.'/research-identity.php';
 require_once __DIR__.'/session-recovery.php';
+require_once __DIR__.'/volunteer-setup.php';
 /** Private bounded permission. Reservation ownership remains in the shared service. */
 function vs_now(): int {
     if (PHP_SAPI === 'cli' && in_array(env('APP_ENV'), ['local','test','testing'], true) && isset($GLOBALS['vs_test_now'])) {
@@ -54,6 +55,17 @@ const VS_WORKERS = [
     'fable_max'=>['model'=>'claude-fable-5-1','reasoning'=>'max','tool'=>'Claude Code','workflow_mode'=>''],
 ];
 function vs_worker_input(array $post): array {
+    if(array_key_exists('setup_version',$post)){
+        if(text_field($post,'setup_version',1,1)!=='2')fail(422,'Refresh the volunteer setup form.');
+        $source=text_field($post,'tool_source',0,8)?:'explicit';
+        if(!in_array($source,['default','explicit'],true))fail(422,'Choose a supported worker tool setting.');
+        if ($source==='default' && isset($post['tool_default']) && text_field($post,'tool',0,100)!==text_field($post,'tool_default',0,100)) {
+            $source='explicit';
+        }
+        if ($source==='default') $post['tool']=vs_setup_tool(text_field($post,'model',0,100));
+        $post['tool_source']=$source;
+        return $post;
+    }
     $choice=text_field($post,'worker_choice',0,24);
     if($choice!=='' && $choice!=='custom') {
         if(!isset(VS_WORKERS[$choice]))fail(422,'Choose an available research worker.');
@@ -155,6 +167,7 @@ function vs_read(string $id, bool $requireAccess=true, bool $lock=false): array 
     if ($requireAccess && (!is_string($_SESSION['volunteer_sessions'][$id] ?? null) || !hash_equals($session['secret_hash'], $_SESSION['volunteer_sessions'][$id]))) {
         fail(403, 'Open your private volunteer session link. A public prompt does not authorize a session.');
     }
+    if($requireAccess&&function_exists('va_session_guard'))va_session_guard($session);
     $session['capabilities'] = json_decode($session['capabilities'], true, 16, JSON_THROW_ON_ERROR);
     $session['consent'] = json_decode($session['consent'], true, 16, JSON_THROW_ON_ERROR);
     return $session;

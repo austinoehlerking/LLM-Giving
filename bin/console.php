@@ -46,6 +46,7 @@ try {
   echo "Inactivity maintenance complete.\n";
  } elseif($command==='handoffs-prune') {
   echo wf_prune_handoffs()." unused handoff archives removed. Submitted evidence retained.\n";
+  echo query('DELETE FROM volunteer_research_notes WHERE expires_at<=?',[now()])->rowCount()." expired private research notes removed.\n";
  } elseif($command==='backup') {
   $_SESSION['admin']=1; create_backup(); echo "Private database backup written under storage/backups. Back up uploads separately.\n";
  } else echo "Commands: migrate | seed | admin EMAIL (password on stdin) | archive | handoffs-prune | backup\n";

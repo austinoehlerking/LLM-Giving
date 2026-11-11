@@ -86,18 +86,17 @@ function vs_claim_next(string $id,?string $claimKey=null): array {
             vs_return_recorded($grant,$grant['result_id']);
         }
         vs_assert_active($session,true);
-        $after='';
+        $offset=0;
         do {
-            $parameters=[$after];
-            $scope=$session['scope_kind']==='research'?'':' AND r.discovery_listed=1';
-            if ($session['scope_kind']==='category') { $scope.=' AND r.category_id=?'; $parameters[]=$session['scope_id']; }
-            if ($session['scope_kind']==='research') { $scope=' AND r.id=?'; $parameters[]=$session['scope_id']; }
-            $candidates=all("SELECT t.id,t.research_id FROM workflow_tasks t JOIN workflow_projects p ON p.research_id=t.research_id AND p.round_no=t.round_no JOIN research r ON r.id=t.research_id WHERE t.id>? AND t.state='Ready' AND t.visibility='public' AND r.moderation='Approved' AND r.status NOT IN ('Withdrawn','Paused','Solved','Archived — Inactive','Review Complete','Blocked','Needs Clarification')".$scope.' ORDER BY t.id LIMIT 50',$parameters);
+            $candidates=vq_candidates($session,$offset);
+            $offset+=count($candidates);
             foreach ($candidates as $candidate) {
-                $after=$candidate['id'];
+
                 try {
                     // Serialize a new default pickup with the audited listing choice. Existing assignments retain permission.
-                    $listing=one('SELECT discovery_listed FROM research WHERE id=? FOR UPDATE',[$candidate['research_id']]);
+                    // Personalized priorities must not wait while holding other candidates' parent locks.
+                    try{$listing=one('SELECT discovery_listed FROM research WHERE id=? FOR UPDATE NOWAIT',[$candidate['research_id']]);}
+                    catch(PDOException $e){if((int)($e->errorInfo[1]??0)===1205)continue;throw $e;}
                     if(!$listing||($session['scope_kind']!=='research'&&!$listing['discovery_listed']))continue;
                     $r=research($candidate['research_id']); $task=wf_task($r['id'],$candidate['id']);
                     vs_task_eligible($session,$r,$task);
@@ -110,10 +109,12 @@ function vs_claim_next(string $id,?string $claimKey=null): array {
                 $reservation=wr_claim($r['id'],$task['id'],(int)$task['revision'],$session['actor_hash'],$session['id']);
                 vs_task_eligible($session,research($r['id']),wf_task($r['id'],$task['id']));
                 // The enclosing transaction rolls back a new claim/count if complete handoff preparation fails.
-                return vs_issue_assignment($session,$r,$task,$reservation,$claimKey);
+                $issued=vs_issue_assignment($session,$r,$task,$reservation,$claimKey);
+                $reason=vq_reason($candidate);query('UPDATE volunteer_assignments SET queue_reason=? WHERE id=?',[$reason,$issued['id']]);
+                $issued['queue_reason']=$reason;return $issued;
             }
         } while (count($candidates)===50);
-        fail(409,vs_startup_no_work($session));
+        throw new VolunteerNoWork(409,vs_startup_no_work($session));
     });
 }
 /** Called by ar_validate only for a trusted stored scope carrying volunteer_session_id. */

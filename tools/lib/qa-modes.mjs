@@ -1,5 +1,6 @@
 /** One catalogue shared by the single-suite and complete-suite runners. */
 export const qaReports = Object.freeze({
+  'agent-access': 'agent-access/browser-report.json',
   contact: 'contact/browser-report.json',
   'research-transport': 'research-transport/browser-report.json',
   'session-reliability': 'session-reliability/browser-report.json',
@@ -12,6 +13,7 @@ export const qaReports = Object.freeze({
   'hp-reader': 'happy-path-reader-report.json',
   'admin-catalogue': 'admin-catalogue-report.json',
   volunteers: 'volunteers/browser-report.json',
+  'volunteer-inline': 'volunteer-inline/browser-report.json',
   'phone-guide': 'phone-guide/browser-report.json',
   'volunteer-design': 'volunteer-design/browser-report.json',
   reservations: 'reservations/browser-report.json',

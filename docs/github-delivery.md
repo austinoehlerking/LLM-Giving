@@ -1,6 +1,6 @@
 # GitHub delivery enforcement
 
-One required check per destination: delivery/develop enforces independent current-head review; delivery/release enforces the closed QA-approved candidate and owner-dispatched release authorization. PR/conversation protections and administrator enforcement remain enabled. No workflow deploys production.
+GitHub Actions is disabled for this repository. GitHub enforces PRs, conversation resolution and administrator protections for main and develop. The coordinator verifies review and QA records against live GitHub metadata and private local evidence before the protected merge. Deploy verifies the direct human command before manual production deployment.
 
 ## Development
 
@@ -14,7 +14,7 @@ Code Review publishes its current-head verdict once:
 
     <!-- llm-delivery-review {"schemaVersion":1,"sha":"FULL_HEAD_SHA","verdict":"pass","taskId":"TASK_ID","reviewerThread":"01a15bda-b64c-7540-9a89-261c5349b451"} -->
 
-The exact review, blocking native reviews and unresolved conversations determine the gate. The task may still say in_progress/in_review; a duplicate coordinator review flag is unnecessary. A pushed head invalidates its previous review. Closing a batch freezes develop in qa_ready, qa_running and qa_passed.
+Before merging, the coordinator verifies the review marker, any blocking native reviews and unresolved conversations against the live PR head. Use the expected head SHA when merging. The task may still say in_progress or in_review. A pushed head invalidates its previous review. Closing a batch freezes develop in qa_ready, qa_running and qa_passed.
 
 All roles currently use one account. Records are trusted role declarations, not separate identity authentication.
 
@@ -30,14 +30,14 @@ The local report retains private evidence and hashes. Existing evidence-array at
 
 ## Manual deployment
 
-Only a human deploy command authorizes promotion/deployment. Deploy records it once and invokes Manual release authorization on main for the exact PR, candidate and digest. There is no additional manual-release environment approval. The owner-only workflow records a bot marker; the release check validates the successful actual dispatch, source and inputs. Copied prose authorization does not pass.
+Only a direct human deploy command authorizes promotion and deployment. Deploy verifies the original user message and records it once with the release PR, candidate, tree and batch digest. Run the local check-release once and use its evidence for the exact candidate.
 
-Release PRs must be same-repository develop-to-main at the approved candidate. Recheck identities, merge normally, verify main's tree, then perform the manual host deployment. Neither QA nor a metadata job starts deployment.
+Release PRs must be same-repository develop-to-main at the approved candidate. Recheck identities, merge normally, verify main's tree, then perform the manual host deployment. QA publishes evidence for the manual release decision.
 
 ## Metadata and recovery
 
-Delivery signal never checks out PR code. The publisher executes trusted main only and performs no application tests. It handles relevant PR/review/batch events; unrelated issue/comment chatter is ignored. New metadata cancels superseded metadata jobs. Runs are bounded to two minutes.
+The local release and QA checks validate live GitHub metadata. The coordinator records the reviewed commit and merge, and QA publishes one sanitized verdict. Preserve evidence from prior releases as historical records.
 
-delivery/batch-ready is retired as a required/start dependency. Batch completeness is checked when QA claims work and remains part of the release check.
+Batch completeness is checked when QA claims work and again against the approved candidate during release.
 
 Fix a real metadata/API problem once and request one bounded refresh. Preserve evidence. Do not disable protection, forge a pass, retest the application, wake every role or build another approval chain to repair a read-only QA helper. Follow docs/delivery-workflow.md for reuse, fallback and message rules.

@@ -1,4 +1,7 @@
-import fs from 'node:fs';import path from 'node:path';import {root,env} from '../tools/runtime.mjs';import {readyInstructions} from './session-wizard-actions.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import {root,env} from '../tools/runtime.mjs';
+import {connectVolunteer,chooseVolunteerWorker,openVolunteerTime,readyInstructions} from './session-wizard-actions.mjs';
 /** Real controls and public-contract shapes; synthetic author packets, not a native AI acceptance claim. */
 export async function volunteerRealStartQa({page,ctx,base,runPhp,check,visibleActions,report}){
  if(env.QA_WORKER_SETTINGS_ONLY==='1'){const {workerSettingsQa}=await import('./worker-settings-browser.mjs');return workerSettingsQa({page,ctx,base,runPhp,check,visibleActions,report});}
@@ -13,9 +16,9 @@ export async function volunteerRealStartQa({page,ctx,base,runPhp,check,visibleAc
  try{
   for(const tool of [false,true]){
    const r=JSON.parse(runPhp(['tests/volunteer-real-start-state.php','create',tool?'tool':'research']));projects.push(r.id);
-   await page.goto(base+'/volunteer');if(!tool)await initial(page,'setup','.profile-options label,#volunteer-worker,.time-card,.connect-ai');
-   const before=count();await page.getByRole('button',{name:'Connect my AI',exact:true}).click();check('Unchosen worker is blocked before authorization '+tool,await page.locator('#volunteer-worker').evaluate(e=>!e.checkValidity())&&await page.locator('[data-volunteer-consent]').count()===0&&JSON.stringify(count())===JSON.stringify(before));
-   await page.getByLabel('Research only',{exact:true}).check();await page.getByLabel('Research worker',{exact:true}).selectOption('sol_max');await page.getByRole('button',{name:'Connect my AI',exact:true}).click();
+   await page.goto(base+'/volunteer');if(!tool)await initial(page,'setup','#volunteer-model,#volunteer-effort,[data-ai-continue]');
+   const before=count();await chooseVolunteerWorker(page,'sol_max');await openVolunteerTime(page);check('First Continue creates no authorization or session '+tool,await page.locator('[data-volunteer-consent]').count()===0&&JSON.stringify(count())===JSON.stringify(before));
+   await page.locator('[data-volunteer-advanced]>summary').click();await page.locator('[name=session_profile]').selectOption('restricted_web_v1');await page.locator('[data-volunteer-advanced]>summary').click();await connectVolunteer(page);
    await page.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();check('Needs Research Plan is eligible before authorization '+tool,(await page.locator('[data-startup-preflight]').first().innerText()).includes('1 compatible unreserved task'));
    check('Worker settings are visible, requested and consistent '+tool,(await page.locator('.worker-summary').innerText()).includes('gpt-6.1-sol')&&await page.locator('[data-volunteer-consent] input[name=model]').inputValue()==='gpt-6.1-sol'&&await page.locator('[data-volunteer-consent] input[name=reasoning]').inputValue()==='max');
    check('Web-only planning needs no software-publication consent '+tool,await page.locator('[name=tool_terms]').count()===0);
@@ -54,8 +57,8 @@ export async function volunteerRealStartQa({page,ctx,base,runPhp,check,visibleAc
    await controller.getByRole('button',{name:'Submit task result',exact:true}).click();await controller.getByRole('heading',{name:'Submission accepted',exact:true}).waitFor();const receipt=controller.url();check('Plan is accepted once through actual browser submission '+tool,inspect(id).results===1);await controller.goto(receipt);check('Receipt reopen is idempotent '+tool,inspect(id).results===1);
    await controller.goto(base+'/volunteer/'+id);await controller.getByRole('button',{name:'Stop session',exact:true}).click();check('Stop revokes this completed planning session '+tool,inspect(id).state==='stopped');check('Stopped session cannot provide operational instructions '+tool,(await controller.request.get(privateUrl)).status()===409);runPhp(['tests/volunteer-real-start-state.php','pause'],JSON.stringify({projects:[r.id]}));
   }
-  await page.goto(base+'/volunteer');await page.locator('#volunteer-worker').selectOption('sol_max');const empty=count();await page.getByRole('button',{name:'Connect my AI',exact:true}).click();check('No Ready work offers no authorization or start-AI handoff',await page.locator('[data-volunteer-consent],#orchestrator-handoff,#volunteer-private-link').count()===0&&JSON.stringify(count())===JSON.stringify(empty));
-  const nativeContext=await ctx.browser().newContext({javaScriptEnabled:false,viewport:sizes[2]});contexts.push(nativeContext);const native=await nativeContext.newPage();await native.goto(base+'/volunteer');await native.locator('#volunteer-worker').selectOption('sol_max');await native.getByRole('button',{name:'Connect my AI',exact:true}).click();check('No-JavaScript zero-work path creates no session or AI start prompt',await native.locator('[data-volunteer-consent],#orchestrator-handoff').count()===0&&JSON.stringify(count())===JSON.stringify(empty));
+  await page.goto(base+'/volunteer');await chooseVolunteerWorker(page,'sol_max');const empty=count();await connectVolunteer(page);check('No Ready work offers no authorization or start-AI handoff',await page.locator('[data-volunteer-consent],#orchestrator-handoff,#volunteer-private-link').count()===0&&JSON.stringify(count())===JSON.stringify(empty));
+  const nativeContext=await ctx.browser().newContext({javaScriptEnabled:false,viewport:sizes[2]});contexts.push(nativeContext);const native=await nativeContext.newPage();await native.goto(base+'/volunteer');await chooseVolunteerWorker(native,'sol_max');await connectVolunteer(native);check('No-JavaScript zero-work path creates no session or AI start prompt',await native.locator('[data-volunteer-consent],#orchestrator-handoff').count()===0&&JSON.stringify(count())===JSON.stringify(empty));
   check('No browser script exceptions',errors.length===0);report.scope='Default human path with explicit requested worker; two actual local planning pickups/Checks/accepted submissions for public-contract mirrors. Native Dot real work is separate coordinator evidence. Mandatory initial screens inspected before interactions via runner pause. No provider/scientific claim.';
  }finally{for(const c of contexts)await c.close();runPhp(['tests/volunteer-real-start-state.php','cleanup'],JSON.stringify({projects,sessions}));}
 }

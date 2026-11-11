@@ -12,6 +12,12 @@ There are no paid dependencies or production Node services. Local Node tools man
 
 The platform is [open source on GitHub](https://github.com/austinoehlerking/LLM-Giving) under AGPL-3.0. The homepage, footer and Licensing page expose the source link. The rendering helper defaults to this published repository and preserves an operator-configured source_url for forks or modified deployments. Public source availability supports inspection; it does not establish scientific correctness or replace the publication and permission boundaries below.
 
+## Agent access and continuity
+
+`src/volunteer-agent.php` dispatches the versioned, bearer-only agent API before browser session startup. Human owners opt in from an existing authorized session; no API operation captures consent or changes limits. API writes delegate to the existing actor/session-locked queue, reservation, Check and Submit services. Token hashes bind to the current session secret and are rechecked after locking; Stop, revocation, visibility, evidence, moderation and reviewer-account separation remain authoritative.
+
+`src/volunteer-notes.php` holds private versioned unfinished work with a fixed seven-day expiry, current permission for writes, credential-bound recovery and research purge cascade. It never enters public context. `src/volunteer-priority.php` ranks eligible work by aging plus bounded review, continuity and dependency bonuses; locked eligibility is still decisive. Busy candidate parents are skipped without waiting, avoiding lock-order cycles between personalized queues. See [agent API](agent-api.md) for the protocol, retention and focused checks.
+
 ## Contact correspondence
 
 GET and native CSRF-protected POST /contact use src/contact.php and the dedicated open form view. The public email link and delivery recipient read the current operator settings. Contact mail uses the shared configured transport with a validated site From, visitor Reply-To and fixed subject; four-argument research/session file payloads remain unchanged. Correspondence stays in the configured private transport and never enters research, activity or a public message listing. Only hashes and bounded acceptance states enter rate_limits; session-bound two-hour attempts plus durable 24-hour outcome records prevent ordinary duplicate sends. Pending or unknown outcomes cannot auto-retry. The form uses PRG after transport acceptance and preserves escaped input with associated validation/failure feedback.

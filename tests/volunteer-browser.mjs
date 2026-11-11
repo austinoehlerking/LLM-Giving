@@ -1,8 +1,8 @@
-import {connectVolunteer,readyDashboard} from './session-wizard-actions.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import {root,env} from '../tools/runtime.mjs';
+import {connectVolunteer,chooseVolunteerWorker,openVolunteerTime,readyDashboard} from './session-wizard-actions.mjs';
 const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}];
 export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,report}) {
  const out=path.join(root,'storage/qa/volunteers');fs.mkdirSync(out,{recursive:true});
@@ -36,11 +36,12 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
   }
  }
  async function configure(p,fixture,limit=2) {
+  await chooseVolunteerWorker(p,'astra_max');await openVolunteerTime(p);
   const details=p.locator('[data-volunteer-advanced]');if(!await details.evaluate(element=>element.open))await details.locator('summary').click();
-  await p.locator('[name=cause_choice][value=custom]').check();await p.locator('[name=scope_kind]').selectOption('research');
+  await p.locator('[name=scope_kind]').selectOption('research');
   await p.locator('[name=research_id]').fill(fixture.id);
-  await p.locator('[name=session_preset][value=custom]').check();await p.locator('[name=assignment_limit]').fill(String(limit));
-  await p.locator('[name=model]').selectOption('gpt-6-astra');await p.locator('[name=reasoning]').selectOption('max');await p.locator('[name=tool]').fill('Codex');
+  if(await p.locator('[name=session_preset][value=custom]').isVisible())await p.locator('[name=session_preset][value=custom]').check();await p.locator('[name=assignment_limit]').fill(String(limit));
+  await p.locator('[name=tool]').fill('Codex');
   await connectVolunteer(p);
   await p.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();
  }
@@ -56,7 +57,7 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
   await capture(page,'home','.hero .primary-actions > *',base+'/');
   await page.getByRole('link',{name:'Start volunteering',exact:true}).first().click();
   check('Prominent homepage action opens real volunteer setup',new URL(page.url()).pathname==='/volunteer');
-  await capture(page,'setup','.time-cards .time-card,.connect-ai',base+'/volunteer');
+  await capture(page,'setup','#volunteer-model,#volunteer-effort,[data-ai-continue]',base+'/volunteer');
   check('Visible defaults are three assignments and sixty minutes',await page.locator('[name=assignment_limit]').inputValue()==='3'&&await page.locator('[name=minutes]').inputValue()==='60');
   check('Advanced worker configuration starts collapsed',!await page.locator('[data-volunteer-advanced]').evaluate(element=>element.open));
   check('No account credentials or API keys are requested',await page.locator('input[type=password]').count()===0);
@@ -125,7 +126,7 @@ export async function volunteerQa({page,ctx,base,runPhp,check,visibleActions,rep
   runPhp(['tests/volunteer-state.php','expire-session',late.id]);await page.getByRole('button',{name:'Submit task result',exact:true}).click();
   check('Session expiry denies submission and retains entered work',await page.locator('[name=payload]').inputValue()===lateText&&(await page.locator('[data-workflow-error]').innerText()).includes('expired')&&state(late.id).recorded===0);
   await page.goto(base+'/volunteer/'+late.id);await page.getByRole('button',{name:'Stop session',exact:true}).click();
-  const native=await browser.newContext({javaScriptEnabled:false,viewport:sizes[0],reducedMotion:'reduce'});contexts.push(native);const np=await native.newPage();await np.goto(base+'/volunteer');await capture(np,'native-setup','.time-cards .time-card,.connect-ai',base+'/volunteer');
+  const native=await browser.newContext({javaScriptEnabled:false,viewport:sizes[0],reducedMotion:'reduce'});contexts.push(native);const np=await native.newPage();await np.goto(base+'/volunteer');await capture(np,'native-setup','#volunteer-model,#volunteer-effort,.setup-time-card,[data-setup-submit]',base+'/volunteer');
   await configure(np,fixtures[2],1);const nc=await authorize(np);await readyDashboard(np);const nh=await pick(np);
   check('Native no-JavaScript pickup supplies the complete manual-copy handoff',nh.includes('Private return link: ')&&await np.locator('[data-session-copy]').count()===1&&await np.locator('[data-session-copy]').isHidden());
   await np.getByRole('link',{name:'Open result form',exact:true}).click();await checkPacket(np,packet(nc.id));await np.getByRole('button',{name:'Submit task result',exact:true}).click();await np.getByRole('heading',{name:'Submission accepted',exact:true}).waitFor();
