@@ -1,4 +1,4 @@
-import {connectVolunteer,readyDashboard,privateControllerInstructions} from './session-wizard-actions.mjs';
+import {connectVolunteer,readyDashboard,privateControllerInstructions,openVolunteerTime,chooseVolunteerWorker} from './session-wizard-actions.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {root,env} from '../tools/runtime.mjs';
@@ -9,11 +9,11 @@ export async function volunteerDesignQa({page,ctx,base,runPhp,check,visibleActio
  const fixtures=JSON.parse(runPhp(['tests/volunteer-state.php','create'])),sessions=[],contexts=[],failures=[];
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  const shot=async(p,name,privatePage=false)=>{const file=path.join(out,name+'.png');await p.screenshot({path:file,fullPage:false,...(privatePage?{mask:[p.locator('textarea:visible')]}:{})});report.screenshots.push(file);return file;};
- const preset=async(p,key)=>p.locator('.time-card').filter({has:p.locator('input[value="'+key+'"]')}).click();
+ const preset=async(p,key)=>{await openVolunteerTime(p);await p.locator('.setup-time-card').filter({has:p.locator('input[value="'+key+'"]')}).click();};
  async function authorize(p){for(const name of ['authorize','authorized_resources','terms'])await p.locator('[name='+name+']').check();await p.getByRole('button',{name:'Authorize session',exact:true}).click();await p.getByRole('heading',{name:'Your session is ready',exact:true}).waitFor();const link=await p.locator('#volunteer-private-link').inputValue();const id=new URL(link).pathname.split('/')[2];sessions.push(id);return id;}
  try{
   const initial=[];
-  for(const size of sizes){await page.setViewportSize(size);await page.goto(base+'/volunteer');initial.push(await shot(page,'initial-'+size.width+'x'+size.height));try{await visibleActions(page,'.time-cards .time-card,.connect-ai','Approved Volunteer '+size.width);check('Initial page starts at scroll zero '+size.width,await page.evaluate(()=>scrollY===0));}catch(error){failures.push(error.message);}}
+  for(const size of sizes){await page.setViewportSize(size);await page.goto(base+'/volunteer');initial.push(await shot(page,'initial-'+size.width+'x'+size.height));try{await visibleActions(page,'#volunteer-model,#volunteer-effort,[data-ai-continue]','Approved Volunteer '+size.width);check('Initial page starts at scroll zero '+size.width,await page.evaluate(()=>scrollY===0));}catch(error){failures.push(error.message);}}
   console.log('INSPECT APPROVED DESIGN INITIAL VIEWPORTS: '+initial.join(' | '));
   if(env.QA_INSPECT_FIRST==='design'){await new Promise(resolve=>{process.stdin.resume();process.stdin.once('data',()=>{process.stdin.pause();resolve();});});}
   if(failures.length)throw new Error(failures.join('; '));
@@ -21,23 +21,23 @@ export async function volunteerDesignQa({page,ctx,base,runPhp,check,visibleActio
   check('Standard is the initial real selection',await page.locator('[name=session_preset][value=standard]').isChecked());
   check('Minimal header links to the actual quick start',await page.locator('.volunteer-header a[href="/volunteer/quick-start"]').isVisible());
   check('Brand uses static two-thirds progress without account telemetry',await page.locator('.volunteer-header .brand-meter').evaluate(el=>{const fill=el.firstElementChild;return el.getAttribute('aria-hidden')==='true'&&Math.abs(fill.getBoundingClientRect().width/el.getBoundingClientRect().width-2/3)<.02;}));
-  check('Cause pills use real taxonomy and no placeholder labels',await page.locator('.cause-pills').innerText().then(text=>!text.includes('Cause area')&&text.includes('Wherever needed')));
+  check('Optional scope uses actual category taxonomy',await page.locator('#volunteer-category option').count()>1);
   for(const [key,summary]of [['quick','15 min or 1 task'],['standard','60 min or 3 tasks'],['long','180 min or 10 tasks'],['unlimited','Until Stop']]){
-   await page.goto(base+'/volunteer');await preset(page,key);check('Live summary follows '+key,(await page.locator('[data-volunteer-summary]').innerText()).includes(summary));
+   await page.goto(base+'/volunteer');await preset(page,key);check('Native time selection follows '+key,await page.locator('[name=session_preset][value='+key+']').isChecked());
    await connectVolunteer(page);await page.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();
    check('Real authorization reviews '+key,await page.locator('.volunteer-start > .fine').first().innerText().then(text=>text.includes(key==='unlimited'?'no session time or task limit':summary)));
    check('Consent is unchecked before '+key+' authorization',await page.locator('[name=authorize],[name=terms],[name=authorized_resources]').evaluateAll(elements=>elements.length===3&&elements.every(el=>!el.checked)));
   }
-  await page.goto(base+'/volunteer');const cause=page.locator('.cause-pill').nth(1);const causeName=await cause.locator('input').getAttribute('data-cause-label');await cause.click();check('Cause pill updates live summary',(await page.locator('[data-volunteer-summary]').innerText()).includes(causeName));await connectVolunteer(page);check('Cause pill is reflected in real server authorization',(await page.locator('.volunteer-start > .fine').first().innerText()).includes('Category: '+causeName));
-  await page.goto(base+'/volunteer');await page.locator('[name=session_preset][value=standard]').focus();await page.keyboard.press('ArrowRight');check('Time presets support native keyboard arrow selection',await page.locator('[name=session_preset][value=long]').isChecked());
-  await page.getByRole('button',{name:'Connect my AI',exact:true}).focus();check('Primary action receives keyboard focus',await page.getByRole('button',{name:'Connect my AI',exact:true}).evaluate(el=>el===document.activeElement));await shot(page,'keyboard-focus');
-  await page.goto(base+'/volunteer');await page.locator('[data-volunteer-advanced] > summary').click();await page.locator('[name=session_preset][value=custom]').check();
-  await page.locator('[name=assignment_limit]').fill('7');await page.locator('[name=minutes]').fill('125');check('Advanced custom limits update live summary',(await page.locator('[data-volunteer-summary]').innerText()).includes('125 min or 7 tasks'));
-  await page.locator('[name=cause_choice][value=custom]').check();await page.locator('[name=scope_kind]').selectOption('research');await page.locator('[name=research_id]').fill(fixtures[0].id);
-  await page.locator('[name=model]').selectOption('gpt-6-astra');await page.locator('[name=reasoning]').selectOption('max');await page.locator('[name=tool]').fill('Codex');
+  await page.goto(base+'/volunteer');await openVolunteerTime(page);await page.locator('[data-volunteer-advanced]>summary').click();await page.locator('[name=scope_kind]').selectOption('category');await page.locator('[name=category_id]').selectOption({index:1});const causeName=await page.locator('[name=category_id] option:checked').innerText();await connectVolunteer(page);check('Actual category survives server authorization',(await page.locator('.volunteer-start>.fine').first().innerText()).includes('Category: '+causeName));
+  await page.goto(base+'/volunteer');await openVolunteerTime(page);await page.locator('[name=session_preset][value=standard]').focus();await page.keyboard.press('ArrowRight');check('Time presets support native keyboard arrow selection',await page.locator('[name=session_preset][value=long]').isChecked());
+  await page.locator('[data-setup-submit]').focus();check('Primary action receives keyboard focus',await page.locator('[data-setup-submit]').evaluate(el=>el===document.activeElement));await shot(page,'keyboard-focus');
+  await page.goto(base+'/volunteer');await openVolunteerTime(page);await page.locator('[data-volunteer-advanced] > summary').click();
+  await page.locator('[name=assignment_limit]').fill('7');await page.locator('[name=minutes]').fill('125');check('Advanced custom limits select Custom',await page.locator('[name=session_preset][value=custom]').isChecked());
+  await page.locator('[name=scope_kind]').selectOption('research');await page.locator('[name=research_id]').fill(fixtures[0].id);
+  await page.locator('[name=tool]').fill('Codex');
   await connectVolunteer(page);check('Specific research and custom limits survive server review',(await page.locator('.volunteer-start > .fine').first().innerText()).includes('125 min or 7 tasks'));
   await page.goto(base+'/volunteer');await preset(page,'unlimited');await page.locator('[data-volunteer-advanced] > summary').click();
-  await page.locator('[name=cause_choice][value=custom]').check();await page.locator('[name=scope_kind]').selectOption('research');await page.locator('[name=research_id]').fill(fixtures[0].id);await page.locator('[name=model]').selectOption('gpt-6-astra');await page.locator('[name=reasoning]').selectOption('max');await page.locator('[name=tool]').fill('Codex');
+  await page.locator('[name=scope_kind]').selectOption('research');await page.locator('[name=research_id]').fill(fixtures[0].id);await page.locator('[name=tool]').fill('Codex');
   await connectVolunteer(page);
   const consentShots=[],consentFailures=[];
   for(const size of sizes.slice(0,3)){await page.setViewportSize(size);await page.evaluate(()=>scrollTo(0,0));consentShots.push(await shot(page,'unlimited-authorization-'+size.width+'x'+size.height));try{await visibleActions(page,'.volunteer-authorization > .form-panel > .primary-actions > *, .volunteer-authorization > .form-panel > .check','Unlimited authorization '+size.width);}catch(error){consentFailures.push(error.message);}}
@@ -55,17 +55,13 @@ export async function volunteerDesignQa({page,ctx,base,runPhp,check,visibleActio
   await page.goto(base+'/volunteer/'+id);await page.getByRole('button',{name:'Stop session',exact:true}).click();check('Unlimited Stop revokes future pickup',await page.getByText('Session stopped — existing receipts remain available',{exact:true}).isVisible()&&await page.getByRole('button',{name:'Pick up next task',exact:true}).count()===0);
   const native=await ctx.browser().newContext({javaScriptEnabled:false,viewport:sizes[2]});contexts.push(native);const np=await native.newPage();await np.goto(base+'/volunteer');await preset(np,'unlimited');await connectVolunteer(np);const nativeId=await authorize(np);
   check('No-JS unlimited handoff retains real private authorization',(await privateControllerInstructions(np,nativeId)).includes('"assignment_limit": null'));await readyDashboard(np);await np.getByRole('button',{name:'Stop session',exact:true}).click();check('No-JS unlimited Stop works',await np.getByText('Session stopped — existing receipts remain available',{exact:true}).isVisible());
-  await page.goto(base+'/volunteer');await page.setViewportSize(sizes[2]);
+  await page.goto(base+'/volunteer');await page.setViewportSize(sizes[2]);await openVolunteerTime(page);
   await page.evaluate(()=>{window.__qaFonts=[...document.querySelectorAll('body,body *')].filter(el=>el instanceof HTMLElement).map(el=>[el,el.style.fontSize,parseFloat(getComputedStyle(el).fontSize)]);for(const [el,,size]of window.__qaFonts)if(Number.isFinite(size))el.style.fontSize=size*2+'px';});
   await shot(page,'reflow-200-percent-375x667');check('Approved page reflows at 200% text without horizontal page overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
 
-  await page.locator('.time-cards').scrollIntoViewIfNeeded();await shot(page,'reflow-200-percent-time-cards');
-  check('Enlarged preset text and Popular badge do not overlap',await page.locator('.time-standard').evaluate(card=>{
-   const rects=selector=>[...card.querySelectorAll(selector)].flatMap(el=>{const range=document.createRange();range.selectNodeContents(el);return [...range.getClientRects()];});
-   const badge=rects('.popular'),text=rects('.time-name,.time-value,.time-task');
-   return badge.every(a=>text.every(b=>Math.min(a.right,b.right)-Math.max(a.left,b.left)<=1||Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)<=1));
-  }));
-  await page.getByRole('button',{name:'Connect my AI',exact:true}).scrollIntoViewIfNeeded();await shot(page,'reflow-200-percent-connect');
+  await page.locator('.setup-time-cards').scrollIntoViewIfNeeded();await shot(page,'reflow-200-percent-time-cards');
+  check('Enlarged preset captions remain inside their cards',await page.locator('.setup-time-card').evaluateAll(cards=>cards.every(card=>{const r=card.getBoundingClientRect(),caption=card.querySelector('.setup-time-caption').getBoundingClientRect();return caption.left>=r.left&&caption.right<=r.right+1;})));
+  await page.locator('[data-setup-submit]').scrollIntoViewIfNeeded();await shot(page,'reflow-200-percent-connect');
 
   check('No application script exceptions',errors.length===0);
  }finally{for(const context of contexts)await context.close();runPhp(['tests/volunteer-state.php','cleanup'],JSON.stringify({fixtures,sessions}));}
