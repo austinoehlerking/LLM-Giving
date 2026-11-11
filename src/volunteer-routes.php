@@ -59,23 +59,25 @@ function vs_public_assignment(array $session,array $assignment): array {
 }
 function vs_private_packet(array $session,array $grant,array $packet): void {
     $encoded=json_encode($packet,JSON_THROW_ON_ERROR);
+    if(preg_match('/llmg_[a-f0-9]{32}_[a-f0-9]{64}/i',$encoded))fail(422,'Remove the private agent credential from research content.');
+    $apiCredential=one('SELECT token_hash FROM volunteer_agent_credentials WHERE session_id=?',[$session['id']]);
     if (preg_match('~/volunteer/[a-f0-9]{32}|/return/[a-f0-9]{32}~i',str_replace('\\/','/',$encoded))) fail(422,'Remove private session and return links from the research packet. They are authorization, not evidence.');
     preg_match_all('/[a-f0-9]{64}/i',$encoded,$matches);
     foreach ($matches[0] as $candidate) {
-        if (hash_equals($session['secret_hash'],hash('sha256',$candidate)) || hash_equals($grant['secret_hash'],hash('sha256',$candidate)) || in_array($candidate,[$session['secret_hash'],$session['actor_hash']],true)) {
+        if (($apiCredential && (hash_equals($apiCredential['token_hash'],hash('sha256',$candidate))||hash_equals($apiCredential['token_hash'],$candidate))) || hash_equals($session['secret_hash'],hash('sha256',$candidate)) || hash_equals($grant['secret_hash'],hash('sha256',$candidate)) || in_array($candidate,[$session['secret_hash'],$session['actor_hash']],true)) {
             fail(422,'Remove private session ownership material from the research packet.');
         }
     }
 }
-function vs_record(string $id,string $assignmentId,array $packet,bool $checkOnly): string {
-    return vs_locked($id,function(array $session) use($assignmentId,$packet,$checkOnly) {
+function vs_record(string $id,string $assignmentId,array $packet,bool $checkOnly,string $method='ai_browser'): string {
+    return vs_locked($id,function(array $session) use($assignmentId,$packet,$checkOnly,$method) {
         $assignment=vs_assignment($session,$assignmentId);
         $grant=vs_assignment_grant($session,$assignment);
         vs_private_packet($session,$grant,$packet);
         if (!$grant['result_id']) vs_validate_grant(research($assignment['research_id']),$grant);
         // A full session already authorized this stored assignment. The packet supplies neither consent nor actor.
         $_SESSION['browser_returns'][$grant['id']]=$grant['secret_hash'];
-        $result=ar_record(research($assignment['research_id']),$grant,$packet,$checkOnly);
+        $result=ar_record(research($assignment['research_id']),$grant,$packet,$checkOnly,$method);
         if (!$checkOnly) vs_return_recorded($grant,$result);
         return $result;
     });
@@ -128,6 +130,7 @@ function vs_assignment_page(array $session,array $assignment,string $method): vo
         'can'=>$can,'error'=>$error,'repair'=>$repair,'checked'=>$checked,'input'=>$input,'reservationText'=>$item['reservation_text'],'reacquire'=>$item['reacquire']]);
 }
 function vs_route(string $path,string $method): bool {
+    if(va_ui_route($path,$method))return true;
     if(function_exists('rtx_session_route')&&rtx_session_route($path,$method))return true;
     if(sr_route($path,$method)||ri_route($path,$method))return true;
     if (vs_email_route($path,$method)) return true;

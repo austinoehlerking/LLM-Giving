@@ -28,3 +28,5 @@ require __DIR__.'/volunteer-profiles.php';
 require __DIR__.'/volunteer-sessions.php';
 require __DIR__.'/volunteer-queue.php';
 require __DIR__.'/volunteer-routes.php';
+require __DIR__.'/volunteer-agent.php';
+require __DIR__.'/volunteer-priority.php';

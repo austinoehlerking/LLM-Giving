@@ -6,7 +6,7 @@ $wizardTitles=['Save your private link','Copy start message','Paste into Dot and
 ?>
 <div class="volunteer-wizard" data-volunteer-wizard data-email-interacted="<?=!empty($emailOpen)?'true':'false'?>">
 <h1>Your session is ready</h1>
-<p class="wizard-subtitle">Your AI starts after you send the instructions. Follow these 4 steps.</p>
+<p class="wizard-subtitle">Your AI starts after you send the instructions. Follow these 4 steps, or <a href="/volunteer/<?=e($created['id'])?>/agent">connect an agent via API</a>.</p>
 <div class="wizard-surface">
 <ol class="wizard-overview" aria-label="Your four steps">
 <?php foreach($wizardTitles as $index=>$wizardTitle): ?><li data-wizard-marker="<?=$index+1?>" <?=$index===0?'aria-current="step"':''?>><span class="wizard-number" aria-hidden="true"><?=$index+1?></span><span class="wizard-step-label"><?=e($wizardTitle)?></span></li><?php endforeach ?>

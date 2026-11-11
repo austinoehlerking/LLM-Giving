@@ -130,7 +130,7 @@ function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnl
         $snapshotRequirements=json_decode($s['package_json'],true)['requester_ai_requirements']??rq_requirements([]);
         if(!rq_same_requirements($snapshotRequirements,rq_requirements(research($rid))))fail(409,'Requester AI requirements changed. Copy a fresh handoff and use a qualifying AI run.');
         $meta=wf_metadata($d,$s,$t['kind']==='planning');
-        if(!in_array($method,['unknown','manual','ai_browser'],true))throw new LogicException('Invalid submission method.');
+        if(!in_array($method,['unknown','manual','ai_browser','ai_api'],true))throw new LogicException('Invalid submission method.');
         if($consent){if($consent['terms_version']!==terms_version())fail(409,'Fresh volunteer authorization is required for changed terms.');$meta['authorization']=$consent;}
         $meta['packet_contract_version']=wf_packet_contract_version($s);
         if($meta['packet_contract_version']===WF_PACKET_VERSION)$meta['usefulness']=wf_usefulness_validate($d);
