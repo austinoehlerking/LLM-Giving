@@ -24,9 +24,16 @@ export async function privateControllerInstructions(page,id) {
  return page.evaluate(html=>new DOMParser().parseFromString(html,'text/html').querySelector('#session-ai-instructions').value,html);
 }
 
-/** A human must explicitly choose a requested worker before reviewing authorization. */
+/** Progress through the enhanced AI step or the native combined form before server review. */
+export async function openVolunteerTime(page) {const advance=page.locator('[data-ai-continue]');if(await advance.isVisible())await advance.click();}
 export async function connectVolunteer(page) {
- const picker=page.locator('[name=worker_choice]');
- if(await picker.count() && !(await picker.inputValue()))await picker.selectOption('astra_max');
- await page.getByRole('button',{name:'Connect my AI',exact:true}).click();
+ await openVolunteerTime(page);
+ const next=page.locator('[data-setup-submit]');
+ if(await next.count())await next.click();else await page.getByRole('button',{name:'Connect my AI',exact:true}).click();
+}
+export async function chooseVolunteerWorker(page,preset,effort='max') {
+ const models={astra_max:'gpt-6-astra',sol_max:'gpt-6.1-sol',opus_max:'claude-opus-5-5',fable_max:'claude-fable-5-1'};
+ const model=page.locator('[data-volunteer-setup] [name=model]');
+ if(await model.count()){if(!await model.isVisible()&&await page.locator('[data-ai-change]').isVisible())await page.locator('[data-ai-change]').click();await model.selectOption(models[preset]||preset);await page.locator('[data-volunteer-setup] [name=reasoning]').selectOption(effort);}
+ else {await page.locator('[name=worker_choice]').selectOption(preset);const reasoning=page.locator('[name=worker_reasoning]');if(await reasoning.isEnabled())await reasoning.selectOption(effort);}
 }

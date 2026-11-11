@@ -1,6 +1,8 @@
-import {privateControllerInstructions} from './session-wizard-actions.mjs';
-import {readyInstructions} from './session-wizard-actions.mjs';
-import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {root,runPhp} from '../tools/runtime.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {root,runPhp} from '../tools/runtime.mjs';
+import {connectVolunteer,chooseVolunteerWorker,openVolunteerTime,privateControllerInstructions,readyInstructions} from './session-wizard-actions.mjs';
 /** Exercises real local forms with explicitly synthetic authored packets; launches no AI. */
 export async function startupQa({page,ctx,base,check,visibleActions}){
  const out=path.join(root,'storage/qa/volunteer-startup');fs.mkdirSync(out,{recursive:true});const fixture=JSON.parse(runPhp(['tests/startup-state.php','create']));const failures=[],screenshots=[];let id;const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}];
@@ -8,10 +10,7 @@ export async function startupQa({page,ctx,base,check,visibleActions}){
  async function capture(label,selector){for(const size of sizes){await page.setViewportSize(size);await page.evaluate(()=>scrollTo(0,0));const file=path.join(out,label+'-'+size.width+'x'+size.height+'.png');await page.screenshot({path:file,fullPage:false,mask:masks(page)});screenshots.push(file);try{await visibleActions(page,selector,label+' '+size.width+'x'+size.height);}catch(e){failures.push(e.message);}}}
  async function enlarged(label){await page.setViewportSize(sizes[2]);await page.evaluate(()=>{window.__startupFonts=[...document.querySelectorAll('body,body *')].filter(e=>e instanceof HTMLElement).map(e=>[e,e.style.fontSize,parseFloat(getComputedStyle(e).fontSize)]);for(const[e,,s]of window.__startupFonts)if(Number.isFinite(s))e.style.fontSize=s*2+'px';});const file=path.join(out,label+'-text200.png');await page.screenshot({path:file,fullPage:false,mask:masks(page)});screenshots.push(file);check(label+' all-font 200% reflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.evaluate(()=>{for(const[e,s]of window.__startupFonts)e.style.fontSize=s;delete window.__startupFonts;});}
  try{
-  await page.goto(base+'/volunteer?scope_kind=research&research_id='+fixture.id);await page.getByRole('button',{name:'Connect my AI',exact:true}).click();
-  check('Unchosen requested worker cannot advance to authorization',await page.locator('#volunteer-worker').evaluate(e=>!e.checkValidity())&&await page.locator('[data-volunteer-consent]').count()===0);
-  await capture('standard-worker-required','.connect-ai,#volunteer-worker');
-  await page.locator('#volunteer-worker').selectOption('sol_max');await page.getByRole('button',{name:'Connect my AI',exact:true}).click();
+  await page.goto(base+'/volunteer?scope_kind=research&research_id='+fixture.id);check('Fresh requested settings do not authorize automatically',await page.locator('[data-volunteer-consent]').count()===0);await capture('standard-ai-step','#volunteer-model,#volunteer-effort,[data-ai-continue]');await chooseVolunteerWorker(page,'sol_max');await connectVolunteer(page);
   check('Truthful worker recheck exposes compatible current work',(await page.locator('[data-startup-preflight]>p').first().innerText()).includes('1 compatible unreserved task is available now'));
   check('Recheck does not silently authorize or collect consent',await page.locator('[name=authorize],[name=authorized_resources],[name=terms]').evaluateAll(es=>es.every(e=>!e.checked)));
   await capture('standard-compatible','.volunteer-authorization>.form-panel>.primary-actions > *, .volunteer-authorization>.form-panel>.check');await enlarged('authorization');

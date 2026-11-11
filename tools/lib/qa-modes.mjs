@@ -13,6 +13,7 @@ export const qaReports = Object.freeze({
   'hp-reader': 'happy-path-reader-report.json',
   'admin-catalogue': 'admin-catalogue-report.json',
   volunteers: 'volunteers/browser-report.json',
+  'volunteer-inline': 'volunteer-inline/browser-report.json',
   'phone-guide': 'phone-guide/browser-report.json',
   'volunteer-design': 'volunteer-design/browser-report.json',
   reservations: 'reservations/browser-report.json',

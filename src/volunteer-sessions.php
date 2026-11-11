@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__.'/research-identity.php';
 require_once __DIR__.'/session-recovery.php';
+require_once __DIR__.'/volunteer-setup.php';
 /** Private bounded permission. Reservation ownership remains in the shared service. */
 function vs_now(): int {
     if (PHP_SAPI === 'cli' && in_array(env('APP_ENV'), ['local','test','testing'], true) && isset($GLOBALS['vs_test_now'])) {
@@ -54,6 +55,13 @@ const VS_WORKERS = [
     'fable_max'=>['model'=>'claude-fable-5-1','reasoning'=>'max','tool'=>'Claude Code','workflow_mode'=>''],
 ];
 function vs_worker_input(array $post): array {
+    if(array_key_exists('setup_version',$post)){
+        if(text_field($post,'setup_version',1,1)!=='2')fail(422,'Refresh the volunteer setup form.');
+        $source=text_field($post,'tool_source',0,8)?:'explicit';
+        if(!in_array($source,['default','explicit'],true))fail(422,'Choose a supported worker tool setting.');
+        if($source==='default')$post['tool']=vs_setup_tool(text_field($post,'model',0,100));
+        return $post;
+    }
     $choice=text_field($post,'worker_choice',0,24);
     if($choice!=='' && $choice!=='custom') {
         if(!isset(VS_WORKERS[$choice]))fail(422,'Choose an available research worker.');
