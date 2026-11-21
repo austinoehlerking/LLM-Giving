@@ -44,16 +44,28 @@ async function plan(job, context) {
   }
 }
 
+async function plannerToken() {
+  if(process.env.LOCAL_PLANNER_TOKEN)return process.env.LOCAL_PLANNER_TOKEN;
+  const git=spawnSync('git',['rev-parse','--git-common-dir'],{cwd:root,encoding:'utf8',timeout:5000,windowsHide:true});
+  const shared=git.status===0?path.dirname(path.resolve(root,git.stdout.trim())):root;
+  try {return (await fs.readFile(path.join(shared,'storage','private','local-planner.token'),'utf8')).trim();}
+  catch(error){if(error.code==='ENOENT')return '';throw error;}
+}
+
+function chatgptSignedIn() {
+  const login = spawnSync('codex', ['login','status'], {env:codexEnvironment(),encoding:'utf8',timeout:10000,windowsHide:true});
+  return login.status===0&&/Logged in using ChatGPT/i.test(login.stdout+'\n'+login.stderr);
+}
+
 async function main() {
   const mode = process.argv[2] ?? '--once';
-  if (!['--once','--watch'].includes(mode) || process.argv.length > 3) throw new Error('Use --once or --watch.');
+  if (!['--once','--watch','--listen'].includes(mode) || process.argv.length > 3) throw new Error('Use --listen, --once, or --watch.');
   const origin = process.env.LOCAL_PLANNER_ORIGIN ?? 'https://llm.giving';
   if (origin!=='https://llm.giving' && !/^http:\/\/127\.0\.0\.1:[0-9]{4,5}$/.test(origin)) throw new Error('Use the LLM.Giving origin or an isolated loopback test port.');
-  const token = process.env.LOCAL_PLANNER_TOKEN;
-  if (!/^[a-f0-9]{64}$/.test(token ?? '')) throw new Error('Set the dedicated local planner token before starting.');
+  const token = await plannerToken();
+  if (!/^[a-f0-9]{64}$/.test(token ?? '')) throw new Error('Set the dedicated planner token or provision storage/private/local-planner.token before starting.');
   await fs.mkdir(storage, {recursive:true});
-  const login = spawnSync('codex', ['login','status'], {env:codexEnvironment(),encoding:'utf8',timeout:10000,windowsHide:true});
-  if (login.status!==0 || !/Logged in using ChatGPT/i.test(login.stdout+'\n'+login.stderr)) throw new Error('Sign in to the local Codex CLI with ChatGPT first.');
+  if (mode!=='--listen'&&!chatgptSignedIn()) throw new Error('Sign in to the local Codex CLI with ChatGPT first.');
 
   async function request(action, data={}) {
     const response = await fetch(origin+'/api/local-planner/v1',{method:'POST',redirect:'error',signal:AbortSignal.timeout(15000),
@@ -66,36 +78,70 @@ async function main() {
     return response.json();
   }
 
-  do {
-    const {job} = await request('claim');
-    if (!job) {
-      if (mode === '--once') return;
-      await delay(30000);
-      continue;
-    }
+  async function execute(job) {
     const lease = {research_id:job.research_id,lease:job.lease};
     const context = JSON.stringify(job.context);
     if (Buffer.byteLength(context) > 350000) {
       await request('fail',{...lease,failure:'context_size'});
-      continue;
+      return;
     }
     let result;
     try {result = await plan(job, context);}
     catch {
       await request('fail',{...lease,failure:'runner'});
       process.stderr.write('A local planning run failed. See its admin request for retry.\n');
-      continue;
+      return;
     }
     try {
       await request('finish',{...lease,...result});
       process.stdout.write('Research tasks are ready.\n');
     } catch (error) {
-      if (error.status === 409) continue;
+      if (error.status === 409) return;
       if (error.status !== 422) throw error;
       await request('fail',{...lease,failure:'validation'});
       process.stderr.write('The plan did not pass validation. See its admin request for retry.\n');
     }
-  } while (mode === '--watch');
+  }
+
+  if (mode!=='--listen') {
+    do {
+      const {job}=await request('claim');
+      if (job) await execute(job);
+      else if (mode==='--watch') await delay(30000);
+    } while (mode==='--watch');
+    return;
+  }
+
+  let checkedAt=0;
+  let signedIn=false;
+  let inFlight;
+  function connection() {
+    if(inFlight)return inFlight;
+    if(Date.now()-checkedAt>=30000){
+      signedIn=chatgptSignedIn();
+      checkedAt=Date.now();
+    }
+    inFlight=request('connection',{signed_in:signedIn}).finally(()=>{inFlight=undefined;});
+    return inFlight;
+  }
+
+  process.stdout.write('Listening for research planner requests from the admin panel.\n');
+  for (;;) {
+    try {
+      const {run_id}=await connection();
+      const {job}=run_id?await request('claim',{run_id}):{job:null};
+      if (!job) {
+        await delay(8000);
+        continue;
+      }
+      const heartbeat=setInterval(()=>{void connection().catch(()=>{});},15000);
+      try { await execute(job); } finally { clearInterval(heartbeat); }
+    } catch (error) {
+      if(error.status>=400&&error.status<500&&error.status!==429)throw error;
+      await delay(15000);
+    }
+  }
+
 }
 
 main().catch(error => { console.error(error.message); process.exitCode=1; });

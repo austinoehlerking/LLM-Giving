@@ -1,0 +1,79 @@
+/* Administration workspace */
+.admin-workspace{background:#131e28;color:#eff4f9}
+.admin-workspace-header{background:#101c26;border-bottom:1px solid #354754}
+.admin-workspace-bar{max-width:78rem;margin:auto;padding:6px 24px;display:flex;align-items:center;gap:30px;min-height:60px}
+.admin-workspace-brand{font-size:1.4rem;min-height:44px;display:inline-flex;align-items:center;white-space:nowrap}
+.admin-workspace .admin-workspace-brand .brand-meter{display:none}
+.admin-workspace-bar nav{display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-width:0}
+.admin-workspace-bar nav>a,.admin-tools>summary{display:inline-flex;align-items:center;min-height:44px;padding:5px 12px;border-radius:5px;color:#e7eff7;text-decoration:none;font-size:.9rem;font-weight:650}
+.admin-workspace-bar nav>a[aria-current],.admin-workspace-bar nav>a:hover,.admin-tools>summary:hover{background:#294458}
+.admin-tools{position:relative;margin:0;padding:0;border:0}
+.admin-tools>summary{cursor:pointer}
+.admin-tools>summary::after{content:"▾";font-size:.75em;margin-left:6px}
+.admin-tools>div{position:absolute;z-index:3;top:100%;right:0;min-width:11rem;max-width:calc(100vw - 26px);padding:6px 10px;background:#192630;border:1px solid #354754;border-radius:6px}
+.admin-tools>div a,.admin-tools .link-button{display:flex;align-items:center;min-height:44px;font-size:.875rem}
+.admin-tools form,.admin-tools .link-button{margin:0;padding:0}
+.admin-workspace:not(.admin-review-page) .container{max-width:78rem;padding:0 24px 40px}
+.admin-workspace .container>.notice{margin:12px 0;padding:10px 14px}
+.admin-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 0}
+.admin-heading h1{font-size:2rem;margin:0;line-height:1.15}
+.admin-heading .button{margin:0;min-height:44px;white-space:normal}
+.admin-panel{background:#192630;border:1px solid #354754;border-radius:7px;margin:0 0 16px;min-width:0}
+.admin-panel h2{font-size:1.25rem;line-height:1.2;margin:0}
+.admin-planner{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px 22px;flex-wrap:wrap}
+.admin-planner-info,.admin-planner-actions{display:flex;align-items:center;gap:12px 18px;min-width:0}
+.admin-planner-info>div{border-left:1px solid #415665;padding-left:18px}
+.admin-connection{font-size:.94rem;font-weight:700;margin:0;line-height:1.3;color:#c3d0de}
+.admin-connection::before{content:"";display:inline-block;width:.55em;height:.55em;border-radius:50%;background:currentColor;margin-right:.5em;vertical-align:.12em}
+.admin-connection[data-state=connected]{color:#a8e2a6}
+.admin-connection[data-state=sign-in-required]{color:#f3cd83}
+.admin-planner-work{font-size:.875rem;color:#c8d5e0;margin:4px 0 0;line-height:1.3}
+.admin-planner-actions form,.admin-planner-actions button{margin:0}
+.admin-planner-actions button{min-height:44px;font-size:.9rem}
+.admin-planner-actions button:disabled{opacity:.65;cursor:default}
+.admin-planner-setup{position:relative;border:0;padding:0;margin:0}
+.admin-planner-setup summary{display:flex;align-items:center;min-height:44px;color:var(--accent);text-decoration:underline;cursor:pointer;font-size:.875rem}
+.admin-planner-setup>div{background:#101c26;border:1px solid #354754;border-radius:6px;padding:12px;margin-top:4px;max-width:24rem}
+.admin-planner-setup>div p{font-size:.875rem;margin:0 0 8px}
+.admin-planner-setup pre{padding:8px;margin:6px 0;overflow-wrap:anywhere}
+.admin-panel-heading{padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:9px 20px;flex-wrap:wrap}
+.admin-switches{display:flex;gap:6px;flex-wrap:wrap}
+.admin-switches>a{display:flex;align-items:center;gap:7px;min-height:44px;padding:6px 12px;border:1px solid #42586b;border-radius:5px;color:#e7eff7;text-decoration:none;font-size:.875rem;font-weight:650}
+.admin-switches>a[aria-current]{background:#9fbdf2;border-color:#9fbdf2;color:#102336}
+.admin-switches span{font-size:.8em;font-variant-numeric:tabular-nums}
+.admin-queue{padding:0;margin:0;list-style:none}
+.admin-queue>li{display:grid;grid-template-columns:8rem minmax(0,1fr) auto;align-items:center;gap:14px;border-top:1px solid #354754;padding:10px 16px;min-height:70px}
+.admin-decision-type{justify-self:start;border-radius:4px;padding:4px 8px;background:#304454;color:#eff4f9;font-size:.78rem;font-weight:700;line-height:1.2}
+.admin-decision-type.admin-hold{background:#503c1d;color:#ffdb92}
+.admin-queue h3{font-size:.98rem;line-height:1.35;margin:0 0 3px;overflow-wrap:anywhere}
+.admin-queue time,.admin-flag-label{font-size:.8125rem;color:#c4d1db}
+.admin-queue .button{min-height:44px;margin:0;min-width:8.25rem;text-align:center;justify-content:center;padding:6px 11px}
+.admin-empty{margin:0;padding:16px;color:#d4dce5}
+.admin-panel .pagination{padding:0 16px}
+.admin-catalogue-search{padding:0 16px;margin:0 0 14px}
+.admin-catalogue-search button{min-height:44px}
+.admin-catalogue td{padding:10px 12px}
+.admin-catalogue td a,.admin-catalogue td summary{overflow-wrap:anywhere}
+@media(max-width:680px){
+ .admin-workspace:not(.admin-review-page) .container{padding-inline:12px}
+ .admin-workspace-bar{padding:4px 12px;gap:6px 10px;min-height:52px;flex-wrap:wrap;justify-content:space-between}
+ .admin-workspace-brand{font-size:1.1rem}
+ .admin-workspace-bar nav>a,.admin-tools>summary{font-size:.8rem;padding-inline:6px}
+ .admin-heading{padding:12px 0;gap:8px}
+ .admin-heading h1{font-size:1.5rem;overflow-wrap:anywhere}
+ .admin-heading .button{padding:5px 10px;font-size:.82rem}
+ .admin-planner{padding:10px 11px;display:block}
+ .admin-planner-info{display:block}
+ .admin-planner-info h2{margin-bottom:5px;font-size:1.075rem}
+ .admin-planner-info>div{padding:0;border:0}
+ .admin-planner-actions{margin-top:4px;flex-wrap:wrap;gap:3px 10px}
+ .admin-planner-actions form{flex:1 1 auto}
+ .admin-planner-actions button{width:100%;padding-inline:7px}
+ .admin-planner-setup[open]{width:100%}
+ .admin-panel-heading{display:block;padding:10px 10px 8px}
+ .admin-panel-heading h2{font-size:1.15rem;margin-bottom:6px}
+ .admin-switches>a{font-size:.8rem;padding-inline:8px}
+ .admin-queue>li{display:grid;grid-template-columns:minmax(0,1fr);gap:5px;padding:9px 10px}
+ .admin-queue h3{font-size:.94rem}
+ .admin-queue .button{width:100%;min-width:0}
+}
