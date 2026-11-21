@@ -13,6 +13,8 @@ try {
    insert('migrations',['name'=>$name,'applied_at'=>now()]); echo "Applied $name\n";
   }
   foreach(['Science & Research','Environment & Climate','Health & Public Health','Education','Technology & Open Source','Engineering','Business & Economics','Accessibility','Humanities','Personal Research','Other'] as $name) query('INSERT IGNORE INTO categories(name) VALUES (?)',[$name]);
+ } elseif($command==='local-planner-enable') {
+  lp_enable(); echo "Local planning enabled. Approved planning jobs are ready for the local runner.\n";
  } elseif($command==='admin') {
   $email=strtolower($argv[2]??''); if(!filter_var($email,FILTER_VALIDATE_EMAIL)) throw new RuntimeException('Usage: php bin/console.php admin email@example.test (password via stdin)');
   $password=rtrim(stream_get_contents(STDIN),"\r\n");
@@ -51,5 +53,5 @@ try {
   echo query('DELETE FROM volunteer_research_notes WHERE expires_at<=?',[now()])->rowCount()." expired private research notes removed.\n";
  } elseif($command==='backup') {
   $_SESSION['admin']=1; create_backup(); echo "Private database backup written under storage/backups. Back up uploads separately.\n";
- } else echo "Commands: migrate | seed | admin EMAIL (password on stdin) | archive | handoffs-prune | backup\n";
+ } else echo "Commands: migrate | seed | local-planner-enable | admin EMAIL (password on stdin) | archive | handoffs-prune | backup\n";
 } catch(Throwable $e) { fwrite(STDERR,$e->getMessage()."\n"); exit(1); }

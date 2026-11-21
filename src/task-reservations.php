@@ -33,6 +33,7 @@ function wr_rate(string $operation,string $actor): void {
 function wr_eligible(string $rid,string $tid,int $revision,?string $actor=null,?string $identityId=null): array {
     $r=research($rid);$p=wf_project($rid);$t=wf_task($rid,$tid);
     if(!$p||$t['visibility']!=='public'||$t['round_no']!=$p['round_no']||$t['state']!=='Ready'||(int)$t['revision']!==$revision||wf_quarantine($rid)||in_array($r['status'],['Needs Clarification','Blocked','Paused','Archived — Inactive','Solved','Review Complete'],true))fail(409,'This task is unavailable or changed. Reload its current revision before reserving or submitting.');
+    if($t['kind']==='planning'&&lp_enabled()&&!wr_live($rid,$tid))fail(409,'The local planner is preparing this study’s research tasks.');
     foreach(json_decode($t['dependencies'],true) as $id){
         $dep=wf_task($rid,$id);
         $result=one("SELECT * FROM workflow_submissions WHERE id=? AND research_id=? AND visibility='public' AND admission='accepted'",[$dep['accepted_id'],$rid]);
@@ -76,13 +77,14 @@ function wr_claim(string $rid,string $tid,int $revision,string $actor,?string $s
         $session=$sessionId?vs_read($sessionId,false,true):null;
         if($session){if(!hash_equals($session['actor_hash'],$actor)||!vs_claim_proof($session,$rid,$tid))fail(403,'A current controller or matching task-scoped private grant is required.');vs_capacity_guard($session,$tid);}
         one('SELECT id FROM research WHERE id=? FOR UPDATE',[$rid])??fail(404,'Research not found.');
-        wr_eligible($rid,$tid,$revision,$actor,$session?($session['identity_id']??''):$identityId);
+        $task=wr_eligible($rid,$tid,$revision,$actor,$session?($session['identity_id']??''):$identityId);
         if($session){$r=research($rid);$t=wf_task($rid,$tid);if(!vs_scope_matches($session,$r)||!vs_configuration_matches($session,$r,$t))fail(403,'This task is outside the captured session scope or worker permissions.');}
         $live=wr_live($rid,$tid);
         if($live){
             if(!hash_equals($live['actor_hash'],$actor))fail(409,'This task is reserved by another volunteer until '.$live['expires_at'].' UTC.');
             if((int)$live['task_revision']===$revision)return $live; // Recopy/retry never renews.
         }
+        if($task['kind']==='planning'&&lp_enabled(true))fail(409,'The local planner is preparing this study’s research tasks.');
         $others=all("SELECT v.* FROM task_reservations v JOIN workflow_tasks t ON t.id=v.task_id AND t.revision=v.task_revision JOIN workflow_projects p ON p.research_id=t.research_id AND p.round_no=t.round_no WHERE v.actor_hash=? AND v.ended_at IS NULL AND v.expires_at>? AND v.task_id<>? AND t.state='Ready' AND t.visibility='public'",[$actor,wr_stamp(),$tid]);
         $held=0;$capacity=$session?max(1,min(3,(int)($session['concurrent_limit']??1))):1;
         foreach($others as $other){
