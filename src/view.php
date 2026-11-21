@@ -65,8 +65,10 @@ function select_field(string $label,string $name,array $options,string $selected
     foreach($options as $k=>$v) echo '<option value="'.e($k).'" '.((string)$k===$selected?'selected':'').'>'.e($v).'</option>';
     echo '</select>';
 }
-function terms(bool $researchLicense=false): void {
-    echo '<label class="check"><input type="checkbox" name="terms" value="1" required> <span>'.e(CONTRIBUTOR_RESOURCE_CONFIRMATION).' I accept the <a href="/legal/terms" target="_blank" rel="noopener">public-content terms</a>'.($researchLicense?' and <a href="/legal/licensing" target="_blank" rel="noopener">CC BY 4.0 license for eligible original research (credit contributors and LLM.Giving)</a>':'').'. I understand approved content is public. Third-party rights remain unchanged.</span></label>';
+function terms(bool $researchLicense=false,bool $request=false): void {
+    $value=$request?REQUEST_CONSENT_VALUE:'1';
+    $confirmation=$request?REQUEST_PUBLICATION_CONFIRMATION:CONTRIBUTOR_RESOURCE_CONFIRMATION;
+    echo '<label class="check"><input type="checkbox" name="terms" value="'.e($value).'" required> <span>'.e($confirmation).' I accept the <a href="/legal/terms" target="_blank" rel="noopener">public-content terms</a>'.($researchLicense?' and <a href="/legal/licensing" target="_blank" rel="noopener">CC BY 4.0 license for eligible original research (credit contributors and LLM.Giving)</a>':'').'. I understand approved content is public. Third-party rights remain unchanged.</span></label>';
 }
 function author_fields(): void {
     field('Display name or pseudonym','display_name'); field('LinkedIn URL','linkedin','','url'); field('GitHub URL','github','','url'); field('Website URL','website','','url');

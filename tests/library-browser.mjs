@@ -50,5 +50,5 @@ export async function libraryQa({page,ctx,base,runPhp,check,shot}){
  check('Reduced motion preserves the completed checkmark',await page.locator('.giving-check').evaluate(el=>getComputedStyle(el).opacity==='1'&&getComputedStyle(el).strokeDashoffset==='0px'));
  await page.emulateMedia({reducedMotion:'no-preference'});
  await page.getByRole('link',{name:'Find research',exact:true}).click();
- check('Explore action moves to research library',new URL(page.url()).hash==='#research');
+ check('Explore action moves to research library',new URL(page.url()).pathname==='/research');
 }

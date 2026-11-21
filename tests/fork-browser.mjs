@@ -25,7 +25,7 @@ export async function forkQa({page,ctx,base,runPhp,check,visibleActions,report})
   await disclosure.press('Enter');check('Inherited disclosure works with keyboard',await disclosure.locator('..').getAttribute('open')!==null);
   check('Inherited findings retain contributor attribution',await page.locator('[data-fork-background]').innerText().then(text=>text.includes('Synthetic research contributor')&&text.includes('Method')&&text.includes('Limitations')&&text.includes('Inherited background')));
   await page.locator('.fork-records h3').first().scrollIntoViewIfNeeded();await shot(page,'background-open');
-  await page.getByRole('button',{name:'Copy AI prompt to assist setup'}).press('Enter');
+  await page.getByRole('button',{name:'Help me draft with AI'}).press('Enter');
   const prompt=await page.locator('#request-setup-prompt').inputValue();
   check('Setup handoff includes pinned background as read-only',prompt.includes('PINNED INHERITED BACKGROUND')&&prompt.includes(parent.id)&&prompt.includes('Do not copy inherited records'));
   await page.locator('[name=title]').fill('[QA] Independent related ocean question');

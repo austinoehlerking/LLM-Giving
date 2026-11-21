@@ -12,6 +12,8 @@ if(setup){
  const timeSummary=()=>{const radio=selectedPreset();if(radio?.value==='custom')return 'Custom · '+setup.elements.minutes.value+' min or '+setup.elements.assignment_limit.value+' '+(Number(setup.elements.assignment_limit.value)===1?'task':'tasks');const card=radio?.closest('.setup-time-card');return card?card.querySelector('.setup-time-name>span').textContent+' · '+card.querySelector('.setup-time-caption').textContent:'Choose your time';};
  const setStep=(step,focus=false)=>{
   setup.dataset.step=step;ai.hidden=step!=='ai';summary.hidden=step==='ai';time.hidden=step!=='time';
+  setup.querySelector('[data-first-limit]').hidden=step!=='ai';
+  setup.querySelector('[data-first-limit]').textContent=timeSummary();
   if(step==='time')timeWasShown=true;
   heading.textContent=step==='time'?'2. How much time do you have?':('2. '+(timeWasShown?timeSummary():'Choose your time'));
   setup.querySelector('[data-ai-summary-text]').textContent='1. '+(models.get(model.value)?.label||model.value)+' · '+effortLabel(effort.value)+' reasoning';

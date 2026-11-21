@@ -28,8 +28,9 @@ try {
   }
   echo "Existing topics are ready for the planning workflow.\n";
  } elseif($command==='seed') {
+  require_once ROOT.'/src/admin-catalogue.php';
   if(env('APP_ENV')==='production') throw new RuntimeException('Development seeds are disabled in production.');
-  if(one("SELECT id FROM research WHERE title LIKE '[Demo]%'")) { echo "Development examples already exist.\n"; exit; }
+  if(one("SELECT id FROM research WHERE discovery_listed=0 AND display_name='Development example' AND moderation_reason='Clearly labelled synthetic development example.' AND context LIKE 'DEVELOPMENT EXAMPLE.%'")) { echo "Development examples already exist.\n"; exit; }
   $cat=one("SELECT id FROM categories WHERE name='Environment & Climate'")['id']; $_SESSION['admin']=1;
   foreach([
    ['[Demo] How can a small library reduce summer cooling demand?','Which low-cost passive cooling measures could a small community library investigate before investing in mechanical upgrades? Compare evidence, limits and climate-dependent tradeoffs.','building-design, climate, community'],
@@ -37,6 +38,7 @@ try {
    ['[Demo] Measuring the impact of a neighborhood repair café','How could a volunteer-run repair café measure waste avoided without overstating environmental benefits? Propose a transparent, reproducible method.','measurement, circular-economy']
   ] as $i=>$row) {
    $created=create_research(['title'=>$row[0],'question'=>$row[1],'category_id'=>$cat,'context'=>'DEVELOPMENT EXAMPLE. This is synthetic demonstration content, not completed research or a verified factual claim.','success'=>'A documented comparison with verifiable sources, uncertainties and practical next steps.','tags'=>$row[2],'terms'=>1,'display_name'=>'Development example']);
+   admin_set_discovery_listing($created['id'],false,'Designated development demonstration.');
    moderate('request',$created['id'],'Approved','Clearly labelled synthetic development example.');
   }
   echo "Created labelled development examples.\n";

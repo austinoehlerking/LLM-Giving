@@ -1,18 +1,20 @@
 <?php $isFork=isset($forkDraft); ?>
-<div class="page-heading narrow submission-heading"><h1><?=$isFork?'Fork this question':'Submit a research request'?></h1><p><?=$isFork?'Ask a related question with attributed, versioned background. Private until approved.':'Define a research question or tool. No account needed; private until approved.'?></p></div>
+<div class="page-heading narrow submission-heading"><h1><?=$isFork?'Fork this question':'What would you like to investigate?'?></h1><p><?=$isFork?'Ask a related question with attributed, versioned background. Private until approved.':'Your request stays private until approved.'?></p></div>
 <?php if(!empty($forkError)): ?><p class="narrow fork-error" role="alert"><?=e($forkError)?></p><?php endif ?>
 <form method="post" enctype="multipart/form-data" class="form-panel narrow request-form <?=$isFork?'fork-form':''?>" id="request-form" data-request-form data-max-text="<?=(int)env('MAX_TEXT','100000')?>"><?php if($isFork): ?><input type="hidden" name="fork_nonce" value="<?=e($forkDraft['nonce'])?>"><p class="fork-source">From <a href="/research/<?=e($forkDraft['source']['slug'])?>"><?=e(research_excerpt($forkDraft['source']['title'],80))?></a> · v<?=e($forkDraft['fork']['context_version']??'unavailable')?></p><?php endif ?><div class="request-basics" data-request-basics>
-<div class="form-actions"><button type="button" class="secondary" id="copy-setup-prompt" aria-controls="request-setup-panel" aria-expanded="false" hidden>Copy AI prompt to assist setup</button></div><?=csrf()?>
+<?=csrf()?>
+<?php if(!$isFork) field('Research question','question','','textarea',true); ?>
+<div class="form-actions request-draft-action"><button type="button" class="secondary" id="copy-setup-prompt" aria-controls="request-setup-panel" aria-expanded="false" hidden>Help me draft with AI</button></div>
 <?php include __DIR__.'/request-setup.php'; ?>
 <?php if($isFork){field('Your related research title','title',(string)($_POST['title']??''),'text',true);field('Your related question','question',(string)($_POST['question']??''),'textarea',true);$fork=$forkDraft['fork'];include __DIR__.'/fork-background.php';} ?>
-<?php if(!$isFork){field('Research title','title','','text',true);field('What would you like to investigate?','question','','textarea',true);}select_field('Main category','category_id',[''=>'Choose a category']+array_column(all('SELECT id,name FROM categories WHERE enabled=1 ORDER BY name'),'name','id'),(string)($_POST['category_id']??($forkDraft['source']['category_id']??'')),true); ?>
+<?php if(!$isFork){field('Research title','title','','text',true);}select_field('Main category','category_id',[''=>'Choose a category']+array_column(all('SELECT id,name FROM categories WHERE enabled=1 ORDER BY name'),'name','id'),(string)($_POST['category_id']??($forkDraft['source']['category_id']??'')),true); ?>
 </div>
 <details class="request-next-step" id="request-next-step" data-request-next-step><summary>Continue to review &amp; submit</summary><button type="button" class="secondary" data-request-edit-basics hidden>Edit question</button>
 <div class="request-settings">
 <?php select_field('Project type','project_type',['research'=>'Research question','research_tool'=>'Build a research tool'],($_POST['project_type']??'')==='research_tool'?'research_tool':'research'); ?>
 <div class="calculation-choice"><?php select_field('Calculation help needed','calculation_help',EXTERNAL_HELP,$_POST['calculation_help']??'maybe'); ?></div>
 </div>
-<?php terms(); ?><div class="actions request-submit-actions"><button type="button" class="secondary" id="review-request" hidden>Review your request</button><button>Submit for approval</button></div>
+<?php terms(request: !$isFork); ?><div class="actions request-submit-actions"><button type="button" class="secondary" id="review-request" hidden>Review your request</button><button>Submit for approval</button></div>
 <p class="fine request-optional-intro">Add any useful details below (optional for a research question).</p>
 
 <?php include __DIR__.'/request-setup-manual.php'; ?>

@@ -18,6 +18,7 @@ function vs_integer(array $post, string $key, int $default, int $min, int $max):
 }
 
 /** Presets are server-owned; hidden/custom numeric values cannot change a selected preset. */
+const VS_DEFAULT_PRESET = 'quick';
 const VS_PRESETS = [
     'quick'=>['label'=>'Quick try','minutes'=>15,'tasks'=>1],
     'standard'=>['label'=>'Standard','minutes'=>60,'tasks'=>3],
@@ -26,7 +27,9 @@ const VS_PRESETS = [
 ];
 function vs_unlimited(array $session): bool { return ($session['limit_mode']??'bounded')==='unlimited'; }
 function vs_limits(array $post): array {
-    $preset=isset($post['session_preset'])?text_field($post,'session_preset',1,16):'custom';
+    $explicitLimits=isset($post['minutes'])||isset($post['assignment_limit']);
+    $default=($post['setup_version']??null)==='2'&&!$explicitLimits?VS_DEFAULT_PRESET:'custom';
+    $preset=isset($post['session_preset'])?text_field($post,'session_preset',1,16):$default;
     if ($preset==='custom') return ['limit_mode'=>'bounded','assignment_limit'=>vs_integer($post,'assignment_limit',3,1,20),'minutes'=>vs_integer($post,'minutes',60,5,240)];
     if (!isset(VS_PRESETS[$preset])) fail(422,'Choose a session time preset or Custom limits.');
     return ['limit_mode'=>$preset==='unlimited'?'unlimited':'bounded','assignment_limit'=>VS_PRESETS[$preset]['tasks'],'minutes'=>VS_PRESETS[$preset]['minutes']];

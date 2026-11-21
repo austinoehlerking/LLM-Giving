@@ -35,6 +35,8 @@ function external_parse(array $d): array {
 }
 
 const TERMS_VERSION='2026-10-v1-ccby';
+const REQUEST_CONSENT_VALUE='request-v1';
+const REQUEST_PUBLICATION_CONFIRMATION='I have permission to publish the material I am submitting. If I used AI to prepare it, I used my own account or explicitly authorized resources and followed the provider’s rules.';
 const CONTRIBUTOR_RESOURCE_CONFIRMATION="I confirm that I use my own AI account or resources I am explicitly authorized to contribute, follow the provider's rules, and submit only material I have permission to publish publicly.";
 function contributor_resource_notice(): array {
     return ['title'=>'Authorized resources and public publication', 'body'=>trim(file_get_contents(ROOT.'/content/contributor-resources.txt'))];
@@ -131,7 +133,9 @@ function set_tags(string $rid,string $names): void {
 }
 function create_research(array $d): array {
     if(isset($d['fork_nonce']))fail(422,'Submit a fork through its original question’s fork form.');
-    if(empty($d['terms'])) fail(422,'Accept the public-content terms to submit.');
+    $consent=$d['terms']??null;
+    if(!in_array($consent,[REQUEST_CONSENT_VALUE,'1',1],true)) fail(422,'Accept the public-content terms to submit.');
+    $confirmation=$consent===REQUEST_CONSENT_VALUE?REQUEST_PUBLICATION_CONFIRMATION:CONTRIBUTOR_RESOURCE_CONFIRMATION;
     $category=one('SELECT id FROM categories WHERE id=? AND enabled=1',[(int)($d['category_id']??0)]);
     if(!$category) fail(422,'Choose an available category.');
     $email=text_field($d,'email',0,254);
@@ -151,8 +155,13 @@ function create_research(array $d): array {
     $row+=attribution($d);
     $row['flags']=suspicious(json_encode($row))?'Suspected instruction manipulation; inspect as untrusted data.':'';
     if($row['flags']) $row['moderation']='Needs Additional Review';
-    $link=tx(function() use($row,$d) { $row['terms_version']=terms_version(record: true); insert('research',$row); set_tags($row['id'],text_field($d,'tags',0,800)); return rotate_token($row['id']); });
-    audit_event($row['id'],'Topic submitted','Awaiting initial publication approval.','research',$row['id'],'','Pending Approval','An administrator reviews the topic.','requester',$row['display_name']?:'Original submitter',[],'private');
+    $link=tx(function() use($row,$d,$confirmation) {
+        $row['terms_version']=terms_version(record: true);
+        insert('research',$row);
+        set_tags($row['id'],text_field($d,'tags',0,800));
+        audit_event($row['id'],'Topic submitted','Awaiting initial publication approval.','research',$row['id'],'','Pending Approval','An administrator reviews the topic.','requester',$row['display_name']?:'Original submitter',['terms_version'=>$row['terms_version'],'confirmation'=>$confirmation],'private');
+        return rotate_token($row['id']);
+    });
     return ['id'=>$row['id'],'link'=>$link];
 }
 function change_status(string $rid,string $status,string $reason,string $actor): void {
@@ -194,13 +203,22 @@ function discovery_filters(array $input): array {
     $out['page']=(string)max(1,min(1000000,(int)$out['page']));
     return $out;
 }
-function discovery_categories(): array {
+function discovery_visibility(): array {
     $gate=rf_listing_filter();
-    return all("SELECT c.id,c.name,COUNT(r.id) request_count FROM categories c LEFT JOIN research r ON r.category_id=c.id AND r.moderation='Approved' AND r.status<>'Withdrawn' AND r.discovery_listed=1 AND ".$gate['sql']." GROUP BY c.id,c.name ORDER BY c.name",$gate['params']);
+    return ['sql'=>"r.moderation='Approved' AND r.status<>'Withdrawn' AND r.discovery_listed=1 AND ".$gate['sql'],'params'=>$gate['params']];
+}
+function discovery_has_solved(): bool {
+    $gate=discovery_visibility();
+    return one("SELECT 1 FROM research r WHERE r.status='Solved' AND ".$gate['sql'].' LIMIT 1',$gate['params'])!==null;
+}
+function discovery_categories(): array {
+    $gate=discovery_visibility();
+    return all("SELECT c.id,c.name,COUNT(r.id) request_count FROM categories c LEFT JOIN research r ON r.category_id=c.id AND ".$gate['sql']." GROUP BY c.id,c.name ORDER BY c.name",$gate['params']);
 }
 function discover(array $input): array {
     $filters=discovery_filters($input);
-    $where=["r.moderation='Approved'","r.status<>'Withdrawn'",'r.discovery_listed=1']; $params=[];
+    $gate=discovery_visibility();
+    $where=[$gate['sql']]; $params=$gate['params'];
     if($filters['project_type']!==''){$where[]='r.project_type=?';$params[]=$filters['project_type'];}
     if($filters['external_tools']!==''){$where[]="COALESCE(JSON_UNQUOTE(JSON_EXTRACT(r.external_requirements,'$.external_tools')),'unspecified')=?";$params[]=$filters['external_tools'];}
     $q=$filters['q'];
@@ -215,7 +233,6 @@ function discover(array $input): array {
     $visible="x.research_id=r.id AND x.moderation='Approved' AND (x.target_id IS NULL OR EXISTS(SELECT 1 FROM contributions t WHERE t.id=x.target_id AND t.research_id=x.research_id AND t.moderation='Approved'))";
     $count="((SELECT COUNT(*) FROM contributions x WHERE ".$visible." AND x.kind<>'Independent review')+(SELECT COUNT(*) FROM workflow_submissions ws JOIN workflow_tasks wt ON wt.id=ws.task_id WHERE ws.research_id=r.id AND ws.visibility='public' AND wt.visibility='public' AND ws.admission='accepted' AND wt.kind<>'review'))";
     if($filters['no_contributions']==='1') $where[]=$count.'=0';
-    $gate=rf_listing_filter();$where[]=$gate['sql'];array_push($params,...$gate['params']);
     $w=implode(' AND ',$where);
     $total=(int)one('SELECT COUNT(*) n FROM research r WHERE '.$w,$params)['n'];
     $page=min((int)$filters['page'],max(1,(int)ceil($total/12))); $filters['page']=(string)$page; $offset=($page-1)*12;

@@ -6,7 +6,9 @@ function vs_setup_tool(string $model): string {
 }
 function vs_setup_defaults(array $draft): array {
     $custom=isset($draft['minutes'])||isset($draft['assignment_limit']);
-    $draft+=['model'=>'gpt-6-astra','reasoning'=>'max','session_preset'=>$custom?'custom':'standard','minutes'=>'60','assignment_limit'=>'3','scope_kind'=>'all','session_profile'=>'general','concurrent_limit'=>'1','workflow_mode'=>''];
+    $preset=$draft['session_preset']??($custom?'custom':VS_DEFAULT_PRESET);
+    $limits=isset(VS_PRESETS[$preset]['minutes'])?VS_PRESETS[$preset]:VS_PRESETS['standard'];
+    $draft+=['model'=>'gpt-6-astra','reasoning'=>'max','session_preset'=>$preset,'minutes'=>(string)$limits['minutes'],'assignment_limit'=>(string)$limits['tasks'],'scope_kind'=>'all','session_profile'=>'general','concurrent_limit'=>'1','workflow_mode'=>''];
     $draft['tool_source']=$draft['tool_source']??(array_key_exists('tool',$draft)?'explicit':'default');
     if(!array_key_exists('tool',$draft)||$draft['tool_source']==='default')$draft['tool']=vs_setup_tool($draft['model']);
     // The current form uses one model/effort pair. Historical presets normalize before rendering.
