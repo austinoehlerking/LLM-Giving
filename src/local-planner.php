@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__.'/local-planner-dispatch.php';
 /** The site grants a bounded plan lease. Inference runs exclusively on the local operator's computer. */
 function lp_enabled(bool $current=false): bool {
     if(!$current)return setting('local_planner_enabled','0')==='1';
@@ -73,14 +74,21 @@ function lp_adopt_plan(array $task): bool {
     return true;
 }
 
-function lp_claim(): ?array {
-    $candidates=all("SELECT r.id FROM research r JOIN workflow_projects p ON p.research_id=r.id
+function lp_candidates(?array $scope=null,int $limit=40,bool $automatic=false): array {
+    if($scope===[])return [];
+    $trigger=$automatic?' AND t.local_plan_requested=1':'';
+    $scoped=$scope===null?'':' AND r.id IN ('.implode(',',array_fill(0,count($scope),'?')).')';
+    return all("SELECT r.id FROM research r JOIN workflow_projects p ON p.research_id=r.id
         JOIN workflow_tasks t ON t.research_id=r.id AND t.round_no=p.round_no AND t.kind='planning' AND t.state='Ready'
         LEFT JOIN local_planner_jobs j ON j.research_id=r.id AND j.task_id=t.id AND j.context_version=r.context_version
         WHERE r.moderation='Approved' AND r.status='Needs Research Plan'
         AND NOT EXISTS (SELECT 1 FROM workflow_submissions s WHERE s.research_id=r.id AND s.visibility='public' AND s.admission='quarantined')
         AND (t.visibility='private' OR NOT EXISTS (SELECT 1 FROM task_reservations v WHERE v.task_id=t.id AND v.task_revision=t.revision AND v.ended_at IS NULL AND v.expires_at>?))
-        AND (j.research_id IS NULL OR (j.state='running' AND j.expires_at<=? AND j.attempts<3)) ORDER BY r.created_at,r.id LIMIT 40",[wr_stamp(),now()]);
+        AND (j.research_id IS NULL OR (j.state='running' AND j.expires_at<=? AND j.attempts<3)) " . $trigger . $scoped . " ORDER BY r.created_at,r.id LIMIT ".$limit,[wr_stamp(),now(),...($scope??[])]);
+}
+
+function lp_claim(?array $scope=null): ?array {
+    $candidates=lp_candidates($scope);
     foreach($candidates as ['id'=>$rid]){
         $job=tx(function()use($rid){
             $research=one('SELECT * FROM research WHERE id=? FOR UPDATE',[$rid]);
@@ -177,7 +185,8 @@ function lp_http(string $method): void {
         try{$input=json_decode($body,true,32,JSON_THROW_ON_ERROR);}catch(JsonException){fail(422,'Send a valid JSON object.');}
         if(!is_array($input)||array_is_list($input))fail(422,'Send a JSON object.');
         $result=match($input['action']??null){
-            'claim'=>['job'=>lp_claim()],
+            'connection'=>lp_dispatch_heartbeat($input['signed_in']??null),
+            'claim'=>['job'=>array_key_exists('run_id',$input)?lp_dispatch_claim($input['run_id']):lp_claim()],
             'finish'=>lp_finish($input,false),
             'fail'=>lp_finish($input,true),
             default=>fail(422,'Unknown planning action.')

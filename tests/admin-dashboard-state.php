@@ -1,0 +1,89 @@
+<?php
+require __DIR__.'/bootstrap.php';
+require __DIR__.'/workflow-fixture.php';
+$action=$argv[1]??'';
+if($action==='session-activity'){
+    $id=trim(stream_get_contents(STDIN));
+    if(!preg_match('/\A[A-Za-z0-9,-]{22,128}\z/',$id))throw new RuntimeException('Expected an isolated QA session.');
+    session_save_path(storage('sessions'));
+    session_id($id);
+    session_start(['use_strict_mode'=>1,'use_cookies'=>0,'cache_limiter'=>'']);
+    if(session_id()!==$id||!isset($_SESSION['admin'],$_SESSION['last_seen'])){
+        throw new RuntimeException('The isolated QA session is missing or unauthenticated.');
+    }
+    $mode=$argv[2]??'';
+    if($mode==='idle')$_SESSION['last_seen']=time()-10;
+    elseif($mode==='expired')$_SESSION['last_seen']=time()-(int)env('SESSION_MINUTES','30')*60-10;
+    elseif($mode!=='read')throw new RuntimeException('Unknown session activity mode.');
+    $lastSeen=$_SESSION['last_seen'];
+    session_write_close();
+    echo json_encode($lastSeen,JSON_THROW_ON_ERROR);
+    exit;
+}
+$_SESSION['admin']=1;
+$file=storage('qa/admin-dashboard/fixtures.json');
+
+if($action==='seed'){
+    if(is_file($file))fail(409,'The dashboard fixture already exists.');
+    $ids=[];$titles=[
+        'review'=>'Would more shade at small city libraries reduce summer heat during after-school activities?',
+        'waiting'=>'A request waiting for a narrower research question',
+        'withdrawn'=>'Withdrawn request must stay out of decisions',
+        'held'=>'Effects of plastic pollution on the biological carbon pump in the deep ocean',
+        'one'=>'Which public library events have comparable measures of attendance and repeat participation?',
+        'two'=>'What can small towns learn from public reports on library opening hours?',
+        'later'=>'Later approved study outside the first planning run',
+        'selected'=>'Which school garden measures are practical to compare across public reports?',
+        'detail'=>'Which public library reports include repeat attendance by programme?',
+        'flagged'=>'Flagged question requiring an individual decision'];
+    foreach($titles as $key=>$title){
+        $ids[$key]=create_research(['title'=>$title,'question'=>'Synthetic local request for reviewing administration and planning; use only lawful public sources.','category_id'=>1,'terms'=>1])['id'];
+    }
+    moderate('request',$ids['waiting'],'Changes Requested','Please supply a smaller scope.');
+    moderate('request',$ids['flagged'],'Needs Additional Review','Inspect the flagged brief before approval.');
+    change_status($ids['withdrawn'],'Withdrawn','Withdraw an isolated synthetic fixture.','administrator');
+    moderate('request',$ids['held'],'Approved','Approved synthetic work for the packet hold case.');
+    $held=wf_tasks($ids['held'])[0];
+    $payload=wf_test_payload($ids['held'],$held,'progress');
+    $payload['human_interaction']=['level'=>'influenced','details'=>'Synthetic request with an additional preference supplied during the run.'];
+    $packet=wf_test_submit($ids['held'],$held['id'],$payload,hash('sha256',uid()));
+    lp_enable();
+    foreach(['one','two'] as $key)moderate('request',$ids[$key],'Approved','Approved synthetic brief for planning.');
+    $seed=['ids'=>$ids,'titles'=>$titles,'packet'=>$packet,'slug'=>research($ids['one'])['slug']];
+    file_put_contents($file,json_encode($seed,JSON_THROW_ON_ERROR),LOCK_EX);
+    echo json_encode($seed,JSON_THROW_ON_ERROR);
+}elseif($action==='approve-later'){
+    $seed=json_decode(file_get_contents($file),true);
+    moderate('request',$seed['ids']['later'],'Approved','Approved independently after the run was queued.');
+}elseif($action==='add-bulk'){
+    $seed=json_decode(file_get_contents($file),true);
+    $created=[];
+    for($i=1;$i<=21;$i++){
+        $id=create_research(['title'=>'Compare public library survey methods for group '.$i,'question'=>'Synthetic local approval fixture for checking all pages of the decision queue.','category_id'=>1,'terms'=>1])['id'];
+        $seed['ids']['bulk-'.$i]=$id;
+        $created[]=$id;
+    }
+    file_put_contents($file,json_encode($seed,JSON_THROW_ON_ERROR),LOCK_EX);
+    echo json_encode($created,JSON_THROW_ON_ERROR);
+}elseif($action==='approval-status'){
+    $seed=json_decode(file_get_contents($file),true);
+    $states=[];
+    foreach($seed['ids'] as $key=>$id){
+        $row=one("SELECT r.moderation,r.status,COALESCE(t.local_plan_requested,0) queued
+            FROM research r LEFT JOIN workflow_projects p ON p.research_id=r.id
+            LEFT JOIN workflow_tasks t ON t.research_id=r.id AND t.round_no=p.round_no AND t.kind='planning'
+            WHERE r.id=?",[$id]);
+        $row['queued']=(bool)$row['queued'];
+        $states[$key]=$row;
+    }
+    echo json_encode($states,JSON_THROW_ON_ERROR);
+}elseif($action==='cleanup'){
+    if(is_file($file)){
+        $seed=json_decode(file_get_contents($file),true);
+        foreach($seed['ids'] as $id)purge_request($id,$id);
+        unlink($file);
+    }
+    query("DELETE FROM settings WHERE name IN ('local_planner_run','local_planner_connection')");
+    set_setting('local_planner_enabled','0');
+    query("DELETE FROM admins WHERE email='admin-dashboard-qa@example.invalid'");
+}else throw new RuntimeException('Unknown dashboard fixture action.');

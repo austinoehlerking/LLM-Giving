@@ -7,7 +7,8 @@ headers_secure();
 $agentPath=rawurldecode(parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH)?:'/');
 if($agentPath==='/api/local-planner/v1'){lp_http($_SERVER['REQUEST_METHOD']);exit;}
 if(str_starts_with($agentPath,'/api/agent/v1')){va_http($agentPath,$_SERVER['REQUEST_METHOD']);exit;}
-session_start_safe();
+$passivePlannerPoll=$agentPath==='/admin/planner/status'&&$_SERVER['REQUEST_METHOD']==='GET';
+session_start_safe(refreshActivity: !$passivePlannerPoll);
 register_shutdown_function(function(){try{wf_audit_http();}catch(Throwable $e){error_log('Audit write failed: '.get_class($e));}});
 set_exception_handler(function(Throwable $error) {
     $code=$error instanceof HttpError?$error->status:500;

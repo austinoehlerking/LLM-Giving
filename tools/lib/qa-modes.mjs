@@ -8,6 +8,7 @@ export const qaReports = Object.freeze({
   'volunteer-real-start': 'volunteer-real-start/browser-report.json',
   'session-wizard': 'session-wizard/browser-report.json',
   'volunteer-compact': 'volunteer-compact/browser-report.json',
+  'admin-dashboard': 'admin-dashboard/browser-report.json',
   'admin-approval': 'admin-approval/browser-report.json',
   'hp-forms': 'happy-path-forms-report.json',
   'hp-reader': 'happy-path-reader-report.json',

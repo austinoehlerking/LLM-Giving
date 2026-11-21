@@ -55,7 +55,7 @@ Immutable attributed background lives separately from the editable child brief. 
 
 ## Three separate dimensions
 
-Moderation controls initial topic visibility and exceptional removals. Research status describes autonomous workflow progress. Topic approval creates a planning task; accepted structured results unlock research, synthesis and independent verification. Review Complete records a contributor recommendation, never a guarantee of scientific truth. Blockers and clarification pause advancement until an authorized response starts a new planning round. Finding classification remains a separate optional administrator judgment.
+Moderation controls initial topic visibility and exceptional removals. Research status describes autonomous workflow progress. Topic approval creates a planning task. In local planner mode, admin approval queues the private planning task in the same transaction. The authenticated signed-in listener picks up newly approved work in bounded runs. Accepted structured results unlock research, synthesis and independent verification. Review Complete records a contributor recommendation, never a guarantee of scientific truth. Blockers and clarification pause advancement until an authorized response starts a new planning round. Finding classification remains a separate optional administrator judgment.
 
 Requester Solved/Paused/Withdrawn actions have explicit attribution. The administrator can restore or reopen with a rationale. The inactivity threshold defaults to 60 days and uses meaningful approved activity. Inactivity archiving is invoked by CLI/cron or the admin maintenance control.
 

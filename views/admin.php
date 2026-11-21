@@ -1,11 +1,64 @@
-<div class="page-heading"><h1>Research administration</h1><p class="lead">Keep the research open. Keep publication deliberate.</p><div class="actions primary-actions"><a class="button" href="#queue">Review moderation queue</a><a class="button secondary" href="/submit">Create a research request</a></div></div>
-<?php include __DIR__.'/admin-influence.php'; ?>
-<div class="stats"><?php foreach(['Pending requests'=>"SELECT COUNT(*) n FROM research WHERE moderation IN ('Pending Approval','Needs Additional Review','Changes Requested')",'Pending contributions'=>"SELECT COUNT(*) n FROM contributions WHERE moderation IN ('Pending Approval','Needs Additional Review','Changes Requested') AND kind<>'Independent review'",'Pending reviews'=>"SELECT COUNT(*) n FROM contributions WHERE moderation IN ('Pending Approval','Needs Additional Review','Changes Requested') AND kind='Independent review'", 'Quarantined workflow packets'=>"SELECT COUNT(*) n FROM workflow_submissions WHERE admission='quarantined' AND visibility='public'",'Security / provenance flags'=>"SELECT COUNT(*) n FROM contributions WHERE flags<>'' AND moderation<>'Removed'"] as $label=>$sql): ?><div><strong><?=e(one($sql)['n'])?></strong><span><?=e($label)?></span></div><?php endforeach ?></div>
-<p class="fine">Database connected · Attachment storage: <?=e(number_format((int)one('SELECT COALESCE(SUM(bytes),0) n FROM attachments')['n']/1048576,2))?> MB · <a href="/admin/system">System health & maintenance</a></p>
-<details><summary>Recent research activity & solved work</summary><div class="field-grid"><div><h3>Recently active</h3><?php foreach(all('SELECT id,title,status,activity_at FROM research ORDER BY activity_at DESC LIMIT 5') as $recent): ?><p><a href="/admin/research/<?=e($recent['id'])?>"><?=e($recent['title'])?></a><br><span class="fine"><?=e($recent['status'])?> · <?=e($recent['activity_at'])?></span></p><?php endforeach ?></div><div><h3>Recently solved</h3><?php $solved=all("SELECT id,title,activity_at FROM research WHERE status='Solved' ORDER BY activity_at DESC LIMIT 5"); if(!$solved): ?><p>No solved requests yet.</p><?php endif ?><?php foreach($solved as $recent): ?><p><a href="/admin/research/<?=e($recent['id'])?>"><?=e($recent['title'])?></a></p><?php endforeach ?></div></div></details>
-<section id="queue"><h2>Moderation queue</h2><p>Read the complete record before approving. Publication does not mean verification.</p>
-<?php $queuePage=max(1,(int)($_GET['queue_page']??1)); $queueOffset=($queuePage-1)*100; $queueMore=false; foreach(['request'=>'research','contribution'=>'contributions','feedback'=>'feedback','revision'=>'revisions','attachment'=>'attachments'] as $type=>$table): $items=all("SELECT * FROM $table WHERE moderation IN ('Pending Approval','Needs Additional Review','Changes Requested') ORDER BY created_at,id LIMIT 100 OFFSET ".$queueOffset); $queueMore=$queueMore||(int)one("SELECT COUNT(*) n FROM $table WHERE moderation IN ('Pending Approval','Needs Additional Review','Changes Requested')")['n']>$queueOffset+100; ?>
-<h3><?=e(ucfirst($type))?>s</h3><?php if(!$items): ?><p class="muted">Queue clear.</p><?php endif ?><?php foreach($items as $item): $rid=$type==='request'?$item['id']:$item['research_id']; ?><article class="queue-item"><div><span class="status"><?=e($item['moderation'])?></span><h3><a href="/admin/research/<?=e($rid)?>"><?=e($item['title']??$item['summary']??$item['original_name']??$item['kind']??'Proposed update')?></a></h3><p><?=e(substr($item['question']??$item['body']??'',0,400))?></p><p class="fine">Added <?=e($item['created_at'])?> · <?=e($rid)?></p><?php if($item['flags']): ?><p class="warning"><?=e($item['flags'])?></p><?php endif ?></div><a class="button secondary" href="/admin/research/<?=e($rid)?>">Inspect & moderate</a></article><?php endforeach ?><?php endforeach ?><nav class="pagination" aria-label="Moderation queue pages"><?php if($queuePage>1): ?><a href="/admin?queue_page=<?=$queuePage-1?>#queue">Previous queue page</a><?php endif ?><?php if($queueMore): ?><a href="/admin?queue_page=<?=$queuePage+1?>#queue">Next queue page</a><?php endif ?></nav></section>
-<section><h2>All research</h2><p class="fine">Workflow packets and supplementary contributions are separate records. Accepted means admitted to the workflow; it does not establish scientific correctness. Expand a count for its current admission, visibility or moderation breakdown.</p><form class="inline-form" method="get"><?php field('Search title or ID','q',(string)($_GET['q']??'')); ?><button>Find requests</button></form>
-<div class="table-wrap"><table><thead><tr><th>Research</th><th>Moderation / status</th><th>Added / activity</th><th>Usage</th><th>Actions</th></tr></thead><tbody>
-<?php $q=(string)($_GET['q']??''); $page=max(1,(int)($_GET['page']??1)); $offset=($page-1)*50; $total=(int)one('SELECT COUNT(*) n FROM research WHERE title LIKE ? OR id=?',['%'.$q.'%',$q])['n']; $researchRows=all('SELECT r.* FROM research r WHERE r.title LIKE ? OR r.id=? ORDER BY r.created_at DESC LIMIT 50 OFFSET '.$offset,['%'.$q.'%',$q]); $usage=admin_research_usage(array_column($researchRows,'id')); foreach($researchRows as $r): $u=$usage[$r['id']]; ?><tr><td><?=e($r['title'])?></td><td><?=e($r['moderation'])?><br><?=e($r['status'])?><br><span class="fine">Discovery: <?=!empty($r['discovery_listed'])?'Listed':'Unlisted'?></span></td><td><?=e(substr($r['created_at'],0,10))?><br><?=e(substr($r['activity_at'],0,10))?></td><td data-research-usage="<?=e($r['id'])?>"><details><summary class="text-action">Workflow: <?=e($u['workflow_total'])?> packets</summary><p class="fine"><?=e(admin_usage_breakdown($u['admission']))?><br>Visibility: <?=e(admin_usage_breakdown($u['visibility']))?></p></details><details><summary class="text-action">Supplementary: <?=e($u['supplementary_total'])?> contributions</summary><p class="fine"><?=e(admin_usage_breakdown($u['moderation']))?></p></details></td><td><a href="/admin/research/<?=e($r['id'])?>">Manage</a><?php if($r['moderation']==='Approved'&&$r['status']!=='Withdrawn'): ?> · <a href="/research/<?=e($r['slug'])?>">Public page</a><?php endif ?></td></tr><?php endforeach ?></tbody></table></div><nav class="pagination" aria-label="Admin research pages"><?php for($p=1;$p<=ceil($total/50);$p++): ?><a href="/admin?<?=e(http_build_query(['q'=>$q,'page'=>$p]))?>"><?=$p?></a><?php endfor ?></nav></section>
+<div class="admin-dashboard">
+<div class="admin-heading"><h1>Research admin</h1><a class="button secondary" href="/submit">New request</a></div>
+<?php if($adminSection==='catalogue'): ?>
+    <?php require __DIR__.'/admin-research-list.php'; ?>
+<?php else: ?>
+    <?php require __DIR__.'/admin-planner.php'; ?>
+    <section id="queue" class="admin-panel">
+        <header class="admin-panel-heading">
+            <h2>Decisions</h2>
+            <nav class="admin-switches" aria-label="Decision status">
+                <a href="/admin#queue" <?=$adminWaiting?'':'aria-current="page"'?>>Needs review <span><?=e($decisions['review'])?></span></a>
+                <a href="/admin?queue=waiting#queue" <?=$adminWaiting?'aria-current="page"':''?>>Waiting for updates <span><?=e($decisions['waiting'])?></span></a>
+            </nav>
+        </header>
+        <?php if(!$decisions['items']&&!$decisions['held']): ?>
+            <p class="admin-empty"><?=$adminWaiting?'No requests are waiting for changes.':'No decisions are waiting.'?></p>
+        <?php else: ?>
+        <form class="admin-approvals" method="post" action="/admin/requests/approve">
+        <?=csrf()?>
+        <?php if($decisions['approvable']): ?>
+        <input type="hidden" name="snapshot" value="<?=e($decisions['approvalSnapshot'])?>">
+        <div class="admin-bulk-actions">
+            <button class="secondary" type="submit" name="approval" value="selected">Approve Selected</button>
+            <button class="secondary" type="submit" name="approval" value="all">Approve All (<?=e($decisions['approvable'])?>)</button>
+        </div>
+        <?php endif ?>
+        <ul class="admin-queue">
+            <?php foreach($decisions['items'] as $item):
+                $kind=$item['kind'];
+                $quick=$kind==='request'&&$item['moderation']==='Pending Approval';
+                $label=$kind==='request'?'Research request':ucfirst($kind);
+            ?>
+            <li>
+                <div class="admin-decision-meta">
+                    <?php if($quick): ?>
+                    <label class="admin-select-request">
+                        <input type="checkbox" name="selected[]" value="<?=e($item['id'])?>" aria-label="<?=e('Select '.$item['title'])?>">
+                    </label>
+                    <?php endif ?>
+                    <span class="admin-decision-type<?=$item['moderation']==='Needs Additional Review'?' admin-hold':''?>"><?=e($label)?></span>
+                </div>
+                <div><h3><?=e($item['title']?:'Proposed update')?></h3><time><?=e(substr($item['created_at'],0,16))?> UTC</time><?php if($item['moderation']==='Needs Additional Review'): ?> · <span class="admin-flag-label">Flagged for review</span><?php endif ?></div>
+                <div class="admin-queue-actions">
+                    <?php if($quick): ?><button type="submit" name="approve_request" value="<?=e($item['id'])?>">Approve</button><?php endif ?>
+                    <a class="button secondary" href="/admin/research/<?=e($item['research_id'])?><?=$kind==='request'?'':'?decision='.e($kind).'#item-'.e($item['id'])?>"><?=e($adminWaiting?'View '.$kind:'Review '.$kind)?></a>
+                </div>
+            </li>
+            <?php endforeach ?>
+            <?php foreach($decisions['held'] as $flag): ?>
+            <li>
+                <span class="admin-decision-type admin-hold"><?=$flag['admission']==='quarantined'?'Held submission':'Historical submission'?></span>
+                <div><h3><?=e($flag['title'])?></h3><time><?=e(substr($flag['created_at'],0,16))?> UTC</time></div>
+                <a class="button secondary" href="/admin/research/<?=e($flag['research_id'])?>?decision=packet#item-<?=e($flag['id'])?>">Review submission</a>
+            </li>
+            <?php endforeach ?>
+        </ul>
+        </form>
+        <?php endif ?>
+        <?php if($decisions['pages']>1): ?><nav class="pagination" aria-label="Decision pages">
+        <?php for($page=1;$page<=$decisions['pages'];$page++): ?><a href="/admin?<?=e(http_build_query(['queue'=>$adminWaiting?'waiting':'review','queue_page'=>$page]))?>#queue" <?=$page===$decisions['page']?'aria-current="page"':''?>><?=$page?></a><?php endfor ?>
+        </nav><?php endif ?>
+    </section>
+<?php endif ?>
+</div>
