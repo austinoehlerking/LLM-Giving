@@ -32,11 +32,15 @@ if($action==='seed'){
         'held'=>'Effects of plastic pollution on the biological carbon pump in the deep ocean',
         'one'=>'Which public library events have comparable measures of attendance and repeat participation?',
         'two'=>'What can small towns learn from public reports on library opening hours?',
-        'later'=>'Later approved study outside the first planning run'];
+        'later'=>'Later approved study outside the first planning run',
+        'selected'=>'Which school garden measures are practical to compare across public reports?',
+        'detail'=>'Which public library reports include repeat attendance by programme?',
+        'flagged'=>'Flagged question requiring an individual decision'];
     foreach($titles as $key=>$title){
         $ids[$key]=create_research(['title'=>$title,'question'=>'Synthetic local request for reviewing administration and planning; use only lawful public sources.','category_id'=>1,'terms'=>1])['id'];
     }
     moderate('request',$ids['waiting'],'Changes Requested','Please supply a smaller scope.');
+    moderate('request',$ids['flagged'],'Needs Additional Review','Inspect the flagged brief before approval.');
     change_status($ids['withdrawn'],'Withdrawn','Withdraw an isolated synthetic fixture.','administrator');
     moderate('request',$ids['held'],'Approved','Approved synthetic work for the packet hold case.');
     $held=wf_tasks($ids['held'])[0];
@@ -51,6 +55,28 @@ if($action==='seed'){
 }elseif($action==='approve-later'){
     $seed=json_decode(file_get_contents($file),true);
     moderate('request',$seed['ids']['later'],'Approved','Approved independently after the run was queued.');
+}elseif($action==='add-bulk'){
+    $seed=json_decode(file_get_contents($file),true);
+    $created=[];
+    for($i=1;$i<=21;$i++){
+        $id=create_research(['title'=>'Compare public library survey methods for group '.$i,'question'=>'Synthetic local approval fixture for checking all pages of the decision queue.','category_id'=>1,'terms'=>1])['id'];
+        $seed['ids']['bulk-'.$i]=$id;
+        $created[]=$id;
+    }
+    file_put_contents($file,json_encode($seed,JSON_THROW_ON_ERROR),LOCK_EX);
+    echo json_encode($created,JSON_THROW_ON_ERROR);
+}elseif($action==='approval-status'){
+    $seed=json_decode(file_get_contents($file),true);
+    $states=[];
+    foreach($seed['ids'] as $key=>$id){
+        $row=one("SELECT r.moderation,r.status,COALESCE(t.local_plan_requested,0) queued
+            FROM research r LEFT JOIN workflow_projects p ON p.research_id=r.id
+            LEFT JOIN workflow_tasks t ON t.research_id=r.id AND t.round_no=p.round_no AND t.kind='planning'
+            WHERE r.id=?",[$id]);
+        $row['queued']=(bool)$row['queued'];
+        $states[$key]=$row;
+    }
+    echo json_encode($states,JSON_THROW_ON_ERROR);
 }elseif($action==='cleanup'){
     if(is_file($file)){
         $seed=json_decode(file_get_contents($file),true);

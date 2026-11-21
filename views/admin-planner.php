@@ -11,7 +11,7 @@
     <div class="admin-planner-actions">
         <form method="post" action="/admin/planner/run"><?=csrf()?><button data-planner-run <?=(!$plannerStatus['configured']||$plannerStatus['active']||!$plannerStatus['pending'])?'disabled':''?>>Run research plans</button></form>
         <details class="admin-planner-setup"><summary>Connection setup</summary>
-            <div><p>On the computer that runs Codex, sign in with ChatGPT and start the listener from your LLM.Giving checkout. Keep it running while you want to start plans from this page.</p>
+            <div><p>On the computer that runs Codex, sign in with ChatGPT and start the listener from your LLM.Giving checkout. Keep it running to process plans automatically after approval.</p>
             <pre>codex login
 node tools/local-planner.mjs --listen</pre>
             <p>The listener uses the planner credential already configured on that computer.</p></div>
