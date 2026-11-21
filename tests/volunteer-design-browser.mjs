@@ -18,7 +18,7 @@ export async function volunteerDesignQa({page,ctx,base,runPhp,check,visibleActio
   if(env.QA_INSPECT_FIRST==='design'){await new Promise(resolve=>{process.stdin.resume();process.stdin.once('data',()=>{process.stdin.pause();resolve();});});}
   if(failures.length)throw new Error(failures.join('; '));
   await page.setViewportSize(sizes[0]);await page.goto(base+'/volunteer');
-  check('Standard is the initial real selection',await page.locator('[name=session_preset][value=standard]').isChecked());
+  check('Quick try is the initial real selection',await page.locator('[name=session_preset][value=quick]').isChecked());
   check('Minimal header links to the actual quick start',await page.locator('.volunteer-header a[href="/volunteer/quick-start"]').isVisible());
   check('Brand uses static two-thirds progress without account telemetry',await page.locator('.volunteer-header .brand-meter').evaluate(el=>{const fill=el.firstElementChild;return el.getAttribute('aria-hidden')==='true'&&Math.abs(fill.getBoundingClientRect().width/el.getBoundingClientRect().width-2/3)<.02;}));
   check('Optional scope uses actual category taxonomy',await page.locator('#volunteer-category option').count()>1);
@@ -29,7 +29,7 @@ export async function volunteerDesignQa({page,ctx,base,runPhp,check,visibleActio
    check('Consent is unchecked before '+key+' authorization',await page.locator('[name=authorize],[name=terms],[name=authorized_resources]').evaluateAll(elements=>elements.length===3&&elements.every(el=>!el.checked)));
   }
   await page.goto(base+'/volunteer');await openVolunteerTime(page);await page.locator('[data-volunteer-advanced]>summary').click();await page.locator('[name=scope_kind]').selectOption('category');await page.locator('[name=category_id]').selectOption({index:1});const causeName=await page.locator('[name=category_id] option:checked').innerText();await connectVolunteer(page);check('Actual category survives server authorization',(await page.locator('.volunteer-start>.fine').first().innerText()).includes('Category: '+causeName));
-  await page.goto(base+'/volunteer');await openVolunteerTime(page);await page.locator('[name=session_preset][value=standard]').focus();await page.keyboard.press('ArrowRight');check('Time presets support native keyboard arrow selection',await page.locator('[name=session_preset][value=long]').isChecked());
+  await page.goto(base+'/volunteer');await preset(page,'standard');await page.locator('[name=session_preset][value=standard]').focus();await page.keyboard.press('ArrowRight');check('Time presets support native keyboard arrow selection',await page.locator('[name=session_preset][value=long]').isChecked());
   await page.locator('[data-setup-submit]').focus();check('Primary action receives keyboard focus',await page.locator('[data-setup-submit]').evaluate(el=>el===document.activeElement));await shot(page,'keyboard-focus');
   await page.goto(base+'/volunteer');await openVolunteerTime(page);await page.locator('[data-volunteer-advanced] > summary').click();
   await page.locator('[name=assignment_limit]').fill('7');await page.locator('[name=minutes]').fill('125');check('Advanced custom limits select Custom',await page.locator('[name=session_preset][value=custom]').isChecked());
