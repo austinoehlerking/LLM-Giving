@@ -14,14 +14,15 @@ function headers_secure(): void {
     header('Cache-Control: no-store');
     if(env('APP_ENV')==='production') header('Strict-Transport-Security: max-age=31536000');
 }
-function session_start_safe(): void {
+function session_start_safe(bool $refreshActivity=true): void {
     session_save_path(storage('sessions'));
     ini_set('session.use_strict_mode','1'); ini_set('session.use_only_cookies','1');
     session_name('llmgiving');
     session_set_cookie_params(['lifetime'=>0,'path'=>'/','secure'=>env('APP_ENV')==='production','httponly'=>true,'samesite'=>'Lax']);
     session_start();
     if (isset($_SESSION['last_seen']) && time()-$_SESSION['last_seen'] > (int)env('SESSION_MINUTES','30')*60) { $_SESSION=[]; session_regenerate_id(true); }
-    $_SESSION['last_seen']=time(); $_SESSION['csrf']??=bin2hex(random_bytes(32));
+    if($refreshActivity) $_SESSION['last_seen']=time();
+    $_SESSION['csrf']??=bin2hex(random_bytes(32));
 }
 function csrf(): string { return '<input type="hidden" name="csrf" value="'.e($_SESSION['csrf']).'">'; }
 function check_csrf(): void {

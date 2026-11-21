@@ -115,6 +115,25 @@ export async function adminDashboardQa({page,ctx,base,runPhp,check,visibleAction
       await page.screenshot({path:file,fullPage:false});report.screenshots.push(file);
       check('200% admin text reflows '+size.width,await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
     }
+    const sessionCookie=(await ctx.cookies(base)).find(cookie=>cookie.name==='llmgiving');
+    if(!sessionCookie)throw Error('Expected an authenticated QA browser session.');
+    const sessionActivity=mode=>JSON.parse(runPhp(['tests/admin-dashboard-state.php','session-activity',mode],sessionCookie.value));
+    const idleSince=sessionActivity('idle');
+    const pollStatuses=[];
+    for(let i=0;i<3;i++){
+      const response=await ctx.request.get(base+'/admin/planner/status',{maxRedirects:0});
+      pollStatuses.push(response.status());
+    }
+    check('Repeated successful planner polls leave the idle deadline unchanged',pollStatuses.every(status=>status===200)&&sessionActivity('read')===idleSince);
+    const navigation=await page.goto(base+'/admin');
+    check('Real admin navigation renews the idle deadline',navigation.status()===200&&sessionActivity('read')>idleSince);
+
+    const expiredCsrf=await page.locator('[data-admin-planner] [name=csrf]').inputValue();
+    sessionActivity('expired');
+    const expiredPoll=await ctx.request.get(base+'/admin/planner/status',{maxRedirects:0});
+    check('Expired admin session cannot read planner status',expiredPoll.status()===303&&expiredPoll.headers().location==='/admin/login');
+    const expiredRun=await ctx.request.post(base+'/admin/planner/run',{form:{csrf:expiredCsrf},maxRedirects:0});
+    check('Expired admin session cannot queue planning with its prior CSRF token',expiredRun.status()===403&&(await api('connection',{signed_in:true})).run_id===null);
     check('No dashboard script exceptions',errors.length===0);
     report.adminPlannerScope='Real isolated admin surface and authenticated HTTP dispatch, using synthetic worker plans and heartbeat states. No production access or inference.';
   }finally{

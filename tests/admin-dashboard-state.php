@@ -1,8 +1,26 @@
 <?php
 require __DIR__.'/bootstrap.php';
 require __DIR__.'/workflow-fixture.php';
-$_SESSION['admin']=1;
 $action=$argv[1]??'';
+if($action==='session-activity'){
+    $id=trim(stream_get_contents(STDIN));
+    if(!preg_match('/\A[A-Za-z0-9,-]{22,128}\z/',$id))throw new RuntimeException('Expected an isolated QA session.');
+    session_save_path(storage('sessions'));
+    session_id($id);
+    session_start(['use_strict_mode'=>1,'use_cookies'=>0,'cache_limiter'=>'']);
+    if(session_id()!==$id||!isset($_SESSION['admin'],$_SESSION['last_seen'])){
+        throw new RuntimeException('The isolated QA session is missing or unauthenticated.');
+    }
+    $mode=$argv[2]??'';
+    if($mode==='idle')$_SESSION['last_seen']=time()-10;
+    elseif($mode==='expired')$_SESSION['last_seen']=time()-(int)env('SESSION_MINUTES','30')*60-10;
+    elseif($mode!=='read')throw new RuntimeException('Unknown session activity mode.');
+    $lastSeen=$_SESSION['last_seen'];
+    session_write_close();
+    echo json_encode($lastSeen,JSON_THROW_ON_ERROR);
+    exit;
+}
+$_SESSION['admin']=1;
 $file=storage('qa/admin-dashboard/fixtures.json');
 
 if($action==='seed'){
