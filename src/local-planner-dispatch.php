@@ -52,15 +52,22 @@ function lp_dispatch_heartbeat(mixed $signedIn): array {
     return ['run_id'=>$signedIn&&lp_run_current($run)?$run['id']:null];
 }
 
+function lp_dispatch_busy(array $run): bool {
+    $placeholders=implode(',',array_fill(0,count($run['ids']),'?'));
+    return (bool)one("SELECT j.research_id FROM local_planner_jobs j JOIN research r ON r.id=j.research_id AND r.context_version=j.context_version
+        WHERE j.research_id IN ($placeholders) AND j.state='running' AND j.expires_at>? LIMIT 1",[...$run['ids'],now()]);
+}
+
 function lp_dispatch_claim(mixed $id): ?array {
     if(!is_string($id)||!preg_match('/^[a-f0-9]{32}$/D',$id))fail(422,'Supply the issued planning run ID.');
+    if(db()->inTransaction())throw new LogicException('Planner dispatch owns its transaction.');
+    // The dispatch read must not pin an outdated lease snapshot while waiting on a research lock.
+    query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
     return tx(function()use($id){
         $run=lp_control_lock();
-        if(!lp_run_current($run)||!hash_equals($run['id'],$id))return null;
-        $placeholders=implode(',',array_fill(0,count($run['ids']),'?'));
-        if(one("SELECT j.research_id FROM local_planner_jobs j JOIN research r ON r.id=j.research_id AND r.context_version=j.context_version
-            WHERE j.research_id IN ($placeholders) AND j.state='running' AND j.expires_at>? LIMIT 1",[...$run['ids'],now()]))return null;
+        if(!lp_run_current($run)||!hash_equals($run['id'],$id)||lp_dispatch_busy($run))return null;
         $job=lp_claim($run['ids']);
+        if(!$job&&lp_dispatch_busy($run))return null;
         $state=$job?'running':'complete';
         if($run['state']!==$state){
             $run['state']=$state;
