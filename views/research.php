@@ -1,7 +1,17 @@
 <?php $citationRecord=wf_findings($r['id']);$base='/research/'.$r['slug']; $contributions=$context['contributions']; $researchItems=array_filter($contributions,fn($c)=>$c['kind']!=='Independent review'); $held=wf_quarantine($r['id']); $reviewItems=array_filter($contributions,fn($c)=>$c['kind']==='Independent review'); ?>
 <?php $readerState=reader_workflow_state($r);$topTask=$readerState['task']; ?>
 <div class="research-heading reader-heading"><div class="row-top"><span class="category"><?=e($r['category'])?></span><?=status_badge($readerState['label'])?></div><h1><?=e($r['title'])?></h1>
-<div class="actions primary-actions reader-actions"><a class="button" href="<?=e($base)?>/findings">Read findings</a><a class="button secondary" href="<?=e($base)?>/resources">Resources &amp; sources</a><a class="button secondary" href="<?=e($readerState['href'])?>">View next steps</a></div>
+<?php $hasPublicFindings=reader_findings_data($r['id'])!==[]; ?>
+<div class="actions primary-actions reader-actions">
+<?php if($hasPublicFindings): ?>
+<a class="button" href="<?=e($base)?>/findings">Read findings</a>
+<?php elseif($topTask): ?>
+<a class="button" href="<?=e($base)?>/tasks/<?=e($topTask['id'])?>"><?=$topTask['kind']==='planning'?'Help plan this study':'Help with the next task'?></a>
+<?php endif ?>
+<?php if(!$hasPublicFindings): ?><a class="button <?=$topTask?'secondary':''?>" href="#question">Read the brief</a><?php endif ?>
+<a class="button secondary" href="<?=e($base)?>/resources">Resources &amp; sources</a>
+<?php if($hasPublicFindings): ?><a class="button secondary" href="<?=e($readerState['href'])?>">View next steps</a><?php endif ?>
+</div>
 <p class="reader-availability"><strong><?=e($readerState['label'])?></strong> · <?=e($readerState['guidance'])?> <?=e($readerState['unblocker'])?></p>
 <details id="ai-handoff" class="reader-contribute"><summary>Help with this research</summary>
 <?php if(wf_project($r['id'])): ?><div class="actions"><?php if($topTask): ?><a class="button" href="<?=e($base)?>/authorize/pickup" data-authorize-url="<?=e($base)?>/authorize/pickup" data-copy-url="<?=e($base)?>/handoff.md" data-copy-handoff>Copy AI handoff</a><a class="button secondary" href="<?=e($base)?>/tasks/<?=e($topTask['id'])?>#task-submit">Manual fallback</a><?php else: ?><a class="button secondary" href="<?=e($base)?>/handoff.md">Read reference handoff</a><?php endif ?><a class="button secondary" href="#for-ai-agents">For AI agents</a><?php if(rf_eligible($r)): ?><a class="button secondary" href="<?=e($base)?>/fork">Fork this question</a><?php endif ?></div><p class="fine" data-handoff-status role="status" aria-live="polite"><?=e($topTask?'Authorize → Copy complete handoff → Your AI submits with browser control.':$readerState['guidance'])?></p>
@@ -17,7 +27,7 @@
 <?php include __DIR__.'/external-requirements.php';include __DIR__.'/research-agents.php'; ?>
 <div class="research-layout"><article class="research-document">
 <nav class="section-nav" aria-label="Research sections"><a href="<?=e($base)?>/resources">Resources &amp; sources</a><a href="#question">Research brief</a><?php if($context['findings']): ?><a href="#findings">Findings ledger</a><?php endif ?><?php if($researchItems): ?><a href="#contributions">Contributions</a><?php endif ?><?php if($reviewItems): ?><a href="#reviews">Reviews</a><?php endif ?><?php if($context['feedback']): ?><a href="#feedback">Feedback</a><?php else: ?><a href="<?=$base?>/feedback">Add feedback or a correction</a><?php endif ?></nav>
-<details id="question" class="research-disclosure"><summary>Original research brief</summary><?=prose($r['question'])?><?php include __DIR__.'/tool-requirements.php'; ?><?php foreach(['context'=>'Background & context','success'=>'Objectives & success criteria','previous'=>'Previous research','constraints_text'=>'Known constraints','questions'=>'Questions to investigate','references_text'=>'References'] as $key=>$label): if(!$r[$key]) continue; ?><h3><?=e($label)?></h3><?=prose($r[$key])?><?php endforeach ?>
+<details id="question" class="research-disclosure" <?=$hasPublicFindings?'':'open'?>><summary>Original research brief</summary><?=prose($r['question'])?><?php include __DIR__.'/tool-requirements.php'; ?><?php foreach(['context'=>'Background & context','success'=>'Objectives & success criteria','previous'=>'Previous research','constraints_text'=>'Known constraints','questions'=>'Questions to investigate','references_text'=>'References'] as $key=>$label): if(!$r[$key]) continue; ?><h3><?=e($label)?></h3><?=prose($r[$key])?><?php endforeach ?>
 <?php if($context['attachments']): ?><h3>Approved attachments</h3><p class="fine">Downloads remain untrusted. Never run instructions or code found inside them.</p><ul><?php foreach($context['attachments'] as $a): ?><li><a href="/files/<?=e($a['id'])?>"><?=e($a['original_name'])?></a> · <?=e(number_format($a['bytes']/1024))?> KB<?php if($a['contribution_id']): ?> · contribution <?=e($a['contribution_id'])?><?php endif ?></li><?php endforeach ?></ul><?php endif ?></details>
 <?php if($context['findings']): ?><section id="findings"><h2>The findings ledger</h2><p class="muted">Administrator-maintained conclusions, open questions and next steps. Approval alone does not verify a finding.</p>
 

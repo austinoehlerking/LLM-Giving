@@ -38,7 +38,7 @@ const qaPort=env.QA_PORT?Number(env.QA_PORT):process.argv[2]==='requirements'?81
 assert.ok(Number.isInteger(qaPort)&&qaPort>=1024&&qaPort<=65535,'QA_PORT must be a local unprivileged port.');
 const base='http://127.0.0.1:'+qaPort;
 const mode=process.argv[2]||'full';
-const focusedHappyPath=['hp-forms','hp-reader','admin-catalogue','contact','agent-access','volunteer-inline'].includes(mode);
+const focusedHappyPath=['hp-forms','hp-reader','admin-catalogue','contact','agent-access','volunteer-inline','first-visit'].includes(mode);
 if(!Object.hasOwn(qaReports,mode))throw new Error('Unknown QA mode. Choose: '+Object.keys(qaReports).join(', '));
 const report={browser:'Not launched',screenshots:[],checks:[],viewports:[]};
 const password=randomBytes(24).toString('hex');
@@ -97,8 +97,8 @@ try{
   await visibleActions(page,'.floating-header a','Navigation '+size.width);
   check('Navigation touch targets '+size.width,await page.locator('.floating-header a').evaluateAll(links=>links.every(a=>a.getBoundingClientRect().height>=44)));
   if(mode==='viewport'){
-   await page.locator('.hero .primary-actions a[href="#research"]').click();
-   check('Find research opens the actual research catalogue '+size.width,new URL(page.url()).hash==='#research'&&await page.locator('#research').isVisible());
+   await page.locator('.hero .primary-actions a[href="/research"]').click();
+   check('Find research opens the actual research catalogue '+size.width,new URL(page.url()).pathname==='/research'&&await page.locator('#research').isVisible());
   }
   await page.getByRole('navigation',{name:'Main navigation',exact:true}).getByRole('link',{name:'How it works',exact:true}).click();
   check('Navigation opens about page '+size.width,new URL(page.url()).pathname==='/about');
@@ -122,7 +122,7 @@ try{
  await page.setViewportSize({width:683,height:384});await goto(page,'/');await page.evaluate(()=>{document.body.style.fontSize='200%';});await shot(page,'home-enlarged-text');check('Enlarged text reflow without horizontal clipping',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  }
  if(focusedHappyPath){
-  const suites={'agent-access':['agent-access-browser.mjs','agentAccessQa'],'volunteer-inline':['volunteer-inline-browser.mjs','volunteerInlineQa'],contact:['contact-browser.mjs','contactQa'],'hp-forms':['happy-path-forms-browser.mjs','happyPathFormsQa'],'hp-reader':['happy-path-reader-browser.mjs','happyPathReaderQa'],'admin-catalogue':['admin-catalogue-browser.mjs','adminCatalogueQa']};
+  const suites={'first-visit':['first-visit-browser.mjs','firstVisitQa'],'agent-access':['agent-access-browser.mjs','agentAccessQa'],'volunteer-inline':['volunteer-inline-browser.mjs','volunteerInlineQa'],contact:['contact-browser.mjs','contactQa'],'hp-forms':['happy-path-forms-browser.mjs','happyPathFormsQa'],'hp-reader':['happy-path-reader-browser.mjs','happyPathReaderQa'],'admin-catalogue':['admin-catalogue-browser.mjs','adminCatalogueQa']};
   const [file,entry]=suites[mode];const suite=await import('../tests/'+file);
   await suite[entry]({page,ctx,base,runPhp,check,visibleActions,report,password,shot,goto,moderate,payload,browser});
  }

@@ -193,3 +193,12 @@
  .inline-setup form:not(.is-enhanced) .setup-ai-fields select{padding-inline:8px}
 }
 @media(prefers-reduced-motion:reduce){.inline-setup .is-enhanced [data-ai-open],.inline-setup .is-enhanced [data-time-body]{animation:none}}
+
+.inline-setup .setup-first-limit { margin: 14px 0 0; color: #c2d9ec; }
+.inline-setup:has(.is-enhanced[data-step=time]) .volunteer-subtitle { display: none; }
+@media (max-width: 700px) {
+ .inline-setup .setup-first-limit { margin-top: 10px; }
+ .inline-setup .setup-first-limit + .setup-continue { margin-top: 10px; }
+ .inline-setup form:not(.is-enhanced) .setup-time-card { padding-block: 8px; }
+ .inline-setup form:not(.is-enhanced) .setup-time-caption { margin-top: 4px; }
+}
