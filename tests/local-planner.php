@@ -56,7 +56,44 @@ lp_finish(['research_id'=>$new['research_id'],'lease'=>$new['lease'],'failure'=>
 lp_check(lp_claim()===null&&discover([])['total']===1,'Failed runs stay out of discovery without automatic repeated attempts.');
 lp_retry($pending['id']);
 lp_check(lp_claim()['research_id']===$pending['id'],'An admin can retry the failed job.');
-purge_request($legacy['id'],$legacy['id']);
 purge_request($pending['id'],$pending['id']);
-query("DELETE FROM settings WHERE name='local_planner_enabled'");
+set_setting('local_planner_enabled','0');
+$held=create_research(array_replace($brief,['title'=>'Legacy reservation during activation']));
+moderate('request',$held['id'],'Approved','Legacy reservation test.');
+$heldTask=wf_tasks($held['id'])[0];
+$actor=hash('sha256',uid());
+$heldLease=wr_claim($held['id'],$heldTask['id'],(int)$heldTask['revision'],$actor);
+$racing=create_research(array_replace($brief,['title'=>'Approval during planner activation']));
+
+// Connection one retains its old read view across the independently committed activation.
+query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+tx(function()use($racing,$legacy,$held,$heldTask){
+    lp_check(!lp_enabled(),'Approval/restart connection starts with the old disabled mode.');
+    $process=proc_open([PHP_BINARY,ROOT.'/bin/console.php','local-planner-enable'],
+        [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,ROOT,null,['bypass_shell'=>true]);
+    if(!is_resource($process))throw new RuntimeException('Could not start the independent activation connection.');
+    fclose($pipes[0]);
+    $output=stream_get_contents($pipes[1]);
+    $errors=stream_get_contents($pipes[2]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    lp_check(proc_close($process)===0&&str_contains($output,'Local planning enabled.'),'Activation commits on a second connection: '.$errors);
+    lp_check(!lp_enabled(),'The approval/restart transaction still has a stale consistent read.');
+    lp_check(wf_task($held['id'],$heldTask['id'])['visibility']==='public','An existing reserved task is preserved.');
+    moderate('request',$racing['id'],'Approved','Approval in the transaction that overlaps activation.');
+    wf_restart($legacy['id'],'Restart in the transaction that overlaps activation.');
+    lp_check(wf_tasks($racing['id'])[0]['visibility']==='private','Approval uses the new mode even with an old read view.');
+    lp_check(wf_tasks($legacy['id'])[0]['visibility']==='private','Restart uses the new mode even with an old read view.');
+});
+lp_check(wr_claim($held['id'],$heldTask['id'],(int)$heldTask['revision'],$actor)['id']===$heldLease['id'],'An existing holder can recover the original reservation.');
+wr_release($held['id'],$heldTask['id'],$actor);
+lp_expect(409,fn()=>wr_claim($held['id'],$heldTask['id'],(int)$heldTask['revision'],hash('sha256',uid())));
+$queued=[];
+for($i=0;$i<3;$i++)$queued[]=lp_claim()['research_id']??null;
+$expected=[$racing['id'],$legacy['id'],$held['id']];
+sort($queued);sort($expected);
+lp_check($queued===$expected,'Both concurrent tasks and the released legacy task are claimable by the local runner.');
+lp_check(wf_task($held['id'],$heldTask['id'])['visibility']==='private','The worker adopts released legacy planning safely.');
+foreach([$legacy,$racing,$held] as $record)purge_request($record['id'],$record['id']);
+set_setting('local_planner_enabled','0');
 echo "$checks local planning assertions passed.\n";

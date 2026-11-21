@@ -86,14 +86,14 @@ function wf_new_task(string $rid,int $round,string $key,string $kind,string $tit
     return $id;
 }
 function wf_planning_task(string $rid,int $round): void {
-    wf_new_task($rid,$round,'plan','planning','Plan this research','Evaluate the full brief and previous attempts. Produce a realistic, bounded research plan or identify an actionable clarification/blocker.','1–12 research tasks with objectives, deliverables, acceptance criteria and an acyclic dependency graph. Synthesis and independent verification are added by the platform.','Use an eligible latest model at Max/Ultra. Do not mistake scientific uncertainty for a blocker. Explain scope, evidence needs and stopping rules.',visibility:lp_enabled()?'private':'public');
+    wf_new_task($rid,$round,'plan','planning','Plan this research','Evaluate the full brief and previous attempts. Produce a realistic, bounded research plan or identify an actionable clarification/blocker.','1–12 research tasks with objectives, deliverables, acceptance criteria and an acyclic dependency graph. Synthesis and independent verification are added by the platform.','Use an eligible latest model at Max/Ultra. Do not mistake scientific uncertainty for a blocker. Explain scope, evidence needs and stopping rules.',visibility:lp_enabled(true)?'private':'public');
 }
 function wf_start(string $rid): void {
     tx(function()use($rid){
         $r=one('SELECT * FROM research WHERE id=? FOR UPDATE',[$rid])??fail(404,'Research not found.');
         if($r['moderation']!=='Approved'||in_array($r['status'],['Withdrawn','Paused','Solved','Archived — Inactive','Review Complete'],true)||wf_project($rid))return;
         insert('workflow_projects',['research_id'=>$rid,'round_no'=>1]);wf_planning_task($rid,1);
-        wf_set_state($rid,'Needs Research Plan',lp_enabled()?'Topic approved. The local planner will prepare research tasks.':'Topic approved. Planning is the first autonomous task.');touch_context($rid);
+        wf_set_state($rid,'Needs Research Plan','Topic approved. Preparing research assignments.');touch_context($rid);
     });
 }
 function wf_actor(): string {
@@ -121,7 +121,7 @@ function wf_resolve(string $rid,string $body,string $reason,string $actor,int $e
 function wf_handoff_next(array $r): ?array {
  if(wf_quarantine($r['id']))return null;
  if(in_array($r['status'],['Needs Clarification','Blocked','Paused','Archived — Inactive','Solved','Review Complete'],true))return null;
- foreach(wf_tasks($r['id']) as $task)if($task['visibility']==='public'&&$task['state']==='Ready')return $task;
+ foreach(wf_tasks($r['id']) as $task)if($task['visibility']==='public'&&$task['state']==='Ready'&&($task['kind']!=='planning'||!lp_enabled()))return $task;
  return null;
 }
 function wf_handoff_text(string $rid,?array &$issuance=null): string {

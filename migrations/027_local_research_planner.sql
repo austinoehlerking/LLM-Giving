@@ -14,3 +14,5 @@ CREATE TABLE local_planner_jobs (
     FOREIGN KEY (research_id) REFERENCES research(id) ON DELETE CASCADE,
     FOREIGN KEY (task_id) REFERENCES workflow_tasks(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+INSERT IGNORE INTO settings(name,value) VALUES ('local_planner_enabled','0'),('local_planner_mode_lock','');
