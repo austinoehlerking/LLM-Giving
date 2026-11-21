@@ -205,7 +205,8 @@ function discovery_filters(array $input): array {
 }
 function discovery_visibility(): array {
     $gate=rf_listing_filter();
-    return ['sql'=>"r.moderation='Approved' AND r.status<>'Withdrawn' AND r.discovery_listed=1 AND ".$gate['sql'],'params'=>$gate['params']];
+    $ready=lp_enabled()?" AND r.status<>'Needs Research Plan'":'';
+    return ['sql'=>"r.moderation='Approved' AND r.status<>'Withdrawn' AND r.discovery_listed=1".$ready.' AND '.$gate['sql'],'params'=>$gate['params']];
 }
 function discovery_has_solved(): bool {
     $gate=discovery_visibility();

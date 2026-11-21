@@ -5,6 +5,7 @@ require ROOT.'/src/view.php';
 require ROOT.'/src/blog.php';
 headers_secure();
 $agentPath=rawurldecode(parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH)?:'/');
+if($agentPath==='/api/local-planner/v1'){lp_http($_SERVER['REQUEST_METHOD']);exit;}
 if(str_starts_with($agentPath,'/api/agent/v1')){va_http($agentPath,$_SERVER['REQUEST_METHOD']);exit;}
 session_start_safe();
 register_shutdown_function(function(){try{wf_audit_http();}catch(Throwable $e){error_log('Audit write failed: '.get_class($e));}});
@@ -77,7 +78,7 @@ if(preg_match('~^/manage/([a-f0-9]{32})(/exchange|/rotate)?$~',$path,$m)) {
     if($method==='POST') {
         require_manager($rid);
         if(($_POST['action']??'')==='ai-requirements'){rq_update($rid,$_POST);flash('AI requirements saved. Copy a fresh handoff before starting research.');redirect('/manage/'.$rid);}
-        if(($_POST['action']??'')==='workflow-resolve'){wf_resolve($rid,text_field($_POST,'response',20,30000),text_field($_POST,'reason',10,500),'requester',(int)($_POST['round_no']??0));flash('Response recorded. A new planning task is ready.');redirect('/manage/'.$rid);}
+        if(($_POST['action']??'')==='workflow-resolve'){wf_resolve($rid,text_field($_POST,'response',20,30000),text_field($_POST,'reason',10,500),'requester',(int)($_POST['round_no']??0));flash(lp_enabled()?'Response recorded. The local planner will update the research tasks.':'Response recorded. A new planning task is ready.');redirect('/manage/'.$rid);}
         if(($_POST['action']??'')==='status') {
             $newStatus=text_field($_POST,'status');change_status($rid,$newStatus,text_field($_POST,'reason',10),'requester');
             flash(match($newStatus){'Withdrawn'=>'Request withdrawn. It and its associated content are hidden from the public.','Paused'=>'Request paused. New research work is on hold.','Solved'=>'Request marked solved.',default=>'Request status updated.'});redirect('/manage/'.$rid);

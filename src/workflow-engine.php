@@ -75,6 +75,14 @@ function wf_recompute(string $rid): void {
     foreach($tasks as $t)if($t['kind']==='synthesis'&&$t['state']==='Ready')$state='Synthesis';
     wf_set_state($rid,$state,'Task outcomes determine the next available stage; acceptance is not factual verification.');
 }
+/** Install a validated plan while the caller holds the parent research lock. */
+function wf_install_plan(string $rid,int $round,array $plan): void {
+    $ids=[];foreach($plan as $n)$ids[$n['key']]=wf_new_task($rid,$round,$n['key'],'research',$n['title'],$n['objective'],$n['deliverable']."\nEvidence needs: ".$n['evidence_needs']."\nStopping rule: ".$n['stopping_rule'],$n['acceptance'],[],(bool)$n['computational'],(bool)$n['builds_tool']);
+    foreach($plan as $n){$deps=array_map(fn($key)=>$ids[$key],$n['dependencies']);query('UPDATE workflow_tasks SET dependencies=?,state=? WHERE id=?',[json_encode($deps),$deps?'Waiting':'Ready',$ids[$n['key']]]);}
+    $syn=wf_new_task($rid,$round,'synthesis','synthesis','Synthesize the research','Reconcile the task results against the full research objective, including null findings and disagreements.','An evidence-linked synthesis with confidence, gaps and recommended next steps.','No unsupported global conclusions. Trace every substantive claim to task evidence.',array_values($ids));
+    wf_new_task($rid,$round,'review','review','Independently verify the synthesis','Audit the synthesis against its sources and original objective using a separate contributor and AI run.','A verification recommendation or specific corrections with evidence.','Check citations, contradictory findings, limitations and reproducibility. Do not infer certainty from workflow completion.',[$syn]);
+}
+
 // Called only inside the parent research lock, after admission.
 function wf_apply_result(array $row,array $t): void {
     if((one('SELECT admission FROM workflow_submissions WHERE id=? AND research_id=?',[$row['id'],$row['research_id']])['admission']??'')!=='accepted')fail(409,'Only an accepted packet can apply a task outcome.');
@@ -90,10 +98,7 @@ function wf_apply_result(array $row,array $t): void {
             }else{
                 query("UPDATE workflow_tasks SET state='Completed',accepted_id=? WHERE id=?",[$row['id'],$tid]);
                 if($plan){
-                    $ids=[];foreach($plan as $n)$ids[$n['key']]=wf_new_task($rid,(int)$p['round_no'],$n['key'],'research',$n['title'],$n['objective'],$n['deliverable']."\nEvidence needs: ".$n['evidence_needs']."\nStopping rule: ".$n['stopping_rule'],$n['acceptance'],[],(bool)$n['computational'],(bool)$n['builds_tool']);
-                    foreach($plan as $n){$deps=array_map(fn($key)=>$ids[$key],$n['dependencies']);query('UPDATE workflow_tasks SET dependencies=?,state=? WHERE id=?',[json_encode($deps),$deps?'Waiting':'Ready',$ids[$n['key']]]);}
-                    $syn=wf_new_task($rid,(int)$p['round_no'],'synthesis','synthesis','Synthesize the research','Reconcile the task results against the full research objective, including null findings and disagreements.','An evidence-linked synthesis with confidence, gaps and recommended next steps.','No unsupported global conclusions. Trace every substantive claim to task evidence.',array_values($ids));
-                    wf_new_task($rid,(int)$p['round_no'],'review','review','Independently verify the synthesis','Audit the synthesis against its sources and original objective using a separate contributor and AI run.','A verification recommendation or specific corrections with evidence.','Check citations, contradictory findings, limitations and reproducibility. Do not infer certainty from workflow completion.',[$syn]);
+                    wf_install_plan($rid,(int)$p['round_no'],$plan);
                 }
             }
             wf_recompute($rid);

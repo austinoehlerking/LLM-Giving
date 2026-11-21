@@ -4,18 +4,26 @@ $contributions=all('SELECT c.*,a.missing_fields FROM contributions c JOIN agent_
 $feedback=all('SELECT * FROM feedback WHERE research_id=? ORDER BY created_at',[$rid]);
 $revisions=all('SELECT * FROM revisions WHERE research_id=? ORDER BY created_at',[$rid]);
 $attachments=all('SELECT * FROM attachments WHERE research_id=? ORDER BY created_at',[$rid]);
+$localPlanning=lp_pending($r)&&$r['moderation']==='Approved';
+$localJob=$localPlanning?one('SELECT state,failure,expires_at FROM local_planner_jobs WHERE research_id=? AND context_version=?',[$rid,$r['context_version']]):null;
 ?>
 <div class="admin-review-heading"><h1>Review request</h1><span class="status" data-review-state><?=e($r['moderation'])?></span></div>
 <div class="admin-decision-actions" id="request-decision">
 <?php if($r['moderation']!=='Approved'): ?>
 <form method="post" action="/admin/moderate" data-quick-approve><?=csrf()?>
-<input type="hidden" name="type" value="request"><input type="hidden" name="id" value="<?=e($rid)?>"><input type="hidden" name="state" value="Approved"><input type="hidden" name="back" value="<?=e($back)?>"><input type="hidden" name="request_review" value="1"><input type="hidden" name="reason" value="<?=e(ADMIN_APPROVAL_REASON)?>"><button>Approve</button></form>
+<input type="hidden" name="type" value="request"><input type="hidden" name="id" value="<?=e($rid)?>"><input type="hidden" name="state" value="Approved"><input type="hidden" name="back" value="<?=e($back)?>"><input type="hidden" name="request_review" value="1"><input type="hidden" name="reason" value="<?=e(ADMIN_APPROVAL_REASON)?>"><button><?=lp_enabled()?'Approve and prepare tasks':'Approve'?></button></form>
 <?php else: ?><a class="button" href="<?=e($r['status']==='Withdrawn'?$back.'#record-details':'/research/'.$r['slug'])?>"><?= $r['status']==='Withdrawn'?'View record':'View public request' ?></a><?php endif ?>
 <details class="admin-request-changes" id="discovery-listing"><summary>Discovery: <?=!empty($r['discovery_listed'])?'Listed':'Unlisted'?></summary><p>Unlisted requests are omitted from catalogue searches, category counts and general volunteer pickup. Direct research, evidence and authorized task links keep their normal access checks. Records and history are retained.</p><form method="post"><?=csrf()?><input type="hidden" name="action" value="discovery-listing"><input type="hidden" name="discovery_listed" value="<?=empty($r['discovery_listed'])?'1':'0'?>"><label for="discovery-listing-reason">Reason for the listing change <span class="fine">(private audit note)</span></label><textarea id="discovery-listing-reason" name="reason" required minlength="10" maxlength="500" rows="2"></textarea><button><?=empty($r['discovery_listed'])?'List in discovery':'Unlist from discovery'?></button></form></details>
 <details class="admin-request-changes" id="request-changes"><summary>Request changes</summary><form method="post" action="/admin/moderate" data-request-changes><?=csrf()?>
 <input type="hidden" name="type" value="request"><input type="hidden" name="id" value="<?=e($rid)?>"><input type="hidden" name="state" value="Changes Requested"><input type="hidden" name="back" value="<?=e($back)?>"><input type="hidden" name="request_review" value="1">
 <label for="request-change-reason">What needs changing? <span class="fine">(private admin note)</span></label><textarea id="request-change-reason" name="reason" required minlength="10" rows="3"></textarea><p class="fine">Saved with the decision; not sent by email.</p><button>Save requested changes</button></form></details>
 </div>
+<?php if($localPlanning): ?>
+<div class="notice"><strong>Preparing research tasks</strong>
+<p><?=e(match($localJob['state']??'queued'){'failed'=>(match($localJob['failure']){'configuration'=>'No configured local model meets this request’s AI requirements.','background'=>'The approved fork background is currently unavailable.','context_size'=>'This brief and its history exceed the local planner input limit.',default=>'The local planning run needs attention.'}),'running'=>$localJob['expires_at']>now()?'Local Codex is preparing tasks.':'The local runner can reclaim the expired job.','complete'=>'Research tasks were prepared.',default=>'Waiting for the owner’s local Codex runner.'})?></p>
+<?php if($localJob&&($localJob['state']==='failed'||($localJob['state']==='running'&&$localJob['expires_at']<=now()))): ?><form method="post"><?=csrf()?><input type="hidden" name="action" value="local-plan-retry"><button class="secondary">Retry local planning</button></form><?php endif ?>
+</div>
+<?php endif ?>
 <div class="admin-review-links"><a href="#request-brief">Read the brief</a><a href="#other-decisions">Other decisions</a><?php if(in_array($r['status'],['Blocked','Needs Clarification'],true)): ?><a href="#workflow-response">Respond to blocker</a><?php endif ?></div>
 <p class="fine admin-approval-note">Approval makes this request public. It does not verify research findings.</p>
 <?php if(trim($r['flags'])!==''): ?><p class="warning"><strong>Needs attention:</strong> <?=e($r['flags'])?></p><?php endif ?>

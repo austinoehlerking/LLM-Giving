@@ -14,6 +14,7 @@ require_once __DIR__.'/workflow-handoffs.php';
 require_once __DIR__.'/workflow-context.php';
 require_once __DIR__.'/workflow-engine.php';
 require_once __DIR__.'/workflow-policy.php';
+require_once __DIR__.'/local-planner.php';
 require_once __DIR__.'/manual-pickup.php';
 
 function wf_restart(string $rid,string $reason,string $actor='administrator'): void {
@@ -78,21 +79,21 @@ function wf_set_state(string $rid,string $state,string $reason): void {
     insert('status_history',['research_id'=>$rid,'old_status'=>$r['status'],'new_status'=>$state,'actor'=>'workflow','reason'=>$reason,'created_at'=>now()]);
     audit_event($rid,'Project state changed',$reason,'research',$rid,$r['status'],$state);
 }
-function wf_new_task(string $rid,int $round,string $key,string $kind,string $title,string $objective,string $deliverable,string $acceptance,array $deps=[],bool $computational=false,bool $buildsTool=false): string {
+function wf_new_task(string $rid,int $round,string $key,string $kind,string $title,string $objective,string $deliverable,string $acceptance,array $deps=[],bool $computational=false,bool $buildsTool=false,string $visibility='public'): string {
     $id=uid();
-    insert('workflow_tasks',['id'=>$id,'research_id'=>$rid,'round_no'=>$round,'task_key'=>$key,'kind'=>$kind,'title'=>$title,'objective'=>$objective,'deliverable'=>$deliverable,'acceptance'=>$acceptance,'dependencies'=>json_encode($deps),'computational'=>$computational?1:0,'builds_tool'=>$buildsTool?1:0,'state'=>$deps?'Waiting':'Ready','created_at'=>now()]);
-    audit_event($rid,'Task created','A bounded task is available in this research plan.','task',$id,'',$deps?'Waiting':'Ready',$deps?'Waiting for dependency results.':'A volunteer can copy the task prompt.');
+    insert('workflow_tasks',['id'=>$id,'research_id'=>$rid,'round_no'=>$round,'task_key'=>$key,'kind'=>$kind,'title'=>$title,'objective'=>$objective,'deliverable'=>$deliverable,'acceptance'=>$acceptance,'dependencies'=>json_encode($deps),'computational'=>$computational?1:0,'builds_tool'=>$buildsTool?1:0,'state'=>$deps?'Waiting':'Ready','visibility'=>$visibility,'created_at'=>now()]);
+    audit_event($rid,'Task created','A bounded task is available in this research plan.','task',$id,'',$deps?'Waiting':'Ready',$deps?'Waiting for dependency results.':($visibility==='private'?'The local runner can claim this plan.':'A volunteer can copy the task prompt.'),'system','LLM.Giving',[],$visibility);
     return $id;
 }
 function wf_planning_task(string $rid,int $round): void {
-    wf_new_task($rid,$round,'plan','planning','Plan this research','Evaluate the full brief and previous attempts. Produce a realistic, bounded research plan or identify an actionable clarification/blocker.','1–12 research tasks with objectives, deliverables, acceptance criteria and an acyclic dependency graph. Synthesis and independent verification are added by the platform.','Use an eligible latest model at Max/Ultra. Do not mistake scientific uncertainty for a blocker. Explain scope, evidence needs and stopping rules.');
+    wf_new_task($rid,$round,'plan','planning','Plan this research','Evaluate the full brief and previous attempts. Produce a realistic, bounded research plan or identify an actionable clarification/blocker.','1–12 research tasks with objectives, deliverables, acceptance criteria and an acyclic dependency graph. Synthesis and independent verification are added by the platform.','Use an eligible latest model at Max/Ultra. Do not mistake scientific uncertainty for a blocker. Explain scope, evidence needs and stopping rules.',visibility:lp_enabled()?'private':'public');
 }
 function wf_start(string $rid): void {
     tx(function()use($rid){
         $r=one('SELECT * FROM research WHERE id=? FOR UPDATE',[$rid])??fail(404,'Research not found.');
         if($r['moderation']!=='Approved'||in_array($r['status'],['Withdrawn','Paused','Solved','Archived — Inactive','Review Complete'],true)||wf_project($rid))return;
         insert('workflow_projects',['research_id'=>$rid,'round_no'=>1]);wf_planning_task($rid,1);
-        wf_set_state($rid,'Needs Research Plan','Topic approved. Planning is the first autonomous task.');touch_context($rid);
+        wf_set_state($rid,'Needs Research Plan',lp_enabled()?'Topic approved. The local planner will prepare research tasks.':'Topic approved. Planning is the first autonomous task.');touch_context($rid);
     });
 }
 function wf_actor(): string {

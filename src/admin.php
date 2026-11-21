@@ -110,6 +110,7 @@ if(preg_match('~^/admin/research/([a-f0-9]{32})$~',$path,$m)) {
         $action=text_field($_POST,'action');
         if($action==='workflow-resolve')wf_resolve($rid,text_field($_POST,'response',20,30000),text_field($_POST,'reason',10,500),'administrator',(int)($_POST['round_no']??0));
         elseif($action==='workflow-influence-review')wf_review_influence($rid,text_field($_POST,'result_id',32,32),text_field($_POST,'reason',10,1000),text_field($_POST,'decision',1,20));
+        elseif($action==='local-plan-retry')lp_retry($rid);
         elseif($action==='workflow-remove')wf_remove_result($rid,text_field($_POST,'result_id',32,32),text_field($_POST,'reason',10,500));
         elseif($action==='workflow-restart'){tx(function()use($rid){one('SELECT id FROM research WHERE id=? FOR UPDATE',[$rid]);wf_restart($rid,text_field($_POST,'reason',10,500));});}
         elseif($action==='discovery-listing') {
