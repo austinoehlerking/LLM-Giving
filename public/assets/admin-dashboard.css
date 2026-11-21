@@ -41,9 +41,16 @@
 .admin-switches>a{display:flex;align-items:center;gap:7px;min-height:44px;padding:6px 12px;border:1px solid #42586b;border-radius:5px;color:#e7eff7;text-decoration:none;font-size:.875rem;font-weight:650}
 .admin-switches>a[aria-current]{background:#9fbdf2;border-color:#9fbdf2;color:#102336}
 .admin-switches span{font-size:.8em;font-variant-numeric:tabular-nums}
+.admin-approvals{margin:0}
+.admin-bulk-actions,.admin-queue-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.admin-bulk-actions{padding:0 16px 10px}
+.admin-bulk-actions button,.admin-queue-actions button{margin:0;min-height:44px;padding:6px 13px}
+.admin-decision-meta{display:flex;align-items:center;gap:4px;min-width:0}
+.admin-select-request{display:grid;place-items:center;flex:0 0 44px;min-height:44px;margin:0;cursor:pointer}
+.admin-select-request input{width:18px;height:18px;margin:0}
 .admin-queue{padding:0;margin:0;list-style:none}
-.admin-queue>li{display:grid;grid-template-columns:8rem minmax(0,1fr) auto;align-items:center;gap:14px;border-top:1px solid #354754;padding:10px 16px;min-height:70px}
-.admin-decision-type{justify-self:start;border-radius:4px;padding:4px 8px;background:#304454;color:#eff4f9;font-size:.78rem;font-weight:700;line-height:1.2}
+.admin-queue>li{display:grid;grid-template-columns:10.5rem minmax(0,1fr) auto;align-items:center;gap:14px;border-top:1px solid #354754;padding:10px 16px;min-height:70px}
+.admin-decision-type{justify-self:start;overflow-wrap:anywhere;border-radius:4px;padding:4px 8px;background:#304454;color:#eff4f9;font-size:.78rem;font-weight:700;line-height:1.2}
 .admin-decision-type.admin-hold{background:#503c1d;color:#ffdb92}
 .admin-queue h3{font-size:.98rem;line-height:1.35;margin:0 0 3px;overflow-wrap:anywhere}
 .admin-queue time,.admin-flag-label{font-size:.8125rem;color:#c4d1db}
@@ -76,4 +83,9 @@
  .admin-queue>li{display:grid;grid-template-columns:minmax(0,1fr);gap:5px;padding:9px 10px}
  .admin-queue h3{font-size:.94rem}
  .admin-queue .button{width:100%;min-width:0}
+ .admin-bulk-actions{padding:0 10px 8px}
+ .admin-bulk-actions button{font-size:.86rem}
+ .admin-decision-meta:has(.admin-select-request){min-height:44px}
+ .admin-queue-actions>a,.admin-queue-actions>button{flex:1 1 auto}
+ .admin-queue-actions>.button{width:auto}
 }

@@ -13,6 +13,14 @@ function lp_run_current(array $run): bool {
     return in_array($run['state']??'', ['queued','running'],true)&&($run['expires']??0)>time();
 }
 
+/** Mark the current private planning task while approval owns the research lock. */
+function lp_request_approved_plan(string $rid): bool {
+    return query("UPDATE workflow_tasks t JOIN workflow_projects p ON p.research_id=t.research_id AND p.round_no=t.round_no
+        JOIN research r ON r.id=t.research_id SET t.local_plan_requested=1
+        WHERE r.id=? AND r.moderation='Approved' AND r.status='Needs Research Plan'
+        AND t.kind='planning' AND t.visibility='private' AND t.state='Ready'",[$rid])->rowCount()>0;
+}
+
 function lp_dispatch_status(): array {
     require_admin();
     $configured=lp_enabled()&&preg_match('/^[a-f0-9]{64}$/D',env('LOCAL_PLANNER_TOKEN_SHA256'));
@@ -25,7 +33,8 @@ function lp_dispatch_status(): array {
     $failed=$configured?(int)one("SELECT COUNT(*) n FROM local_planner_jobs j JOIN research r ON r.id=j.research_id AND r.context_version=j.context_version
         WHERE r.moderation='Approved' AND r.status='Needs Research Plan' AND (j.state='failed' OR (j.state='running' AND j.attempts>=3 AND j.expires_at<=?))",[now()])['n']:0;
     return ['configured'=>(bool)$configured,'connection'=>$connection,'pending'=>min($pending,LP_RUN_SIZE),'more'=>$pending>LP_RUN_SIZE,
-        'failed'=>$failed,'active'=>$active,'run'=>$active?$run['state']:($run['state']??null)];
+        'failed'=>$failed,'automatic'=>$configured&&!$active&&$pending>0&&(bool)lp_candidates(limit:1,automatic:true),
+        'active'=>$active,'run'=>$active?$run['state']:($run['state']??null)];
 }
 
 function lp_dispatch_start(): string {
@@ -37,11 +46,19 @@ function lp_dispatch_start(): string {
         if(lp_run_current($current))return 'A planning run is already queued.';
         $ids=array_column(lp_candidates(limit:LP_RUN_SIZE),'id');
         if(!$ids)return 'No approved requests are ready for planning.';
-        $run=['id'=>uid(),'state'=>'queued','expires'=>time()+6*3600,'ids'=>$ids];
-        set_setting('local_planner_run',json_encode($run,JSON_THROW_ON_ERROR));
-        audit_event(null,'Local planning run queued','An administrator started planning for approved requests.','configuration','local-planner-run','','Queued','','administrator','Administrator',['run_id'=>$run['id'],'count'=>count($ids)],'private');
+        lp_dispatch_queue($ids,false);
         return 'Planning queued for '.count($ids).' '.(count($ids)===1?'request.':'requests.');
     });
+}
+
+/** Caller owns the dispatch lock. Keep each run bounded even when many approvals are queued. */
+function lp_dispatch_queue(array $ids,bool $automatic): array {
+    $run=['id'=>uid(),'state'=>'queued','expires'=>time()+6*3600,'ids'=>$ids];
+    set_setting('local_planner_run',json_encode($run,JSON_THROW_ON_ERROR));
+    audit_event(null,'Local planning run queued',$automatic?'Approval queued planning for these requests.':'An administrator started planning for approved requests.',
+        'configuration','local-planner-run','','Queued','',$automatic?'system':'administrator',$automatic?'LLM.Giving':'Administrator',
+        ['run_id'=>$run['id'],'count'=>count($ids)],'private');
+    return $run;
 }
 
 function lp_dispatch_heartbeat(mixed $signedIn): array {
@@ -49,7 +66,17 @@ function lp_dispatch_heartbeat(mixed $signedIn): array {
     $at=time();
     set_setting('local_planner_connection',json_encode(['at'=>$at,'signed_in'=>$signedIn],JSON_THROW_ON_ERROR));
     $run=json_decode(setting('local_planner_run','{}'),true,32,JSON_THROW_ON_ERROR);
-    return ['run_id'=>$signedIn&&lp_run_current($run)?$run['id']:null];
+    if(!$signedIn)return ['run_id'=>null];
+    if(!lp_run_current($run)&&lp_candidates(limit:1,automatic:true)){
+        // A connected worker picks up committed approvals after any active run finishes.
+        $run=tx(function(){
+            $current=lp_control_lock();
+            if(lp_run_current($current))return $current;
+            $ids=array_column(lp_candidates(limit:LP_RUN_SIZE,automatic:true),'id');
+            return $ids?lp_dispatch_queue($ids,true):$current;
+        });
+    }
+    return ['run_id'=>lp_run_current($run)?$run['id']:null];
 }
 
 function lp_dispatch_busy(array $run): bool {

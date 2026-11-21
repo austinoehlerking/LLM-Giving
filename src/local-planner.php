@@ -74,8 +74,9 @@ function lp_adopt_plan(array $task): bool {
     return true;
 }
 
-function lp_candidates(?array $scope=null,int $limit=40): array {
+function lp_candidates(?array $scope=null,int $limit=40,bool $automatic=false): array {
     if($scope===[])return [];
+    $trigger=$automatic?' AND t.local_plan_requested=1':'';
     $scoped=$scope===null?'':' AND r.id IN ('.implode(',',array_fill(0,count($scope),'?')).')';
     return all("SELECT r.id FROM research r JOIN workflow_projects p ON p.research_id=r.id
         JOIN workflow_tasks t ON t.research_id=r.id AND t.round_no=p.round_no AND t.kind='planning' AND t.state='Ready'
@@ -83,7 +84,7 @@ function lp_candidates(?array $scope=null,int $limit=40): array {
         WHERE r.moderation='Approved' AND r.status='Needs Research Plan'
         AND NOT EXISTS (SELECT 1 FROM workflow_submissions s WHERE s.research_id=r.id AND s.visibility='public' AND s.admission='quarantined')
         AND (t.visibility='private' OR NOT EXISTS (SELECT 1 FROM task_reservations v WHERE v.task_id=t.id AND v.task_revision=t.revision AND v.ended_at IS NULL AND v.expires_at>?))
-        AND (j.research_id IS NULL OR (j.state='running' AND j.expires_at<=? AND j.attempts<3)) " . $scoped . " ORDER BY r.created_at,r.id LIMIT ".$limit,[wr_stamp(),now(),...($scope??[])]);
+        AND (j.research_id IS NULL OR (j.state='running' AND j.expires_at<=? AND j.attempts<3)) " . $trigger . $scoped . " ORDER BY r.created_at,r.id LIMIT ".$limit,[wr_stamp(),now(),...($scope??[])]);
 }
 
 function lp_claim(?array $scope=null): ?array {

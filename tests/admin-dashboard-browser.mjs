@@ -45,14 +45,14 @@ export async function adminDashboardQa({page,ctx,base,runPhp,check,visibleAction
       const file=path.join(out,'initial-'+size.width+'x'+size.height+'.png');
       await page.screenshot({path:file,fullPage:false});
       screenshots.push(file);report.screenshots.push(file);
-      await visibleActions(page,'.admin-workspace-bar nav > a,.admin-heading a,[data-planner-run],.admin-queue > li:first-child > a','Admin decisions '+size.width);
+      await visibleActions(page,'.admin-workspace-bar nav > a,.admin-heading a,[data-planner-run],.admin-bulk-actions button,.admin-queue > li:nth-child(1 of li:has([name=approve_request])) :is([name=approve_request],.admin-select-request,.admin-queue-actions a)','Admin decisions '+size.width);
     }
     console.log('INSPECT DASHBOARD INITIAL: '+screenshots.join(' | '));
     if(env.QA_INSPECT_FIRST==='admin-dashboard')await new Promise(resolve=>{process.stdin.resume();process.stdin.once('data',()=>{process.stdin.pause();resolve();});});
-    const first=page.locator('.admin-queue > li').first();
-    check('Held packet is a compact decision with no exposed submission form',await first.getByRole('link',{name:'Review packet',exact:true}).count()===1&&await page.locator('#human-influence form').count()===0);
+    const first=page.getByRole('listitem').filter({has:page.getByRole('heading',{name:fixture.titles.held,exact:true})});
+    check('Held packet is a compact decision with no exposed submission form',await first.getByRole('link',{name:'Review submission',exact:true}).count()===1&&await page.locator('#human-influence form').count()===0);
     check('Waiting and withdrawn records stay out of decisions',await page.getByText(fixture.titles.waiting,{exact:true}).count()===0&&await page.getByText(fixture.titles.withdrawn,{exact:true}).count()===0);
-    await first.getByRole('link',{name:'Review packet',exact:true}).click();
+    await first.getByRole('link',{name:'Review submission',exact:true}).click();
     check('Packet link opens the exact disclosure and safe decision controls',new URL(page.url()).hash==='#item-'+fixture.packet&&await page.locator('#item-'+fixture.packet+' button[value=approve]').isVisible());
     await page.goto(base+'/admin');
     await page.getByRole('link',{name:/Waiting for updates/}).click();
@@ -134,6 +134,52 @@ export async function adminDashboardQa({page,ctx,base,runPhp,check,visibleAction
     check('Expired admin session cannot read planner status',expiredPoll.status()===303&&expiredPoll.headers().location==='/admin/login');
     const expiredRun=await ctx.request.post(base+'/admin/planner/run',{form:{csrf:expiredCsrf},maxRedirects:0});
     check('Expired admin session cannot queue planning with its prior CSRF token',expiredRun.status()===403&&(await api('connection',{signed_in:true})).run_id===null);
+    await page.goto(base+'/admin/login');
+    await page.getByLabel('Email').fill('admin-dashboard-qa@example.invalid');
+    await page.getByLabel('Password').fill(password);
+    await page.getByRole('button',{name:'Sign in',exact:true}).click();
+    await page.waitForURL(base+'/admin');
+    const approveRow=title=>page.getByRole('listitem').filter({has:page.getByRole('heading',{name:title,exact:true})});
+    const states=()=>JSON.parse(runPhp(['tests/admin-dashboard-state.php','approval-status']));
+    const approvalCsrf=await page.locator('.admin-approvals [name=csrf]').inputValue();
+    const staleSnapshot=await page.locator('.admin-approvals [name=snapshot]').inputValue();
+    check('Bulk approval requires CSRF',(await ctx.request.post(base+'/admin/requests/approve',{form:{approval:'all'}})).status()===403);
+    check('Flagged requests and held submissions have no quick approval',await approveRow(fixture.titles.flagged).getByRole('button',{name:'Approve',exact:true}).count()===0&&await approveRow(fixture.titles.held).getByRole('checkbox').count()===0);
+    await api('connection',{signed_in:false});
+    await approveRow(fixture.titles.review).getByRole('button',{name:'Approve',exact:true}).click();
+    check('One-click approval records a private automatic plan while signed out',await page.getByText('1 research request approved. 1 research plan queued.',{exact:true}).isVisible()&&states().review.queued&&(await api('connection',{signed_in:false})).run_id===null);
+    const firstAuto=await api('connection',{signed_in:true});
+    check('Reconnecting takes the approved request without the manual run action',/^[a-f0-9]{32}$/.test(firstAuto.run_id??''));
+    const firstJob=(await api('claim',{run_id:firstAuto.run_id})).job;
+    check('Automatic dispatch excludes earlier manually queued work',firstJob?.research_id===fixture.ids.review);
+
+    await page.getByRole('checkbox',{name:'Select '+fixture.titles.selected,exact:true}).check();
+    await page.getByRole('button',{name:'Approve Selected',exact:true}).click();
+    check('Approve Selected leaves unselected requests alone',states().selected.queued&&states().detail.moderation==='Pending Approval');
+    await approveRow(fixture.titles.detail).getByRole('link',{name:'Review request',exact:true}).click();
+    await page.getByRole('button',{name:'Approve and prepare tasks',exact:true}).click();
+    check('Approval from request details queues the plan',await page.getByText('Research request approved. Research plan queued.',{exact:true}).isVisible()&&states().detail.queued);
+    check('Approvals during a plan do not interrupt its lease',(await api('connection',{signed_in:true})).run_id===firstAuto.run_id&&(await api('claim',{run_id:firstAuto.run_id})).job===null);
+
+    const result=await api('finish',{research_id:firstJob.research_id,lease:firstJob.lease,run_id:'013579bd-0246-48ac-81a2-aaaaaaaaaaaa',tasks});
+    check('Automatically dispatched plan becomes real Ready research',result.recorded===true&&states().review.status==='Open for Research');
+    check('The first run retains its original scope',(await api('claim',{run_id:firstAuto.run_id})).job===null);
+    const nextAuto=(await api('connection',{signed_in:true})).run_id;
+    const nextJob=(await api('claim',{run_id:nextAuto})).job;
+    check('Approval during an active run is picked up automatically in a later run',nextAuto!==firstAuto.run_id&&[fixture.ids.selected,fixture.ids.detail].includes(nextJob?.research_id));
+
+    await page.goto(base+'/admin');
+    const invalid=await ctx.request.post(base+'/admin/requests/approve',{form:{csrf:approvalCsrf,approve_request:fixture.ids.flagged}});
+    check('Direct quick-approve attempts also leave flagged requests untouched',invalid.ok()&&states().flagged.moderation==='Needs Additional Review');
+    const beforeBulk=JSON.parse(runPhp(['tests/admin-dashboard-state.php','add-bulk']));
+    const stale=await ctx.request.post(base+'/admin/requests/approve',{form:{csrf:approvalCsrf,approval:'all',snapshot:staleSnapshot}});
+    check('Changing the queue invalidates an earlier Approve All snapshot',await stale.text().then(text=>text.includes('The queue changed.'))&&states()['bulk-1'].moderation==='Pending Approval');
+    await page.goto(base+'/admin');
+    check('Approve All count covers requests beyond this page',beforeBulk.length===21&&await page.getByRole('button',{name:'Approve All (21)',exact:true}).isVisible()&&await page.getByRole('navigation',{name:'Decision pages'}).count()===1);
+    await page.getByRole('button',{name:'Approve All (21)',exact:true}).click();
+    const afterBulk=states();
+    check('Approve All queues every routine request across pages',await page.getByText('21 research requests approved. 21 research plans queued.',{exact:true}).isVisible()&&Object.entries(afterBulk).filter(([key,record])=>key.startsWith('bulk-')&&record.queued&&record.moderation==='Approved').length===21);
+    check('Bulk approval preserves individual decisions',afterBulk.flagged.moderation==='Needs Additional Review'&&afterBulk.waiting.moderation==='Changes Requested'&&await page.getByRole('link',{name:'Review submission',exact:true}).count()===1);
     check('No dashboard script exceptions',errors.length===0);
     report.adminPlannerScope='Real isolated admin surface and authenticated HTTP dispatch, using synthetic worker plans and heartbeat states. No production access or inference.';
   }finally{
