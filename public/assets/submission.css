@@ -111,3 +111,6 @@
 @media(max-width:700px){.requester-workflow-page .requester-header{padding:6px 12px;min-height:56px}.requester-header .brand{font-size:23px}.requester-header nav{font-size:13px}.requester-workflow-page .container{padding:4px 12px 24px}.requester-workflow-page .page-heading h1{font-size:26px}.requester-workflow-page .page-heading{padding:4px 0 8px}.request-form.form-panel{padding:12px}.request-settings{gap:8px}.request-settings select{font-size:14px;padding:8px}.request-form .request-next-step{margin-top:8px}.management-status{padding:12px}.management-status .fine{margin-top:8px}.request-preview{margin-top:4px;padding:12px}}
 
 .request-form[data-request-enhanced] .request-next-step[open]>summary{display:none}.request-form [data-request-edit-basics]{min-height:44px;margin:0 0 6px}.request-submit-actions>*{flex:1 1 0;min-width:0}.request-settings-summary dl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:4px 16px;font-size:14px;margin:0}.request-settings-summary dt{font-weight:650}.request-settings-summary dd{margin:0}.request-settings-summary h3{margin-top:12px}
+
+.request-form .request-draft-action { margin: 4px 0 6px; border: 0; }
+.request-form .request-draft-action button { width: auto; min-height: 44px; }

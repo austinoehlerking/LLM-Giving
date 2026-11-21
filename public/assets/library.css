@@ -80,3 +80,19 @@ body .site-header.floating-header{width:calc(100% - 48px);max-width:1240px;margi
  .contact-row+label{margin-top:12px}
  .contact textarea{height:88px}
 }
+
+.library-first-result { margin-top: 14px; }
+.library-first-result .compact-cards { grid-template-columns: minmax(0, 1fr); }
+.research-card h3 a { overflow-wrap: anywhere; }
+.library-advanced { margin: 12px 0 4px; }
+.library-advanced > summary, .library-solved > a { min-height: 44px; align-content: center; }
+.library-solved { margin: 6px 0 0; }
+.library-solved > a { display: inline-block; }
+.discovery-actions { margin-top: 18px; }
+.research-library .library-title > h1 { margin: 0; }
+@media (max-width: 700px) {
+ .research-library .library-title > h1 { font-size: 28px; }
+ .research-library .library-title { margin-bottom: 8px; }
+ .research-library .library-title > a { display: none; }
+ .library-first-result .research-card { padding: 12px; }
+}
