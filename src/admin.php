@@ -15,6 +15,16 @@ if($path==='/admin/login') {
 }
 if(!admin()) redirect('/admin/login');
 require_once __DIR__.'/admin-catalogue.php';
+require_once __DIR__.'/admin-decisions.php';
+if($path==='/admin/planner/status'&&$method==='GET'){
+    $status=lp_dispatch_status();
+    header('Content-Type: application/json; charset=UTF-8');
+    header('Cache-Control: private, no-store');
+    echo json_encode($status+['label'=>admin_planner_line($status)],JSON_THROW_ON_ERROR);return;
+}
+if($path==='/admin/planner/run'&&$method==='POST'){
+    flash(lp_dispatch_start());redirect('/admin');
+}
 if($path==='/admin/audit'){render('audit-site',['title'=>'Site audit ledger']);return;}
 if($path==='/admin/workflow-policy'){
     if($method==='POST'){wf_save_policy(text_field($_POST,'models',2,10000),text_field($_POST,'reason',10,500));flash('Planning policy updated. Existing runs retain their captured policy.');redirect('/admin/workflow-policy');}
@@ -140,5 +150,14 @@ if(preg_match('~^/admin/research/([a-f0-9]{32})$~',$path,$m)) {
     }
     render('admin-research',['title'=>'Manage research','r'=>$r]); return;
 }
-if($path==='/admin') { render('admin',['title'=>'Research administration']); return; }
+if($path==='/admin') {
+    $section=($_GET['tab']??null)==='catalogue'||(!isset($_GET['tab'])&&(isset($_GET['q'])||isset($_GET['page'])))?'catalogue':'decisions';
+    $waiting=($_GET['queue']??null)==='waiting';
+    $data=['title'=>'Research admin','adminSection'=>$section,'adminWaiting'=>$waiting];
+    if($section==='decisions'){
+        $data['decisions']=admin_decisions($waiting,max(1,(int)($_GET['queue_page']??1)));
+        $data['plannerStatus']=lp_dispatch_status();
+    }
+    render('admin',$data);return;
+}
 fail(404,'Admin page not found.');
