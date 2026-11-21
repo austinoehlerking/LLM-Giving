@@ -103,6 +103,7 @@ function reader_workflow_state(array $research): array {
     if(in_array($r['status'],['Paused','Archived — Inactive','Solved'],true))return array_replace($state,['guidance'=>'This study is not accepting task results. You can read its available findings.','unblocker'=>'The requester or an administrator must resume or reopen research before new work can start.']);
     if($r['status']==='Review Complete')return array_replace($state,['guidance'=>'This research cycle is complete. Read the findings and their limitations; review completion does not guarantee scientific correctness.','unblocker'=>'A human can request another independent review for a specific concern.','href'=>$base.'/work#request-review']);
     if(!wf_project($r['id']))return array_replace($state,['guidance'=>STATUSES[$r['status']]??'Read the research brief and available contributions.','unblocker'=>'Contributors can inspect the brief and publication requirements.','href'=>$base.'/contribute']);
+    if(lp_pending($r))return array_replace($state,['label'=>'Preparing research tasks','guidance'=>'Research tasks will appear when the plan is ready.']);
     $task=mp_next($r);
     if($task)return array_replace($state,['task'=>$task,'guidance'=>'A '.str_replace('_',' ',$task['kind']).' task is available: '.$task['title'],'unblocker'=>'A volunteer can authorize an AI handoff and reserve the current task.']);
     foreach(wf_tasks($r['id']) as $task){
