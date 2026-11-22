@@ -36,9 +36,8 @@ $wizardTitles=['Save your private link','Copy start message','Paste into Dot and
 </section>
 <section id="wizard-step-3" data-wizard-pane="3" aria-labelledby="wizard-title-3">
 <p class="wizard-step-count">Step 3 of 4</p><h2 id="wizard-title-3" tabindex="-1">Paste into Dot and send</h2>
-<p>Open a new chat in <strong>Dot</strong> with browser control enabled. Paste the <strong>one copied start message</strong> into the message box and press <strong>Send</strong>.</p>
+<p>Open a new <strong>Dot</strong> chat with browser control. Paste the <strong>one copied start message</strong> and press <strong>Send</strong>.</p>
 <p>No second paste or attachment is needed. Dot reads the complete instructions from your private session.</p>
-<p>Your AI starts after you send the instructions. Copying here does not launch AI or connect an account.</p>
 <div class="wizard-actions"><button type="button" class="secondary" data-wizard-back="2" hidden>Back</button><button type="button" data-wizard-next="4" hidden>Next →</button><noscript><a class="button" href="#wizard-step-4">Next →</a></noscript></div>
 </section>
 <section id="wizard-step-4" data-wizard-pane="4" aria-labelledby="wizard-title-4">
