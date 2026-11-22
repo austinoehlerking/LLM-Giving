@@ -4,15 +4,17 @@ function isc(bool $value,string $label): void {global $checks;if(!$value)throw n
 function iscounts():array{$out=[];foreach(['volunteer_sessions','volunteer_assignments','browser_returns','task_reservations','research'] as $table){$out[$table]=(int)one('SELECT COUNT(*) n FROM '.$table)['n'];}return $out;}
 $before=iscounts();$fresh=vs_setup_defaults([]);$config=vs_configuration($fresh);
 isc(!array_filter($config['capabilities']),'Fresh setup invents no worker metadata');
-isc($config['limit_mode']==='bounded'&&$config['minutes']===15&&$config['assignment_limit']===1&&$config['session_profile']==='general'&&$config['scope_kind']==='all','Fresh Quick try and default scope/profile retain server semantics');
-$restored=['session_profile'=>'restricted_web_v1','session_preset'=>'custom','minutes'=>'125','assignment_limit'=>'7','concurrent_limit'=>'2','scope_kind'=>'all'];
+isc($config['limit_mode']==='bounded'&&$config['minutes']===15&&$config['assignment_limit']===1&&$config['session_profile']==='restricted_web_v1'&&$config['scope_kind']==='all','Fresh Quick try defaults to Research only');
+isc(vs_configuration(['setup_version'=>'3','scope_kind'=>'all'])['session_profile']==='restricted_web_v1','Current form defaults safely when a profile is omitted');
+isc(vs_configuration(['setup_version'=>'2','scope_kind'=>'all'])['session_profile']==='general','Legacy form without a profile retains its prior default');
+$restored=['session_profile'=>'general','session_preset'=>'custom','minutes'=>'125','assignment_limit'=>'7','concurrent_limit'=>'2','scope_kind'=>'all'];
 $draft=vs_setup_defaults($restored);$round=vs_configuration(vs_form_draft($draft));
-isc($round['minutes']===125&&$round['assignment_limit']===7&&$round['concurrent_limit']===2&&$round['session_profile']==='restricted_web_v1','Explicit capability, capacity and custom limits survive review');
+isc($round['minutes']===125&&$round['assignment_limit']===7&&$round['concurrent_limit']===2&&$round['session_profile']==='general','Explicit capability, capacity and custom limits survive review');
 foreach(['quick'=>[15,1],'standard'=>[60,3],'long'=>[180,10],'unlimited'=>[null,null]] as $preset=>$values){$p=vs_setup_defaults(['session_preset'=>$preset,'minutes'=>'99','assignment_limit'=>'19']);$c=vs_configuration($p);isc([$c['minutes'],$c['assignment_limit']]===$values,'Named '.$preset.' ignores stale custom numbers');}
 foreach(VS_WORKERS as $preset=>$worker)isc(vs_configuration(['scope_kind'=>'all','session_preset'=>'standard','worker_choice'=>$preset])['capabilities']===$worker,'Legacy '.$preset.' retains its original informational settings');
 $draft=$fresh;$error='';ob_start();include ROOT.'/views/volunteer-setup.php';$html=ob_get_clean();
 isc(substr_count($html,'name="session_profile"')===1&&!preg_match('/name="(?:model|reasoning|worker_choice|tool|workflow_mode)"/',$html),'Rendered setup has capability selection and no worker settings fields');
-isc(str_contains($html,wf_research_guidance()),'Recommended reasoning is visible guidance');
+isc(!str_contains($html,wf_research_guidance())&&preg_match('/<details[^>]+data-volunteer-advanced[^>]*>.*name="session_profile".*<\/details>/s',$html)===1,'Capability selection stays in Advanced options without reasoning advice');
 foreach(['15 min or 1 task','60 min or 3 tasks','3 hrs or 10 tasks','∞ Until Stop'] as $caption)isc(str_contains($html,$caption),'Preset caption: '.$caption);
 isc(!str_contains($html,'name="authorize"')&&!str_contains($html,'name="terms"')&&!str_contains($html,'name="human_level"'),'Setup never preauthorizes terms or invents an upfront declaration');
 $draft=vs_setup_defaults(['session_profile'=>'invalid-profile','concurrent_limit'=>'99','scope_kind'=>'category','category_id'=>'999999']);$error='Review the invalid setting.';ob_start();include ROOT.'/views/volunteer-setup.php';$invalidHtml=ob_get_clean();

@@ -19,11 +19,11 @@ export async function volunteerCompactQa({page,ctx,base,runPhp,check,visibleActi
   for(const js of [true,false])for(const profile of ['general','restricted_web_v1']){
    const label=(js?'js':'native')+'-'+profile;
    let p=page;if(!js){const c=await ctx.browser().newContext({javaScriptEnabled:false,viewport:sizes[0],reducedMotion:'reduce'});contexts.push(c);p=await c.newPage();watch(p);}
-   const url=base+'/volunteer'+(profile==='general'?'':'?session_profile=restricted_web_v1');
-   await initial(p,label+'-setup','#volunteer-capabilities,.setup-time-card,[data-volunteer-advanced]>summary,[data-setup-submit]',url);
+   const url=base+'/volunteer'+(profile==='general'?'?session_profile=general':'');
+   await initial(p,label+'-setup','.setup-time-card,[data-volunteer-advanced]>summary,[data-setup-submit]',url);
    check(label+' true default/query selection',await p.locator('[name=session_profile]').inputValue()===profile);
    check(label+' setup omits debug/status chatter',!(await p.locator('main').innerText()).includes('Dot + worker flow verified; phone start untested')&&await p.locator('[data-volunteer-profile-note]').count()===0);
-   check(label+' native compact choice is accessible',await p.getByLabel('AI capabilities',{exact:true}).count()===1);
+   check(label+' capability choice is inside Advanced options',await p.locator('[data-volunteer-advanced]').getByLabel('AI capabilities',{exact:true}).count()===1&&!await p.locator('#volunteer-capabilities').isVisible());
    check(label+' advanced settings start closed',await p.locator('[data-volunteer-advanced]').getAttribute('open')===null);
    if(js)await reflow(p,label+'-setup');
    await p.locator('[data-volunteer-advanced]>summary').click();await p.locator('[name=session_profile]').selectOption(profile==='general'?'restricted_web_v1':'general');await p.locator('[name=session_profile]').selectOption(profile);

@@ -129,7 +129,7 @@ export async function firstVisitQa({ page, ctx, base, runPhp, check, visibleActi
     check('Findings CTA opens a reader with public items',new URL(page.url()).pathname.endsWith('/findings')&&await page.locator('.reader-finding').count()>0);
     await enlarged('/research/'+fixture.withFindings,'study');
 
-    await initial('/volunteer','volunteer','#volunteer-capabilities,[data-setup-submit]');
+    await initial('/volunteer','volunteer','[data-volunteer-advanced]>summary,[data-setup-submit]');
     check('Handoff is explained before authorization',await page.locator('.volunteer-subtitle').innerText()==='You’ll need an AI tool with browser control. We’ll give you one message to paste into it.');
     await enlarged('/volunteer','volunteer');
     runPhp(['tests/first-visit-state.php','resume',fixture.id]);
