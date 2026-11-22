@@ -16,7 +16,10 @@ export async function reservationQa({page,ctx,base,runPhp,check,visibleActions})
   }
   await page.setViewportSize({width:1366,height:768});await page.goto(url);const handoff=await authorizedHandoff(page),link=handoff.match(/Private return link: (http[^\s]+)/)[1],returnUrl=link.split('#')[0],gid=new URL(returnUrl).pathname.split('/').pop();
   const first=availability();check('Existing authorized pickup acquires shared lease',first.status==='reserved');
-  const publicCopy=await page.request.get(taskUrl+'/prompt.md');check('Reference prompt remains readable',(await publicCopy.text()).includes('TASK RESERVATION CONTRACT'));
+  const publicCopy=await page.request.get(taskUrl+'/prompt.md'),publicPrompt=await publicCopy.text();
+  check('Reference prompt remains readable',publicPrompt.includes('TASK RESERVATION CONTRACT'));
+  const guidance='Follow the task capability rules and comply with current terms and disclosures.';
+  check('Public prompt and private handoff use capability-based reservation guidance',[publicPrompt,handoff].every(text=>text.includes(guidance)&&!/model eligibility|planning\/model policies/.test(text)));
   check('Recopy does not extend lease',availability().expires_at_utc===first.expires_at_utc);
   await op.goto(taskUrl);check('Another anonymous browser cannot claim',(await post(op,taskUrl+'/reservation','claim')).status()===409);
   check('Another anonymous browser cannot release',(await post(op,taskUrl+'/reservation','release')).status()===403);
@@ -28,7 +31,7 @@ export async function reservationQa({page,ctx,base,runPhp,check,visibleActions})
   check('Release is publicly available',availability().status==='available');
   const consentBefore=handoff.split('PRIVATE VOLUNTEER')[0];
   check('Outstanding handoff explicitly reacquires through grant',(await post(ap,returnUrl+'/reservation','claim')).status()===200);
-  check('Public archive remains exact',(await(await page.request.get(url+'/issued/'+publicCopy.headers()['x-handoff-id'])).text())===await publicCopy.text());
+  check('Public archive remains exact',(await(await page.request.get(url+'/issued/'+publicCopy.headers()['x-handoff-id'])).text())===publicPrompt);
   runPhp(['tests/reservation-browser-state.php','expire',fixture.id,fixture.task]);
   check('Expired owner cannot renew',(await post(ap,returnUrl+'/reservation','renew')).status()===409);
   await ap.goto(returnUrl+'/submit');const packet=JSON.parse(runPhp(['tests/browser-return-state.php','payload',fixture.id,gid]));
