@@ -49,11 +49,10 @@ function lp_pending(array $research): bool {
     return $research['status']==='Needs Research Plan'&&lp_enabled();
 }
 
-function lp_configuration(array $research): ?string {
-    $requirements=rq_requirements($research);
+function lp_configuration(): ?string {
     $policy=array_column(wf_policy(),null,'model');
     foreach(['gpt-6-astra','gpt-6.1-sol'] as $model){
-        if(in_array('max',$policy[$model]['efforts']??[],true)&&rq_matches($requirements,$model,'max','','Codex'))return $model;
+        if(in_array('max',$policy[$model]['efforts']??[],true))return $model;
     }
     return null;
 }
@@ -103,7 +102,7 @@ function lp_claim(?array $scope=null): ?array {
             $old=one('SELECT * FROM local_planner_jobs WHERE research_id=?',[$rid]);
             $current=$old&&$old['task_id']===$task['id']&&(int)$old['context_version']===(int)$research['context_version'];
             if($current&&($old['state']!=='running'||$old['expires_at']>now()||(int)$old['attempts']>=3))return null;
-            $model=$backgroundPublic?lp_configuration($research):null;
+            $model=$backgroundPublic?lp_configuration():null;
             $failure=$backgroundPublic?'configuration':'background';
             $lease=bin2hex(random_bytes(32));
             query('DELETE FROM local_planner_jobs WHERE research_id=?',[$rid]);
@@ -139,7 +138,7 @@ function lp_finish(array $input,bool $failed): array {
             query("UPDATE local_planner_jobs SET state='failed',failure=?,updated_at=? WHERE research_id=?",[$code,now(),$rid]);
             return ['recorded'=>false];
         }
-        if(lp_configuration($research)!==$job['model'])fail(409,'The planning model requirements changed.');
+        if(lp_configuration()!==$job['model'])fail(409,'The planning model requirements changed.');
         $runId=$input['run_id']??'';
         if(!is_string($runId)||!preg_match('/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/D',$runId))fail(422,'Supply the local Codex run ID.');
         $calculation=calculation_policy($research);

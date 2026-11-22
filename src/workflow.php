@@ -86,7 +86,7 @@ function wf_new_task(string $rid,int $round,string $key,string $kind,string $tit
     return $id;
 }
 function wf_planning_task(string $rid,int $round): void {
-    wf_new_task($rid,$round,'plan','planning','Plan this research','Evaluate the full brief and previous attempts. Produce a realistic, bounded research plan or identify an actionable clarification/blocker.','1–12 research tasks with objectives, deliverables, acceptance criteria and an acyclic dependency graph. Synthesis and independent verification are added by the platform.','Use an eligible latest model at Max/Ultra. Do not mistake scientific uncertainty for a blocker. Explain scope, evidence needs and stopping rules.',visibility:lp_enabled(true)?'private':'public');
+    wf_new_task($rid,$round,'plan','planning','Plan this research','Evaluate the full brief and previous attempts. Produce a realistic, bounded research plan or identify an actionable clarification/blocker.','1–12 research tasks with objectives, deliverables, acceptance criteria and an acyclic dependency graph. Synthesis and independent verification are added by the platform.','Explain scope, evidence needs and stopping rules. Do not mistake scientific uncertainty for a blocker.',visibility:lp_enabled(true)?'private':'public');
 }
 function wf_start(string $rid): void {
     tx(function()use($rid){

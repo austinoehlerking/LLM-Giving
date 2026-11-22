@@ -18,7 +18,7 @@ function vs_scope_matches(array $session, array $r): bool {
 }
 function vs_task_eligible(array $session, array $r, array $task): void {
     vs_assert_active($session);
-    if (!vs_scope_matches($session,$r) || !vs_configuration_matches($session,$r,$task)) fail(409,'This assignment does not match your authorized session profile, scope, software consent or worker configuration.');
+    if (!vs_scope_matches($session,$r) || !vs_configuration_matches($session,$r,$task)) fail(409,'This assignment does not match your authorized scope, capability profile or software consent.');
     wr_eligible($r['id'],$task['id'],(int)$task['revision'],$session['actor_hash'],$session['identity_id']??'');
     // A child worker uses this same immutable actor; a different browser does not make it independent.
     if ($task['kind']==='review' && one('SELECT id FROM workflow_submissions WHERE research_id=? AND actor_hash=? LIMIT 1',[$r['id'],$session['actor_hash']])) {

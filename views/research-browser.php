@@ -14,20 +14,10 @@ $categoryUrl=function(string $id) use($filters): string { return '/research?'.ht
 <div class="library-first-result"><?php $rows=array_slice($listing['rows'],0,1); require ROOT.'/views/research-list.php'; ?></div>
 <?php if(discovery_has_solved()): ?><p class="library-solved"><a href="/research?status=Solved">Explore solved research</a></p><?php endif ?>
 <details class="library-advanced"><summary>Filters</summary>
-<div class="external-tool-filter"><?php select_field('External tools','external_tools',[''=>'All tool requirements']+EXTERNAL_ACCESS,$filters['external_tools']); ?></div>
-<div class="library-filter-row">
-<div><?php select_field('Project type','project_type',[''=>'All project types','research'=>'Research question','research_tool'=>'Build a research tool'],$filters['project_type']); ?></div>
-<div class="library-category-select"><?php select_field('Category','category',$categoryOptions,$filters['category']); ?></div>
-<div><?php select_field('Research status','status',[''=>'All statuses','needs-research'=>'Needs further research','needs-review'=>'Needs independent review']+array_combine(array_keys(STATUSES),array_keys(STATUSES)),$filters['status']); ?></div>
-<div><?php select_field('Sort by','sort',['new'=>'Newest requests','active'=>'Recently active','updated'=>'Recently updated','fewest'=>'Fewest contributions','most'=>'Most contributions','title'=>'Title A–Z'],$filters['sort']); ?></div>
-<label class="check"><input type="checkbox" name="no_contributions" value="1" <?=$filters['no_contributions']==='1'?'checked':''?>> <span>No contributions yet</span></label>
-</div>
-<details class="tag-filter" <?=($filters['tag']!==''?'open':'')?>><summary>Filter by tag</summary><?php field('Tag','tag',$filters['tag']); ?></details>
-<button class="secondary" type="submit">Apply filters</button>
+<?php require ROOT.'/views/research-filter-fields.php'; ?>
 </details>
 </form>
 <div class="library-resultbar"><p role="status"><?=$listing['total']?> matching research request<?=$listing['total']===1?'':'s'?><?php if($filters['tag']!==''): ?> · Tag: <?=e($filters['tag'])?><?php endif ?></p><a href="/research">Reset filters</a></div>
 <?php $rows=array_slice($listing['rows'],1); if($rows) require ROOT.'/views/research-list.php'; ?>
 <?php if($listing['total']>12): ?><nav class="pagination" aria-label="Results pages"><?php for($p=1;$p<=ceil($listing['total']/12);$p++): ?><a <?=($p===$listing['page']?'aria-current="page"':'')?> href="/research?<?=e(http_build_query(array_merge($filters,['page'=>$p])))?>"><?=$p?></a><?php endfor ?></nav><?php endif ?>
-<p class="library-disclaimer">Only approved research is listed. Publication is not factual verification.</p>
 </div></div></section>

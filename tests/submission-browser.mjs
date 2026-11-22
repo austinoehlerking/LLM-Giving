@@ -32,11 +32,10 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
  check('New tool requirements stay neutral before use',await page.locator('[data-tool-requirements] textarea').evaluateAll(els=>els.every(el=>el.required&&!el.hasAttribute('aria-invalid')&&getComputedStyle(el).borderColor!=='rgb(255, 157, 157)')));
  await page.locator('[name=tool_maintenance]').fill('Short');check('First partial tool entry stays neutral while typing',!await invalid('tool_maintenance'));await page.locator('[name=tool_maintenance]').press('Tab');check('Leaving a short tool entry shows its error',await invalid('tool_maintenance'));
  await page.locator('[name=project_type]').selectOption('research');check('Disabling a touched invalid tool field clears its error',!await invalid('tool_maintenance'));
- await page.locator('[name=external_tools]').locator('xpath=ancestor::details').locator('summary').click();await page.locator('[name=external_tools]').selectOption('free');
+ await page.locator('[name=external_tools]').locator('xpath=ancestor::details[1]').locator(':scope > summary').click();await page.locator('[name=external_tools]').selectOption('free');
  check('New required software stays neutral before use',!await invalid('required_software'));await page.locator('[name=required_software]').focus();await page.locator('[name=required_software]').press('Tab');check('Leaving empty required software shows its error',await invalid('required_software'));
  await page.locator('[name=required_software]').fill('Synthetic local software');check('Correcting software clears its error immediately',!await invalid('required_software'));
- await page.getByText('AI model & reasoning requirements (optional)',{exact:true}).click();await page.locator('[data-ai-effort-menu]>summary').click();
- await page.locator('[name="reasoning_levels[]"][value=high]').check();check('Impossible exact effort has inline configuration guidance',await page.locator('[data-ai-error]').isVisible());await page.locator('[name="reasoning_or_higher[]"][value=high]').check();check('Compatible minimum clears guidance',!await page.locator('[data-ai-error]').isVisible());
+ check('No model, effort or workflow mode restrictions on an otherwise valid request',await page.locator('[data-ai-selection],[name=required_model],[name=required_reasoning]').count()===0);
  await page.goto(base+'/submit');
  check('Optional empty fields are not errors',!await invalid('email')&&!await invalid('context'));
  let posts=0;const countPost=request=>{if(request.method()==='POST'&&new URL(request.url()).pathname==='/submit')posts++;};page.on('request',countPost);
@@ -61,13 +60,13 @@ export async function submissionQa({page,ctx,base,runPhp,check,visibleActions,pa
  const toolNames=await page.locator('[data-tool-requirements] textarea').evaluateAll(els=>els.map(el=>el.name));
  for(const name of toolNames){check('Tool requirement turns red '+name,await invalid(name));await page.locator('[name='+name+']').fill('Short');check('Short tool requirement remains invalid '+name,await invalid(name));await page.locator('[name='+name+']').fill('A sufficiently detailed synthetic tool requirement.');check('Completed tool requirement clears '+name,!await invalid(name));}
  await page.locator('[name=tool_maintenance]').fill('');await page.locator('[name=project_type]').selectOption('research');check('Switching back disables and clears tool errors',await page.locator('[data-tool-requirements] textarea').evaluateAll(els=>els.every(el=>el.disabled&&!el.hasAttribute('aria-invalid')&&!el.required)));
- const software=page.locator('[name=required_software]'),external=software.locator('xpath=ancestor::details');await external.locator('summary').click();
+ const software=page.locator('[name=required_software]'),external=software.locator('xpath=ancestor::details[1]');await external.locator(':scope > summary').click();
  await page.locator('[name=external_tools]').selectOption('free');check('Selected software access requires software name',await invalid('required_software'));
  await external.locator('summary').click();await page.locator('.request-submit-actions').getByRole('button',{name:'Submit for approval',exact:true}).click();
  check('Submit reveals collapsed required field without posting',posts===0&&await external.getAttribute('open')!==null&&await software.evaluate(el=>el===document.activeElement));await shot('11-conditional-validation');
  await software.fill('Synthetic local software');check('Naming required software clears error',!await invalid('required_software'));
  await software.fill('');await page.locator('[name=external_tools]').selectOption('none');check('Unneeded software field clears required state',!await invalid('required_software')&&await software.getAttribute('required')===null);
- await page.getByText('AI model & reasoning requirements (optional)',{exact:true}).click();await page.locator('[data-ai-effort-menu]>summary').click();await page.locator('[name="reasoning_levels[]"][value=high]').check();check('Impossible effort is explained inline',await page.locator('[data-ai-error]').isVisible());await page.locator('[name="reasoning_or_higher[]"][value=high]').check();check('Or higher restores planning configuration',!await page.locator('[data-ai-error]').isVisible());await page.locator('[name="reasoning_levels[]"][value=any]').check();check('Any clears specific reasoning options',!await page.locator('[name="reasoning_levels[]"][value=high]').isChecked());
+ check('Changing capability settings does not expose model selection',await page.locator('[data-ai-selection],[name="required_models[]"],[name="reasoning_levels[]"]').count()===0);
  page.off('request',countPost);
  await page.goto(base+'/submit');
  await page.locator('[name=title]').fill(brief.title);await page.locator('[name=question]').fill(brief.question);await page.locator('[name=category_id]').selectOption({label:'Environment & Climate'});

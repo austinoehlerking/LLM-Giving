@@ -7,7 +7,7 @@ if(requestForm){
  requestForm.dataset.validationReady='';
  const textLimits={title:[8,180],question:[20,Number(requestForm.dataset.maxText)],required_software:[1,3000]};
  for(const field of requestForm.querySelectorAll('[data-tool-requirements] textarea'))textLimits[field.name]=[20,3000];
- const requiredMessages={category_id:'Choose a category.',required_reasoning:'Choose a reasoning level.',terms:'Confirm the terms before submitting.',required_software:'Name the required software.'};
+ const requiredMessages={category_id:'Choose a category.',terms:'Confirm the terms before submitting.',required_software:'Name the required software.'};
  function normalizeTags(value){
   if(typeof value!=='string')throw Error('Tags must be text.');
   // Match text_field + set_tags: PHP trim, raw byte cap, case-sensitive uniqueness.
@@ -30,7 +30,6 @@ if(requestForm){
   software.required=['free','licensed','mixed'].includes(access);
   for(const field of requestForm.querySelectorAll(validationFields)){
    // Match PHP trim and UTF-8 byte limits; browser string length differs for Unicode.
-   if(field.hasAttribute('data-ai-choice'))continue;
    field.setCustomValidity('');
    let message='';
    if(field.name==='tags'&&!field.disabled){
@@ -123,7 +122,6 @@ if(requestForm){
   }
   content.insertBefore(settings,content.children[2]||null);
   const inherited=requestForm.querySelector('[data-fork-background]');if(inherited)content.append(inherited.cloneNode(true));
-  const ai=document.createElement('section'),aiHeading=document.createElement('h3'),aiBody=document.createElement('p');aiHeading.textContent='AI requirements';aiBody.textContent=requestForm.querySelector('[data-ai-summary]').textContent;ai.append(aiHeading,aiBody);content.append(ai);
   const files=requestForm.elements.namedItem('attachments[]').files;
   if(files.length){const heading=document.createElement('h3'),list=document.createElement('ul');heading.textContent='Files (require separate approval)';for(const file of files){const item=document.createElement('li');item.textContent=file.name;list.append(item);}content.append(heading,list);}
   requestForm.hidden=true;preview.hidden=false;preview.focus({preventScroll:true});scrollTo(0,0);

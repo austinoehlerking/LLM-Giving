@@ -28,7 +28,7 @@ const VS_PRESETS = [
 function vs_unlimited(array $session): bool { return ($session['limit_mode']??'bounded')==='unlimited'; }
 function vs_limits(array $post): array {
     $explicitLimits=isset($post['minutes'])||isset($post['assignment_limit']);
-    $default=($post['setup_version']??null)==='2'&&!$explicitLimits?VS_DEFAULT_PRESET:'custom';
+    $default=in_array($post['setup_version']??null,['2','3'],true)&&!$explicitLimits?VS_DEFAULT_PRESET:'custom';
     $preset=isset($post['session_preset'])?text_field($post,'session_preset',1,16):$default;
     if ($preset==='custom') return ['limit_mode'=>'bounded','assignment_limit'=>vs_integer($post,'assignment_limit',3,1,20),'minutes'=>vs_integer($post,'minutes',60,5,240)];
     if (!isset(VS_PRESETS[$preset])) fail(422,'Choose a session time preset or Custom limits.');
@@ -51,41 +51,31 @@ function vs_permission_end(array $session): string {
     return vs_unlimited($session)?'until you press Stop (no session deadline or assignment quota)': 'until '.$session['expires_at'].' UTC';
 }
 
+// Frozen mappings for volunteer setup clients predating capability-only forms.
 const VS_WORKERS = [
     'sol_max'=>['model'=>'gpt-6.1-sol','reasoning'=>'max','tool'=>'Codex','workflow_mode'=>''],
     'astra_max'=>['model'=>'gpt-6-astra','reasoning'=>'max','tool'=>'Codex','workflow_mode'=>''],
     'opus_max'=>['model'=>'claude-opus-5-5','reasoning'=>'max','tool'=>'Claude Code','workflow_mode'=>''],
     'fable_max'=>['model'=>'claude-fable-5-1','reasoning'=>'max','tool'=>'Claude Code','workflow_mode'=>''],
 ];
+/** Read old form fields as historical information, never as authorization requirements. */
 function vs_worker_input(array $post): array {
     if(array_key_exists('setup_version',$post)){
-        if(text_field($post,'setup_version',1,1)!=='2')fail(422,'Refresh the volunteer setup form.');
-        $source=text_field($post,'tool_source',0,8)?:'explicit';
-        if(!in_array($source,['default','explicit'],true))fail(422,'Choose a supported worker tool setting.');
-        if ($source==='default' && isset($post['tool_default']) && text_field($post,'tool',0,100)!==text_field($post,'tool_default',0,100)) {
-            $source='explicit';
+        $version=text_field($post,'setup_version',1,1);
+        if(!in_array($version,['2','3'],true))fail(422,'Refresh the volunteer setup form.');
+        if($version==='3')return $post;
+        if(($post['tool_source']??'')==='default'&&(!isset($post['tool_default'])||($post['tool']??'')===$post['tool_default'])){
+            $model=text_field($post,'model',0,100);
+            foreach(VS_WORKERS as $worker)if($worker['model']===$model){$post['tool']=$worker['tool'];break;}
         }
-        if ($source==='default') $post['tool']=vs_setup_tool(text_field($post,'model',0,100));
-        $post['tool_source']=$source;
         return $post;
     }
     $choice=text_field($post,'worker_choice',0,24);
-    if($choice!=='' && $choice!=='custom') {
-        if(!isset(VS_WORKERS[$choice]))fail(422,'Choose an available research worker.');
-        foreach(VS_WORKERS[$choice] as $field=>$value)$post[$field]=$value;
-        // Historical preset posts omit this field and retain their original Max setting.
-        $effort=array_key_exists('worker_reasoning',$post)?text_field($post,'worker_reasoning',1,8):'max';
-        if(!in_array($effort,['max','xhigh','high'],true))fail(422,'Choose Max, Extra High or High reasoning.');
-        $post['reasoning']=$post['worker_reasoning']=$effort;
+    if(isset(VS_WORKERS[$choice])) {
+        $post=array_replace($post,VS_WORKERS[$choice]);
+        if(isset($post['worker_reasoning']))$post['reasoning']=text_field($post,'worker_reasoning',0,100);
     }
     return $post;
-}
-function vs_worker_ready(array $configuration): bool {
-    foreach(['model','reasoning','tool'] as $key)if(($configuration['capabilities'][$key]??'')==='')return false;
-    return true;
-}
-function vs_require_worker(array $configuration): void {
-    if(!vs_worker_ready($configuration))fail(422,'Choose the research worker model, reasoning effort and tool you will launch before continuing. These are requested settings, not provider verification.');
 }
 function vs_configuration(array $post): array {
     $post=vs_worker_input($post);
@@ -105,22 +95,11 @@ function vs_configuration(array $post): array {
     }
     $capabilities = [];
     foreach (['model','reasoning','tool','workflow_mode'] as $field) $capabilities[$field] = text_field($post, $field, 0, 100);
-    $registry = wf_model_registry();
-    if ($capabilities['model'] !== '' && !isset($registry[$capabilities['model']])) fail(422, 'Choose an exact supported model.');
-    if ($capabilities['reasoning'] !== '' && !in_array($capabilities['reasoning'], RQ_EFFORTS, true)) fail(422, 'Choose a supported reasoning effort.');
-    if ($capabilities['model'] !== '' && $capabilities['reasoning'] !== '' && !in_array($capabilities['reasoning'], $registry[$capabilities['model']]['efforts'], true)) {
-        fail(422, 'That model does not support the selected effort.');
-    }
-    if (!in_array($capabilities['workflow_mode'], ['', 'ultracode'], true)) fail(422, 'Choose a supported workflow mode.');
-    if ($capabilities['workflow_mode'] === 'ultracode' && (!isset($registry[$capabilities['model']]) || !in_array('ultracode', $registry[$capabilities['model']]['modes'], true) || strcasecmp($capabilities['tool'], 'Claude Code') !== 0 || $capabilities['reasoning'] === '')) {
-        fail(422, 'Ultracode requires a supported exact model, actual effort and Claude Code.');
-    }
     return ['scope_kind'=>$scope, 'scope_id'=>$scopeId, 'capabilities'=>$capabilities,'session_profile'=>$profile,'concurrent_limit'=>vs_integer($post,'concurrent_limit',1,1,3)]+$limits;
 }
 function vs_create(array $post): array {
     throttle('volunteer-session-start', 10);
     $configuration = vs_configuration($post);
-    vs_require_worker($configuration);
     $started = vs_now();
     if (empty($post['authorize']) || empty($post['terms']) || empty($post['authorized_resources'])) {
         fail(422, 'Confirm session authorization, public-content terms and authorized resource use.');
@@ -140,7 +119,6 @@ function vs_create(array $post): array {
         'disclosure_scope'=>$collected?'Through session authorization; each worker separately reports later scientific input.':'Independent contributor declaration not collected for this session; the AI reports all initial and later scientific input or uncertainty.',
         'permission'=>'Eligible task selection, research, browser submission, platform validation repair and continuation only within the chosen scope. '.vs_limit_label($configuration).'. Stop and current terms remain authoritative. Up to '.$configuration['concurrent_limit'].' concurrent task(s). No purchases, installation, unrelated work or broader account access is authorized.',
         'session_profile'=>$configuration['session_profile'],
-        'worker_settings_source'=>'volunteer_requested_v1',
         'capability_profile'=>vs_profile_definition($configuration['session_profile']),
         'session_limits'=>['mode'=>$configuration['limit_mode'],'assignment_limit'=>$configuration['assignment_limit'],'minutes'=>$configuration['minutes'],'concurrent_limit'=>$configuration['concurrent_limit']],
         'resource_confirmation'=>CONTRIBUTOR_RESOURCE_CONFIRMATION,
@@ -194,15 +172,6 @@ function vs_assert_active(array $session, bool $claim=false): void {
     if ($claim && $state === 'limit_reached') fail(409, 'Your assignment limit is reached. You may finish the current assignment before the session deadline.');
 }
 function vs_configuration_matches(array $session, array $research, array $task): bool {
-    if (!vs_profile_compatible($session,$research,$task)) return false;
-    $capability = $session['capabilities'];
-    if (vs_task_software_consent($research,$task) && $session['consent']['tool_terms_version'] !== RT_TERMS) return false;
-    if (!rq_matches(rq_requirements($research), $capability['model'], $capability['reasoning'], $capability['workflow_mode'], $capability['tool'])) return false;
-    if ($task['kind'] === 'planning') {
-        foreach (wf_policy() as $policy) {
-            if ($capability['model'] === $policy['model'] && in_array($capability['reasoning'], $policy['efforts'], true) && ($capability['reasoning'] !== 'ultra' || strcasecmp($capability['tool'], $policy['ultra_tool'] ?? '') === 0)) return true;
-        }
-        return false;
-    }
-    return true;
+    return vs_profile_compatible($session,$research,$task)
+        && (!vs_task_software_consent($research,$task) || $session['consent']['tool_terms_version']===RT_TERMS);
 }

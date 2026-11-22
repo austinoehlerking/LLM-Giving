@@ -25,6 +25,7 @@ export const qaReports = Object.freeze({
   returns: 'browser-return-report.json',
   orchestrator: 'orchestrator-browser-report.json',
   full: 'browser-report.json',
+  'homepage-research': 'homepage-research-report.json',
   library: 'library-report.json',
   blog: 'blog-report.json',
   google: 'google-report.json',

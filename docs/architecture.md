@@ -96,7 +96,7 @@ A read-only startup preview explains current work availability and required actu
 
 Task schemas include a server-issued HMAC-SHA256 handoff_code bound to research ID, task ID, task revision, immutable context ID and submission_key. New task submissions must preserve all identifiers. The signing key is generated once under storage/private/handoff.key with an exclusive file lock; keep it private and persistent across application workers and deployments. Rotating or losing it invalidates outstanding handoffs. Existing recorded results remain readable. Exact accepted retries retain their existing actor/payload idempotency checks.
 
-The code detects identifier mismatches, not authorship or research accuracy: public visitors can obtain signed prompts. It grants no moderation or management permission. CSRF, terms, ready-state, visibility, revision, evidence, model-policy and independent-review checks still apply. Prompts specify the browser return URL and require a recorded outcome before claiming submission.
+The code detects identifier mismatches, not authorship or research accuracy: public visitors can obtain signed prompts. It grants no moderation or management permission. CSRF, terms, ready-state, visibility, revision, evidence and independent-review checks still apply. Prompts specify the browser return URL and require a recorded outcome before claiming submission.
 
 ## Exact issued handoff archives
 
@@ -143,14 +143,11 @@ Every new task and supplementary submission carries a bounded supporting_materia
 
 Migration 014 adds a nullable supplementary evidence column without rewriting historical records. Existing accepted retries and stored records remain readable. Only administrator revalidation of already stored historical quarantined packets can use the former structural contract; new packets cannot select that mode. Existing handoff bytes and snapshots remain unchanged. New contracts appear in task, repair, supplementary and agent instructions. All content budgets fail explicitly; retained source/code/file bytes are not truncated. No production migration is performed by development QA.
 
-## Requester AI requirements
+## AI capability and provenance
 
-Current multi-model/effort controls, versioned persistence and separate workflow modes are described in [requester AI selection](requester-ai-selection.md). Historical matching and immutable handoff/snapshot bytes remain intact.
+Volunteer setup matches public tasks to browser and authorized tool capabilities. Model, reasoning and workflow mode are optional provenance from the actual run. New requests do not impose a model list. The automatic local planner uses its operator configuration.
 
-
-Migration 010 adds optional requester-selected exact model and exact/minimum reasoning requirements. The model list comes from the configured planning policy; reasoning order is low, medium, high, xhigh, max, ultra. No cross-model ranking is implied. Creation rejects combinations that cannot also satisfy mandatory Max/Ultra planning. Requirements appear in request previews, management, admin review, task pages, prompts, handoffs and full context. Task, handoff, supplementary and repair prompts require a configuration preflight before any work. Unknown/unconfirmed required settings and mismatches stop the run with a plain-language BLOCKED — AI CONFIGURATION message, required/actual settings, a concrete fix and instructions to copy a fresh handoff into a new qualifying run. This explicitly overrides JSON-only output; configuration failures are not submitted as scientific blockers or claimed to change project status. Both task packets and supplementary contributions enforce them server-side against declared metadata; this is not provider authentication.
-
-The original requester can change requirements before the first research submission. Parent-row locking serializes updates with submissions; later changes are refused, including after quarantined submissions. Changes create a UTC audit event and new context version. Old handoffs whose requirements differ from the current request are rejected with instructions to copy a fresh handoff. Existing requests default to no additional restriction. Verification: tests/requirements.php and node tools/qa.mjs requirements; screenshot gallery storage/qa/ai-requirements/index.html.
+Historical requester model settings, archived handoffs and signed context remain readable audit records. Current eligibility and submission validation use the actual task, authorization, reservation and evidence rules. Fresh instructions recommend Extra High or Max for deep research where available.
 
 ## Research attribution and citations
 
@@ -166,7 +163,7 @@ Optional typed datasets and visual specifications live inside accepted workflow 
 
 ## Guided request setup
 
-views/request-setup.php embeds a public, escaped category/model policy and local interview instructions. The local request-setup.js module copies a prompt tailored to the public form draft and validates a versioned JSON setup result before any field changes. Import only fills the public request allowlist, preserves private identity/contact/files, clears consent for fresh human review and never submits. Raw prompt/paste textareas are unnamed. No endpoint, AI call, database record or new permission is involved; existing server validation and moderation remain authoritative. Conversation revision 4 starts with quick/in-depth selection, preserves supplied scope, bounds essential quick clarifications, and separates copy/import instructions and a Ready gate from the complete fenced JSON response. The JSON contract remains v3. A native manual guide follows the same conversation with an explicit plain-text/manual-entry override when JavaScript is disabled. See request-setup.md for the contract and executed QA.
+views/request-setup.php embeds a public, escaped category catalogue and local interview instructions. The local request-setup.js module copies a prompt tailored to the public form draft and validates a versioned JSON setup result before any field changes. Import only fills the public request allowlist, preserves private identity/contact/files, clears consent for fresh human review and never submits. Raw prompt/paste textareas are unnamed. No endpoint, AI call, database record or new permission is involved; existing server validation and moderation remain authoritative. Conversation revision 4 starts with quick/in-depth selection, preserves supplied scope, bounds essential quick clarifications, and separates copy/import instructions and a Ready gate from the complete fenced JSON response. The JSON contract remains v3. A native manual guide follows the same conversation with an explicit plain-text/manual-entry override when JavaScript is disabled. See request-setup.md for the contract and executed QA.
 
 ## Research tool projects
 

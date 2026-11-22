@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {root,env} from '../tools/runtime.mjs';
-import {connectVolunteer,chooseVolunteerWorker,openVolunteerTime,privateControllerInstructions,readyDashboard} from './session-wizard-actions.mjs';
+import {connectVolunteer,privateControllerInstructions,readyDashboard} from './session-wizard-actions.mjs';
 /** Real local controls; synthetic research packets, never real AI/scientific validation. */
 export async function volunteerCompactQa({page,ctx,base,runPhp,check,visibleActions,report}) {
  const out=path.join(root,'storage/qa/volunteer-compact');fs.mkdirSync(out,{recursive:true});
@@ -13,23 +13,23 @@ export async function volunteerCompactQa({page,ctx,base,runPhp,check,visibleActi
  async function initial(p,label,selector,url=null){const shots=[],failures=[];for(const size of sizes){await p.setViewportSize(size);if(url)await p.goto(url);await p.evaluate(()=>scrollTo(0,0));shots.push(await shot(p,label+'-'+size.width+'x'+size.height));try{check(label+' starts at zero '+size.width,await p.evaluate(()=>scrollY===0));await visibleActions(p,selector,label+' '+size.width);if(size.width===1366&&await p.locator('.is-enhanced').count())check(label+' default desktop has no vertical scrolling',await p.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1));}catch(e){failures.push(e.message);}}await pause(label,shots);if(failures.length)throw Error(failures.join('; '));await p.setViewportSize(sizes[0]);}
  async function reflow(p,label){for(const size of [sizes[0],sizes[2]]){await p.setViewportSize(size);await p.evaluate(()=>{window.__compactFonts=[...document.querySelectorAll('body,body *')].filter(el=>el instanceof HTMLElement).map(el=>[el,el.style.fontSize,parseFloat(getComputedStyle(el).fontSize)]);for(const[el,,n]of window.__compactFonts)if(Number.isFinite(n))el.style.fontSize=n*2+'px';scrollTo(0,0);});await shot(p,label+'-200-'+size.width);check(label+' 200% text reflows '+size.width,await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await p.evaluate(()=>{for(const[el,before]of window.__compactFonts)el.style.fontSize=before;delete window.__compactFonts;});}await p.setViewportSize(sizes[0]);}
  const state=id=>JSON.parse(runPhp(['tests/volunteer-state.php','state',id]));
- async function configure(p,fixture){await chooseVolunteerWorker(p,'astra_max');await openVolunteerTime(p);if(!await p.locator('[data-volunteer-advanced]').evaluate(el=>el.open))await p.locator('[data-volunteer-advanced]>summary').click();await p.locator('[name=scope_kind]').selectOption('research');await p.locator('[name=research_id]').fill(fixture.id);await p.locator('[name=tool]').fill('Codex');await p.locator('[data-volunteer-advanced]>summary').click();await connectVolunteer(p);await p.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();}
+ async function configure(p,fixture){if(!await p.locator('[data-volunteer-advanced]').evaluate(el=>el.open))await p.locator('[data-volunteer-advanced]>summary').click();await p.locator('[name=scope_kind]').selectOption('research');await p.locator('[name=research_id]').fill(fixture.id);await p.locator('[data-volunteer-advanced]>summary').click();await connectVolunteer(p);await p.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();}
  try{
   let scenario=0;
   for(const js of [true,false])for(const profile of ['general','restricted_web_v1']){
    const label=(js?'js':'native')+'-'+profile;
    let p=page;if(!js){const c=await ctx.browser().newContext({javaScriptEnabled:false,viewport:sizes[0],reducedMotion:'reduce'});contexts.push(c);p=await c.newPage();watch(p);}
    const url=base+'/volunteer'+(profile==='general'?'':'?session_profile=restricted_web_v1');
-   await initial(p,label+'-setup','#volunteer-model,#volunteer-effort,.setup-continue:visible',url);
+   await initial(p,label+'-setup','#volunteer-capabilities,.setup-time-card,[data-volunteer-advanced]>summary,[data-setup-submit]',url);
    check(label+' true default/query selection',await p.locator('[name=session_profile]').inputValue()===profile);
    check(label+' setup omits debug/status chatter',!(await p.locator('main').innerText()).includes('Dot + worker flow verified; phone start untested')&&await p.locator('[data-volunteer-profile-note]').count()===0);
    check(label+' native compact choice is accessible',await p.getByLabel('AI capabilities',{exact:true}).count()===1);
    check(label+' advanced settings start closed',await p.locator('[data-volunteer-advanced]').getAttribute('open')===null);
    if(js)await reflow(p,label+'-setup');
-   await openVolunteerTime(p);await p.locator('[data-volunteer-advanced]>summary').click();await p.locator('[name=session_profile]').selectOption(profile==='general'?'restricted_web_v1':'general');await p.locator('[name=session_profile]').selectOption(profile);
+   await p.locator('[data-volunteer-advanced]>summary').click();await p.locator('[name=session_profile]').selectOption(profile==='general'?'restricted_web_v1':'general');await p.locator('[name=session_profile]').selectOption(profile);
    const fixture=fixtures[scenario%fixtures.length];await configure(p,fixture);
    await initial(p,label+'-authorization','[data-volunteer-consent] > .check,.volunteer-authorization .primary-actions > *');
-   check(label+' validated scope/profile/model survive configuration',await p.locator('[data-volunteer-consent] input[name=session_profile]').inputValue()===profile&&await p.locator('[data-volunteer-consent] input[name=research_id]').inputValue()===fixture.id&&await p.locator('[data-volunteer-consent] input[name=model]').inputValue()==='gpt-6-astra'&&await p.locator('[data-volunteer-consent] input[name=reasoning]').inputValue()==='max');
+   check(label+' validated scope and capability profile survive configuration',await p.locator('[data-volunteer-consent] input[name=session_profile]').inputValue()===profile&&await p.locator('[data-volunteer-consent] input[name=research_id]').inputValue()===fixture.id&&await p.locator('[data-volunteer-consent] [name=model],[data-volunteer-consent] [name=reasoning]').count()===0);
    check(label+' removed declarations/profile/footer absent',await p.locator('[name=human_level],[name=human_details],.volunteer-profile-details,[data-declaration-details]').count()===0&&!(await p.locator('main').innerText()).includes('A public prompt does not create permission. This session authorizes no purchases'));
    check(label+' real permission/resource/publication confirmations remain unchecked',await p.locator('[name=authorize],[name=authorized_resources],[name=terms]').evaluateAll(es=>es.length===3&&es.every(e=>e.required&&!e.checked)));
    check(label+' optional software consent is profile appropriate',await p.locator('[name=tool_terms]').count()===(profile==='general'?1:0));

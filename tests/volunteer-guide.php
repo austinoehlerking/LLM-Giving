@@ -2,6 +2,8 @@
 declare(strict_types=1);
 // Pure template/link/configuration contract checks: no database, HTTP server or browser.
 const ROOT=__DIR__.'/..';
+require ROOT.'/src/workflow-policy.php';
+function e(mixed $value): string { return htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'); }
 $checks=0;
 function guide_check(bool $condition,string $message): void { global $checks; if(!$condition) throw new RuntimeException($message); $checks++; }
 function guide_render(string $view): string { ob_start(); require ROOT.'/views/'.$view.'.php'; return (string)ob_get_clean(); }
@@ -28,7 +30,7 @@ guide_check(isset($ids['cloud-preparation'],$ids['cloud-phone-session'],$ids['cl
 $cloudStatus=$xpath->query('//*[@data-cloud-status]')->item(0)->textContent;
 guide_check(str_contains($cloudStatus,'one accepted synthetic task')&&str_contains($cloudStatus,'Phone initiation and multi-task operation are untested'),'Verified browser proof is separate from untested phone/controller claims');
 guide_check(str_contains($html,'ChatGPT mobile app')&&str_contains($html,'Dot mobile web is unsupported')&&str_contains($html,'Dot-native-only mode needs no Codex worker environment')&&str_contains($html,'prepared private cloud-worker configuration'),'Dot guidance uses the documented native app/browser route');
-guide_check(str_contains($html,'Unavailable effective readback alone is not a blocker')&&str_contains($html,'A prompt/human guess alone cannot satisfy a required setting')&&str_contains($html,'truthful string, not null'),'Recorded launch and unknown effective readback remain distinct without bypassing exact requirements or schema');
+guide_check(str_contains($html,wf_research_guidance())&&str_contains($html,'Report the actual worker settings and disclose unavailable details')&&!str_contains($html,'Exact worker model'),'Guide advises high reasoning and truthful provenance without naming a required launch setting');
 guide_check(str_contains($html,'Check stored no result')&&str_contains($html,'same single result'),'Receipt proof distinguishes validation from recording and duplicates');
 guide_check($xpath->query('//*[@data-phone-guide-actions]/a[@href="/volunteer?session_profile=restricted_web_v1"]')->length===1,'Phone guide reviews exact restricted setup without issuing authorization');
 guide_check(!preg_match('~/volunteer/[a-f0-9]{32}|/return/[a-f0-9]{32}|#session:~i',$html),'Guide contains no private capability links');
@@ -48,7 +50,7 @@ foreach(['volunteer-setup','volunteer-session'] as $view)guide_check((str_contai
 foreach(['home','legal','research','workflow-task','browser-authorize','browser-handoff'] as $view)guide_check(str_contains(file_get_contents(ROOT.'/views/'.$view.'.php'),'/volunteer/quick-start'),'Public/contextual entry exists: '.$view);
 // These labels must still exist in the actual controls described by the guide.
 $labels=[
-'volunteer-setup'=>['Where should it help?','Task assignments','Session minutes','AI model','AI capabilities','Continue','Reasoning level','AI tool or harness name','Workflow mode'],
+'volunteer-setup'=>['Where should it help?','Advanced options','AI capabilities','Continue'],
 'volunteer-authorize'=>['Authorize session','Software assignments (optional)'],
 'volunteer-created'=>['Copy session link','Email it to me','Copy start message','Copy not working? Show start message','Open dashboard'],
 'volunteer-session'=>['Activity and recorded outcomes','Read recorded receipt','Stop session','Reacquire this assignment','Session ends'],

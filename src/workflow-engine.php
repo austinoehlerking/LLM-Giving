@@ -32,19 +32,12 @@ function wf_validate_plan(mixed $tasks,bool $modelsAllowed=false,bool $toolReque
     foreach(array_keys($out) as $key)$visit($key);
     return array_values($out);
 }
-function wf_metadata(array $d,array $snapshot,bool $planning): array {
+function wf_metadata(array $d): array {
     $m=$d['metadata']??null;if(!is_array($m)||array_is_list($m))fail(422,'Supply model and run metadata.');
-    $out=[];foreach(['provider','model','reasoning','tool','run_id','run_at_utc','run_evidence'] as $key)$out[$key]=text_field($m,$key,$key==='run_evidence'?0:1,$key==='run_evidence'?5000:200);
-    $out['workflow_mode']=text_field($m,'workflow_mode',0,20);
-    if(!in_array($out['workflow_mode'],['','ultracode'],true)||strtolower($out['reasoning'])==='ultracode')fail(422,'Record workflow_mode separately from actual reasoning effort. Ultracode is not an effort level.');
+    $out=[];foreach(['tool','run_id','run_at_utc'] as $key)$out[$key]=text_field($m,$key,1,200);
+    foreach(['provider','model','reasoning','workflow_mode'] as $key)$out[$key]=text_field($m,$key,0,200);
+    $out['run_evidence']=text_field($m,'run_evidence',0,5000);
     if(!preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/',$out['run_at_utc'])||!($date=DateTimeImmutable::createFromFormat('!Y-m-d\TH:i:s\Z',$out['run_at_utc']))||$date->format('Y-m-d\TH:i:s\Z')!==$out['run_at_utc']||$date->getTimestamp()>time()+300)fail(422,'Run time must be a real UTC timestamp, for example 2026-10-19T16:00:00Z, not a future time.');
-    if($planning){
-        $ctx=json_decode($snapshot['package_json'],true);$allowed=false;
-        foreach($ctx['workflow']['planning_model_policy'] as $p)if($out['model']===$p['model']&&in_array(strtolower($out['reasoning']),$p['efforts'],true)&&
-            (strtolower($out['reasoning'])!=='ultra'||strcasecmp($out['tool'],$p['ultra_tool']??'')===0))$allowed=true;
-        if(!$allowed)fail(422,'Planning requires an exact model and Max/Ultra tool combination allowed by the context package policy.');
-    }
-    $ctx=json_decode($snapshot['package_json'],true);rq_enforce($ctx['requester_ai_requirements']??rq_requirements([]),$out);
     $out['provenance']='Self-reported'.($out['run_evidence']!==''?'; supporting run evidence supplied (not authenticated)':'');
     return $out;
 }
@@ -132,9 +125,7 @@ function wf_submit(string $rid,string $tid,array $d,string $actor,bool $checkOnl
         $allowed=['progress','needs_clarification','blocked'];
         $allowed=array_merge($allowed,$t['kind']==='review'?['verified','needs_correction']:($t['kind']==='planning'?['completed']:['completed','inconclusive']));
         if(!in_array($outcome,$allowed,true))fail(422,'The AI must select one of these outcomes for this task: '.implode(', ',$allowed).'.');
-        $snapshotRequirements=json_decode($s['package_json'],true)['requester_ai_requirements']??rq_requirements([]);
-        if(!rq_same_requirements($snapshotRequirements,rq_requirements(research($rid))))fail(409,'Requester AI requirements changed. Copy a fresh handoff and use a qualifying AI run.');
-        $meta=wf_metadata($d,$s,$t['kind']==='planning');
+        $meta=wf_metadata($d);
         if(!in_array($method,['unknown','manual','ai_browser','ai_api'],true))throw new LogicException('Invalid submission method.');
         if($consent){if($consent['terms_version']!==terms_version())fail(409,'Fresh volunteer authorization is required for changed terms.');$meta['authorization']=$consent;}
         $meta['packet_contract_version']=wf_packet_contract_version($s);
