@@ -1,8 +1,7 @@
 <?php
-require __DIR__.'/bootstrap.php';require __DIR__.'/workflow-fixture.php';
+require __DIR__.'/bootstrap.php';
 session_start_safe();$_SESSION['admin']=1;$ids=[];$checks=[];
 function req_ok(bool $v,string $s):void{global $checks;if(!$v)throw new RuntimeException($s);$checks[]=$s;}
-function req_deny(callable $f,int $status,string $s):void{try{$f();}catch(HttpError $e){req_ok($e->status===$status,$s);return;}throw new RuntimeException($s);}
 try{
  $legacy=['model'=>'','mode'=>'none','effort'=>''];$reordered=['mode'=>'none','model'=>'','effort'=>''];
  req_ok(rq_same_requirements($legacy,$reordered),'Requirement object key order is not a semantic change');
@@ -14,48 +13,18 @@ try{
  $changed=$v2;$changed['efforts'][0]['or_higher']=0;req_ok(!rq_same_requirements($v2,$changed),'Boolean effort policy is not coerced to an integer');
  $changed=$v2;$changed['registry']['gpt-6-astra']['efforts']=['max','low','ultra'];req_ok(!rq_same_requirements($v2,$changed),'Effort scale list ordering remains significant');
  $changed=$v2;$changed['version']='2';req_ok(!rq_same_requirements($v2,$changed),'Requirement version type remains significant');
- req_deny(fn()=>rq_parse(['required_model'=>'invented-model']),422,'Unknown model rejected');
- req_deny(fn()=>rq_parse(['reasoning_rule'=>'exact','required_reasoning'=>'medium']),422,'Incompatible exact reasoning rejected before topic creation');
- req_deny(fn()=>rq_parse(['required_model'=>'claude-opus-5-5','reasoning_rule'=>'exact','required_reasoning'=>'ultra']),422,'Incompatible model and effort rejected');
- $created=create_research(['title'=>'[QA] Requester AI requirements','question'=>'Synthetic requester model requirement testing only.','category_id'=>1,'terms'=>1,'required_model'=>'gpt-6-astra','reasoning_rule'=>'minimum','required_reasoning'=>'high']);$rid=$created['id'];$ids[]=$rid;moderate('request',$rid,'Approved','Synthetic requirement test.');$task=wf_tasks($rid)[0];
- $old=wf_test_payload($rid,$task);
- req_deny(fn()=>rq_update($rid,['reasoning_rule'=>'none']),403,'Only requester capability can update requirements');
- redeem($rid,parse_url($created['link'],PHP_URL_FRAGMENT));
- $reorderedText=json_encode(['effort'=>'high','mode'=>'minimum','model'=>'gpt-6-astra']);query('UPDATE research SET ai_requirements=? WHERE id=?',[$reorderedText,$rid]);
- $beforeNoop=[one('SELECT context_version FROM research WHERE id=?',[$rid])['context_version'],one('SELECT COUNT(*) n FROM audit_events WHERE research_id=?',[$rid])['n']];
- rq_update($rid,['required_model'=>'gpt-6-astra','reasoning_rule'=>'minimum','required_reasoning'=>'high']);
- req_ok($beforeNoop===[one('SELECT context_version FROM research WHERE id=?',[$rid])['context_version'],one('SELECT COUNT(*) n FROM audit_events WHERE research_id=?',[$rid])['n']]&&one('SELECT ai_requirements FROM research WHERE id=?',[$rid])['ai_requirements']===$reorderedText,'Reordered unchanged requirements do not rewrite history, context or audit');
- req_ok(wf_test_submit($rid,$task['id'],$old,str_repeat('a',64),true)==='','Existing snapshot accepts reordered semantically unchanged current requirements');
- rq_update($rid,['required_model'=>'gpt-6-astra','reasoning_rule'=>'minimum','required_reasoning'=>'max']);
- req_deny(fn()=>wf_test_submit($rid,$task['id'],$old,str_repeat('a',64)),409,'Changed requirements invalidate old handoffs');
- $d=wf_test_payload($rid,$task);$d['metadata']['model']='gpt-6.1-sol';req_deny(fn()=>wf_test_submit($rid,$task['id'],$d,str_repeat('a',64)),422,'Wrong exact model rejected');
- $d['metadata']['model']='gpt-6-astra';$d['metadata']['reasoning']='high';req_deny(fn()=>wf_test_submit($rid,$task['id'],$d,str_repeat('a',64)),422,'Below planning and requester minimum rejected');
- $d['metadata']['reasoning']='max';$id=wf_test_submit($rid,$task['id'],$d,str_repeat('a',64));req_ok((bool)$id,'Qualifying plan accepted');
- req_deny(fn()=>rq_update($rid,['reasoning_rule'=>'none']),409,'Requirements lock after first research submission');
- $research=array_values(array_filter(wf_tasks($rid),fn($t)=>$t['kind']==='research'&&$t['state']==='Ready'))[0];
- $d=wf_test_payload($rid,$research,'progress');$d['metadata']['reasoning']='high';req_deny(fn()=>wf_test_submit($rid,$research['id'],$d,str_repeat('b',64)),422,'Requester minimum enforced on non-planning tasks');
- $d['metadata']['reasoning']='ultra';req_ok((bool)wf_test_submit($rid,$research['id'],$d,str_repeat('b',64)),'Above-minimum research run accepted');
- req_deny(fn()=>create_contribution($rid,['kind'=>'Original research','summary'=>'Synthetic requirement test','body'=>'Synthetic test of supplementary requirements.','terms'=>1,'metadata'=>['model'=>'gpt-6.1-sol','reasoning'=>'max']]),422,'Supplementary path cannot bypass required model');
- req_ok(!rq_matches(['model'=>'gpt-6-astra','mode'=>'exact','effort'=>'max'],'gpt-6-astra','ultra'),'Exact mode rejects higher level');
- req_ok(rq_matches(['model'=>'gpt-6-astra','mode'=>'exact','effort'=>'max'],'gpt-6-astra','max'),'Exact mode accepts matching level');
- req_ok(!rq_matches(['model'=>'','mode'=>'minimum','effort'=>'high'],'gpt-6-astra','unknown'),'Unknown reasoning cannot satisfy minimum');
- $ctx=context_data($rid);req_ok($ctx['requester_ai_requirements']['model']==='gpt-6-astra','Context records exact requester requirement');
- req_ok(str_contains(wf_prompt($rid,$research['id']),'Reasoning: at least max'),'Task prompt contains precise minimum');
- req_ok(str_contains(wf_handoff_text($rid),'Reasoning: at least max'),'Copy handoff contains precise minimum');
- $launchReq=['model'=>'gpt-6.1-sol','mode'=>'exact','effort'=>'high'];
- $launchSnapshot=['package_json'=>json_encode(['requester_ai_requirements'=>$launchReq,'workflow'=>['planning_model_policy'=>wf_policy()]])];
- $launchMeta=['provider'=>'OpenAI','model'=>'gpt-6.1-sol','reasoning'=>'high','tool'=>'Codex cloud worker; Dot browser controller','run_id'=>'synthetic-bound-worker-turn','run_at_utc'=>gmdate('Y-m-d\TH:i:s\Z'),'run_evidence'=>'Controller-recorded original explicit model/thinking and successful task/turn-bound admission; same-settings follow-up. Provider-effective readback unavailable; no provider verification.'];
- $launchOut=wf_metadata(['metadata'=>$launchMeta],$launchSnapshot,false);
- req_ok($launchOut['model']==='gpt-6.1-sol'&&$launchOut['reasoning']==='high'&&str_contains($launchOut['provenance'],'Self-reported')&&str_contains($launchOut['provenance'],'not authenticated'),'Recorded6.1Sol/high basis accepted as self-reported research metadata without provider readback');
- foreach(['model','reasoning','run_id'] as $field){$missing=$launchMeta;unset($missing[$field]);req_deny(fn()=>wf_metadata(['metadata'=>$missing],$launchSnapshot,false),422,'Missing required metadata '.$field.' remains rejected');}
- foreach(['model'=>'gpt-6-sol','reasoning'=>'max'] as $field=>$value){$mismatch=$launchMeta;$mismatch[$field]=$value;req_deny(fn()=>wf_metadata(['metadata'=>$mismatch],$launchSnapshot,false),422,'Launch description cannot bypass exact '.$field);}
- req_deny(fn()=>wf_metadata(['metadata'=>$launchMeta],$launchSnapshot,true),422,'Recorded high launch cannot bypass planning Max/Ultra policy');
- $forged=$launchMeta+['provenance'=>'Provider-verified','provider_verified'=>true];$out=wf_metadata(['metadata'=>$forged],$launchSnapshot,false);
- req_ok(str_starts_with($out['provenance'],'Self-reported')&&!isset($out['provider_verified']),'Packet-supplied provider-verification flags cannot promote server provenance');
- $pre=rq_preflight(['model'=>'gpt-6-astra','mode'=>'exact','effort'=>'max'],wf_policy(),'planning');
- req_ok(str_contains($pre,'gpt-6-astra / max')&&!str_contains($pre,'gpt-6.1-sol /')&&!str_contains($pre,'gpt-6-astra / ultra'),'Preflight lists only qualifying exact planning configurations');
- foreach(['BLOCKED — AI CONFIGURATION','unknown, unverifiable','STOP IMMEDIATELY','OVERRIDES every JSON-only','Required:','Actual:','Problem:','Fix:','Re-run:','NEW conversation/run','ENTIRE fresh handoff unchanged','Do not upload this blocker message','Never relabel'] as $phrase)req_ok(str_contains($pre,$phrase),'Preflight contract: '.$phrase);
- foreach(['successful native controller launch record','SAME-WORKER CONTINUATION','does NOT block','not provider-authenticated','future admission response','does not need browser tools'] as $phrase)req_ok(str_contains($pre,$phrase),'Launch/role preflight contract: '.$phrase);
- foreach([wf_prompt($rid,$research['id']),wf_handoff_text($rid),prompt_text($rid),wf_repair_prompt(research($rid),$research,'Synthetic mismatch')] as $i=>$prompt)req_ok(str_contains($prompt,'MANDATORY AI CONFIGURATION PREFLIGHT')&&str_contains($prompt,'Reasoning: at least max'),'Preflight in prompt surface '.$i);
- echo count($checks)." requester AI requirement checks passed.\n";
-}finally{foreach($ids as $id)purge_request($id,$id);}
+ $brief=['question'=>'Compare the limitations of reproducible synthetic dataset conversion methods.','category_id'=>1,'terms'=>1,'external_tools'=>'free','required_software'=>'Fixture software','calculation_help'=>'run'];
+ $current=create_research($brief+['title'=>'[QA] Ordinary capability request']);$ids[]=$current['id'];
+ $oldScalar=create_research($brief+['title'=>'[QA] Legacy scalar model fields','required_model'=>'invalid-retired-model','reasoning_rule'=>'exact','required_reasoning'=>'invalid']);$ids[]=$oldScalar['id'];
+ $oldList=create_research($brief+['title'=>'[QA] Legacy model and mode fields','ai_selection_version'=>2,'required_models'=>['invalid-retired-model'],'reasoning_levels'=>['ultracode','invalid'],'reasoning_or_higher'=>['invalid']]);$ids[]=$oldList['id'];
+ foreach($ids as $rid){
+  $r=research($rid,false);$external=external_requirements($r);
+  req_ok($r['ai_requirements']==='{}','No model or reasoning constraints are stored by current or legacy posts');
+  req_ok($external['required_software']==='Fixture software'&&$external['external_tools']==='free'&&calculation_policy($r)['required'],'Legitimate capability and dependency requirements are preserved');
+ }
+ $rid=$oldList['id'];$original=json_encode($v2,JSON_THROW_ON_ERROR);
+ query('UPDATE research SET ai_requirements=? WHERE id=?',[$original,$rid]);
+ req_ok(rq_requirements(research($rid,false))===$v2,'Stored historical model and reasoning data remains readable');
+ req_ok(research($rid,false)['ai_requirements']===$original,'Historical bytes are preserved');
+ echo count($checks)." requester capability and historical record checks passed.\n";
+}finally{foreach($ids as $rid)purge_request($rid,$rid);}

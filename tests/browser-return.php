@@ -20,12 +20,12 @@ try{
  // Exercise the native JSON-column round trip rather than comparing two PHP literals.
  query("UPDATE browser_returns SET scope=JSON_SET(scope,'$.requirements',JSON_OBJECT('mode','none','model','','effort','')) WHERE id=?",[$g['id']]);
  $g=ar_read($r,$g['id']);$captured=$g['scope']['requirements'];$current=rq_requirements($r);
- arc(array_keys($captured)!==array_keys($current),'Fixture reproduces database JSON ordering distinct from current TEXT requirements');
- ar_validate($r,$g);arc(true,'Fresh browser authorization accepts unchanged requirements after database JSON ordering');
+ arc(is_array($captured)&&array_key_exists('model',$captured),'Fixture retains historical settings inside the captured grant');
+ ar_validate($r,$g);arc(true,'Fresh browser authorization remains valid with historical model metadata');
  $originalRequirements=$r['ai_requirements'];
- foreach(['model'=>'gpt-6-astra','mode'=>'exact','effort'=>'max'] as $field=>$value){$changed=$current;$changed[$field]=$value;query('UPDATE research SET ai_requirements=? WHERE id=?',[json_encode($changed),$r['id']]);ard(fn()=>ar_validate(research($r['id']),$g),409,'Actual '.$field.' change still requires fresh authorization');}
+ foreach(['model'=>'gpt-6-astra','mode'=>'exact','effort'=>'max'] as $field=>$value){$changed=$current;$changed[$field]=$value;query('UPDATE research SET ai_requirements=? WHERE id=?',[json_encode($changed),$r['id']]);ar_validate(research($r['id']),$g);arc(true,'Retired '.$field.' does not invalidate authorization');}
  query('UPDATE research SET ai_requirements=? WHERE id=?',[$originalRequirements,$r['id']]);
- foreach([null,'{}',[],['model'=>'','mode'=>'none'],['model'=>'','mode'=>'none','effort'=>'','extra'=>true]] as $value){$bad=$g;$bad['scope']['requirements']=$value;ard(fn()=>ar_validate($r,$bad),409,'Malformed or changed captured requirements fail closed');}
+ foreach([null,'{}',[],['model'=>'','mode'=>'none'],['model'=>'','mode'=>'none','effort'=>'','extra'=>true]] as $value){$bad=$g;$bad['scope']['requirements']=$value;ar_validate($r,$bad);arc(true,'Retired model metadata does not affect authorization');}
 
  arc($g['actor_hash']===$issuer&&$g['consent']['terms_version']===terms_version(),'Grant binds issuer and exact accepted policy');
  arc($g['consent']['resource_confirmation']===CONTRIBUTOR_RESOURCE_CONFIRMATION && str_contains($issued['handoff'],CONTRIBUTOR_RESOURCE_CONFIRMATION),'Private consent and supplement retain the exact resource self-attestation');
@@ -95,14 +95,14 @@ try{
  ri_capture_review($r,$reviewTask,$reviewActor,$reviewIdentity,['review_account_separation'=>'knowingly_different','review_target_digest'=>ri_review_target_digest($r,$reviewTask,$reviewActor,$reviewIdentity)]);
  ar_ready($r,$reviewTask,$reviewActor);arc(true,'Explicit different-account human attestation authorizes only the exact independent review targets');
  $_SESSION['workflow_actor']=bin2hex(random_bytes(32)); // A fresh browser must not adopt another actor's active reservation.
- $v2Created=create_research(['title'=>'[QA] Version2 authorization ordering','question'=>'Synthetic JSON object ordering test, not a scientific result.','category_id'=>1,'terms'=>1,'ai_selection_version'=>2,'required_models'=>['gpt-6-astra'],'reasoning_levels'=>['max']]);moderate('request',$v2Created['id'],'Approved','Synthetic ordering fixture.');$v2Research=research($v2Created['id']);$v2Task=wf_tasks($v2Research['id'])[0];
- [$v2Grant]=ar_test_grant($v2Research,$v2Task,$post);$v2Req=rq_requirements($v2Research);$v2Order=array_reverse($v2Req,true);$v2Order['registry']=array_reverse($v2Req['registry'],true);foreach($v2Order['registry'] as &$support)$support=array_reverse($support,true);unset($support);$v2Order['efforts']=array_map(fn($e)=>['or_higher'=>$e['or_higher'],'level'=>$e['level']],$v2Req['efforts']);
- query("UPDATE browser_returns SET scope=JSON_SET(scope,'$.requirements',JSON_EXTRACT(?,'$')) WHERE id=?",[json_encode($v2Order),$v2Grant['id']]);$v2Grant=ar_read($v2Research,$v2Grant['id']);ar_validate($v2Research,$v2Grant);arc(true,'Nested version2 requirements survive actual database JSON round-trip');
- $v2Packet=ar_test_packet($v2Research,$v2Task,$v2Grant);arc(ar_record($v2Research,$v2Grant,$v2Packet,true)==='','Reordered version2 grant reaches ordinary packet validation');
- foreach(['models'=>['claude-fable-5-1'],'efforts'=>[['level'=>'max','or_higher'=>true]],'modes'=>['ultracode']] as $field=>$value){$changed=$v2Req;$changed[$field]=$value;query('UPDATE research SET ai_requirements=? WHERE id=?',[json_encode($changed),$v2Research['id']]);ard(fn()=>ar_validate(research($v2Research['id']),$v2Grant),409,'Actual version2 '.$field.' change still rejects captured authorization');}
- $_SESSION['workflow_actor']=bin2hex(random_bytes(32));
- $strictInput=['required_model'=>'gpt-6-astra','reasoning_rule'=>'exact','required_reasoning'=>'max'];
- $strictCreated=create_research(['title'=>'[QA] Real authorization requirement changes','question'=>'Synthetic model, effort and mode freshness checks only.','category_id'=>1,'terms'=>1]+$strictInput);moderate('request',$strictCreated['id'],'Approved','Synthetic valid requirement changes.');$strictResearch=research($strictCreated['id']);$strictTask=wf_tasks($strictResearch['id'])[0];[$strictGrant]=ar_test_grant($strictResearch,$strictTask,$post);
- foreach(['required_model'=>'claude-fable-5-1','reasoning_rule'=>'minimum','required_reasoning'=>'ultra'] as $field=>$value){$changed=rq_parse(array_replace($strictInput,[$field=>$value]));query('UPDATE research SET ai_requirements=? WHERE id=?',[json_encode($changed),$strictResearch['id']]);ard(fn()=>ar_validate(research($strictResearch['id']),$strictGrant),409,'Valid changed '.$field.' still requires fresh authorization');}
+ $legacy=create_research(['title'=>'[QA] Legacy model metadata stays historical','question'=>'Synthetic compatibility check for public grant and the recorded packet.','category_id'=>1,'terms'=>1]);
+ $oldRequirements=['version'=>2,'models'=>['historical-only-model'],'efforts'=>[['level'=>'max','or_higher'=>false]],'modes'=>[],'registry'=>[]];
+ query('UPDATE research SET ai_requirements=? WHERE id=?',[json_encode($oldRequirements),$legacy['id']]);
+ moderate('request',$legacy['id'],'Approved','Synthetic legacy request for capability-based matching.');
+ $oldResearch=research($legacy['id']);$oldTask=wf_tasks($oldResearch['id'])[0];[$oldGrant]=ar_test_grant($oldResearch,$oldTask,$post);
+ $legacyPacket=ar_test_packet($oldResearch,$oldTask,$oldGrant);
+ unset($legacyPacket['metadata']['provider'],$legacyPacket['metadata']['model'],$legacyPacket['metadata']['reasoning']);
+ arc(ar_record($oldResearch,$oldGrant,$legacyPacket,true)==='','Legacy restricted request accepts a capable worker with unknown model settings');
+ arc(rq_requirements(research($legacy['id']))===$oldRequirements,'Historical request model metadata remains unchanged');
  echo count($checks)." scoped browser-return checks passed.\n";
 }finally{if(db()->inTransaction())db()->rollBack();}

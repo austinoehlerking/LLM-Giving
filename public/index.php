@@ -78,7 +78,8 @@ if(preg_match('~^/manage/([a-f0-9]{32})(/exchange|/rotate)?$~',$path,$m)) {
     }
     if($method==='POST') {
         require_manager($rid);
-        if(($_POST['action']??'')==='ai-requirements'){rq_update($rid,$_POST);flash('AI requirements saved. Copy a fresh handoff before starting research.');redirect('/manage/'.$rid);}
+        // Older management forms may still submit retired AI selection fields.
+        if(($_POST['action']??'')==='ai-requirements')redirect('/manage/'.$rid);
         if(($_POST['action']??'')==='workflow-resolve'){wf_resolve($rid,text_field($_POST,'response',20,30000),text_field($_POST,'reason',10,500),'requester',(int)($_POST['round_no']??0));flash(lp_enabled()?'Response recorded. The local planner will update the research tasks.':'Response recorded. A new planning task is ready.');redirect('/manage/'.$rid);}
         if(($_POST['action']??'')==='status') {
             $newStatus=text_field($_POST,'status');change_status($rid,$newStatus,text_field($_POST,'reason',10),'requester');

@@ -20,7 +20,7 @@ $localJob=$localPlanning?one('SELECT state,failure,expires_at FROM local_planner
 </div>
 <?php if($localPlanning): ?>
 <div class="notice"><strong>Preparing research tasks</strong>
-<p><?=e(match($localJob['state']??'queued'){'failed'=>(match($localJob['failure']){'configuration'=>'No configured local model meets this request’s AI requirements.','background'=>'The approved fork background is currently unavailable.','context_size'=>'This brief and its history exceed the local planner input limit.',default=>'The local planning run needs attention.'}),'running'=>$localJob['expires_at']>now()?'Local Codex is preparing tasks.':'The local runner can reclaim the expired job.','complete'=>'Research tasks were prepared.',default=>'Waiting for the owner’s local Codex runner.'})?></p>
+<p><?=e(match($localJob['state']??'queued'){'failed'=>(match($localJob['failure']){'configuration'=>'The local planner could not start this run.','background'=>'The approved fork background is currently unavailable.','context_size'=>'This brief and its history exceed the local planner input limit.',default=>'The local planning run needs attention.'}),'running'=>$localJob['expires_at']>now()?'Local Codex is preparing tasks.':'The local runner can reclaim the expired job.','complete'=>'Research tasks were prepared.',default=>'Waiting for the owner’s local Codex runner.'})?></p>
 <?php if($localJob&&($localJob['state']==='failed'||($localJob['state']==='running'&&$localJob['expires_at']<=now()))): ?><form method="post"><?=csrf()?><input type="hidden" name="action" value="local-plan-retry"><button class="secondary">Retry local planning</button></form><?php endif ?>
 </div>
 <?php endif ?>
@@ -30,7 +30,6 @@ $localJob=$localPlanning?one('SELECT state,failure,expires_at FROM local_planner
 <section class="form-panel admin-request-brief" id="request-brief"><h2><?=e($r['title'])?></h2><p class="fine"><?=e(rt_is_tool($r)?'Research tool':'Research question')?> · <?=e($r['display_name']?:'Anonymous')?></p><?=prose($r['question'])?>
 <details id="full-request-brief"><summary>Full brief & requirements</summary>
 <?php foreach(['context'=>'Background','success'=>'What success looks like','previous'=>'Previous work','constraints_text'=>'Constraints','questions'=>'Questions to address','references_text'=>'References'] as $key=>$label): if(!trim($r[$key]))continue; ?><h3><?=e($label)?></h3><?=prose($r[$key])?><?php endforeach ?>
-<h3>AI requirements</h3><p><?=e(rq_description(rq_requirements($r)))?></p>
 <?php $calculationPolicy=calculation_policy($r); ?><h3>Calculation help</h3><p><?=e(EXTERNAL_HELP[$calculationPolicy['mode']])?>. <?php if($calculationPolicy['required']): ?>Planning must include a computational task with reproducible inputs, code, outputs and unit checks.<?php elseif($calculationPolicy['allowed']): ?>Useful calculations are permitted, not required.<?php else: ?>Calculation execution is not permitted by this choice.<?php endif ?></p>
 <?php include __DIR__.'/external-requirements.php'; include __DIR__.'/tool-requirements.php'; include __DIR__.'/fork-background.php'; ?>
 </details></section>

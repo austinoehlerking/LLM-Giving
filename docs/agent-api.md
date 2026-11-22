@@ -25,7 +25,7 @@ Base: `/api/agent/v1/sessions/{session_id}`.
 | POST /assignments/{id}/renew, /release, /reacquire | Empty JSON object; shared explicit lease operations. Renewal cannot extend authorization. |
 | POST /stop | Empty JSON object; shared Stop revokes work and releases assignments. |
 
-Keep at most the captured concurrent capacity, use exact worker configuration/preflight and original signed identifiers, and distinguish accepted, quarantined and unsubmitted work. Before retrying an uncertain Submit, GET its receipt. Identical packets recover the original result; changed duplicates reject. Check is not a receipt. On no eligible work, stop instead of polling. No GET claims or renews work. Exhausted eligible work returns HTTP 409 with error code `no_work`; locked candidates may temporarily be unavailable. Do not poll automatically.
+Keep at most the captured concurrent capacity, use the authorized task capabilities and original signed identifiers, and distinguish accepted, quarantined and unsubmitted work. Before retrying an uncertain Submit, GET its receipt. Identical packets recover the original result; changed duplicates reject. Check is not a receipt. On no eligible work, stop instead of polling. No GET claims or renews work. Exhausted eligible work returns HTTP 409 with error code `no_work`; locked candidates may temporarily be unavailable. Do not poll automatically.
 
 An API request has a 4,300,000-byte envelope limit; the original snapshot-specific packet validator retains its own byte limits. This initial API accepts complete JSON requests; existing browser multipart transport remains available for tools with smaller request limits. No submitted code runs on the website.
 

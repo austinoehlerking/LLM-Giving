@@ -113,7 +113,6 @@ function sr_reauthorize(array $r,string $grantId,array $post): array {
         if(empty($post['authorize'])||empty($post['terms'])||empty($post['authorized_resources']))fail(422,'A human must explicitly authorize the renewed time window, current terms and resource use. Existing consent cannot imply this extension.');
         $version=terms_version(record:true);if(text_field($post,'policy_version',1,64)!==$version)fail(409,'Terms changed. Read and confirm the current terms yourself.');
         $t=wf_task($r['id'],$old['task_id']);wr_eligible($r['id'],$t['id'],(int)$old['scope']['revision'],$old['actor_hash'],$old['identity_id']??'');
-        if(!rq_same_requirements($old['scope']['requirements']??null,rq_requirements($r)))fail(409,'Requirements changed. A fresh complete task handoff is needed; do not relabel old work.');
         wf_read_handoff($r['id'],$old['scope']['archive_id']);$software=vs_task_software_consent($r,$t);if($software&&empty($post['tool_terms']))fail(422,'Confirm applicable software-publication terms yourself.');
         $minutes=vs_integer($post,'recovery_minutes',60,5,240);$scope=$old['scope'];$sourceSession=!empty($scope['volunteer_session_id'])?vs_read($scope['volunteer_session_id'],false):null;
         unset($scope['volunteer_session_id'],$scope['volunteer_assignment_id']);$scope['recovery_source_grant']=$old['id'];

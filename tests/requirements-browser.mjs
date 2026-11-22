@@ -1,71 +1,129 @@
-import {revealAdminControls} from './admin-controls.mjs';
-import {reservationPickup} from './reservation-browser-support.mjs';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import {root} from '../tools/runtime.mjs';
 import {saveManagementLink} from './receipt-actions.mjs';
-import {authorizedHandoff} from './browser-authorization.mjs';
-import fs from 'node:fs';import path from 'node:path';import {root} from '../tools/runtime.mjs';
-export async function requirementsQa({page,ctx,base,runPhp,check,visibleActions,password}){
- const out=path.join(root,'storage/qa/ai-requirements');fs.mkdirSync(out,{recursive:true});
- const shots=[],errors=[];page.on('pageerror',e=>errors.push(e.message));
- const shot=async name=>{await page.screenshot({path:path.join(out,name+'.png'),fullPage:false});shots.push(name+'.png');};
- const model=value=>page.locator('[name="required_models[]"][value="'+value+'"]');
- const level=value=>page.locator('[name="reasoning_levels[]"][value="'+value+'"]');
- const higher=value=>page.locator('[name="reasoning_or_higher[]"][value="'+value+'"]');
- const open=async()=>{await page.getByText('AI model & reasoning requirements (optional)',{exact:true}).click();};
- for(const size of [{width:1366,height:768},{width:390,height:844},{width:375,height:667}]){
-  await page.setViewportSize(size);await page.goto(base+'/submit');await shot('initial-'+size.width);await visibleActions(page,'.form-actions button','AI selection first viewport '+size.width);
-  await open();await page.locator('[data-ai-model-menu]>summary').focus();await page.keyboard.press('Enter');
-  await model('claude-fable-5-1').focus();await page.keyboard.press('Space');
-  check('Keyboard selection excludes Any '+size.width,!await model('any').isChecked());
-  await model('gpt-6-astra').check();check('Multiple models retained '+size.width,await model('claude-fable-5-1').isChecked()&&await model('gpt-6-astra').isChecked());
-  await page.locator('[data-ai-model-menu]').scrollIntoViewIfNeeded();await shot('models-'+size.width);
-  check('Model labels are 44px touch targets '+size.width,await page.locator('[data-ai-model-menu] label').evaluateAll(els=>els.every(el=>el.getBoundingClientRect().height>=44)));
-  await model('gpt-6-astra').uncheck();await model('claude-fable-5-1').uncheck();check('Clearing models returns to Any '+size.width,await model('any').isChecked());
-  await model('any').press('Escape');check('Escape closes menu and returns focus '+size.width,await page.locator('[data-ai-model-menu]>summary').evaluate(el=>el===document.activeElement&&!el.parentElement.open));
-  await page.locator('[data-ai-effort-menu]>summary').click();await level('high').check();check('Impossible exact High is explained inline '+size.width,await page.locator('[data-ai-error]').isVisible());
-  await higher('high').check();check('Minimum High retains planning '+size.width,!await page.locator('[data-ai-error]').isVisible());
-  await level('ultracode').check();check('Mode and effort resolved as AND '+size.width,(await page.locator('[data-ai-summary]').innerText()).includes('AND'));
-  await page.locator('[data-ai-effort-menu]').scrollIntoViewIfNeeded();await shot('efforts-'+size.width);
-  check('All reasoning labels have 44px touch targets '+size.width,await page.locator('[data-ai-effort-menu] label').evaluateAll(els=>els.every(el=>el.getBoundingClientRect().height>=44)));
-  check('Ultra has no or higher control '+size.width,await higher('ultra').count()===0&&await higher('ultracode').count()===0);
-  const snapshot=await page.locator('[data-ai-selection]').ariaSnapshot();check('Accessible tree exposes named checkbox and mode '+size.width,snapshot.includes('checkbox "Ultracode')&&snapshot.includes('checkbox "High or higher"'));
-  await level('any').check();check('Any clears modes and minima '+size.width,!await level('ultracode').isChecked()&&!await higher('high').isChecked());
-  check('No horizontal overflow '+size.width,await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+
+export async function requirementsQa({page,ctx,base,runPhp,check,visibleActions,password,report}){
+ const out=path.join(root,'storage/qa/ai-requirements');
+ fs.mkdirSync(out,{recursive:true});
+ const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}];
+ const shots=[],errors=[];
+ page.on('pageerror',error=>errors.push(error.message));
+ const shot=async(name,current=page)=>{
+  const file=path.join(out,name+'.png');
+  await current.screenshot({path:file,fullPage:false});
+  shots.push(file);
+  report?.screenshots.push(file);
+ };
+ const review=async name=>{
+  if(process.env.QA_INSPECT_FIRST!=='requirements')return;
+  console.log('Inspect initial '+name+': '+shots.slice(-sizes.length).join(' | '));
+  await new Promise(resolve=>{process.stdin.resume();process.stdin.once('data',()=>{process.stdin.pause();resolve();});});
+ };
+ const retired='[data-ai-selection],[name="required_models[]"],[name="reasoning_levels[]"],[name=required_model],[name=required_reasoning]';
+ let rid,admin,anon;
+ const state=command=>JSON.parse(runPhp(['tests/requirements-state.php',command,rid]));
+ try{
+  for(const size of sizes){
+   await page.setViewportSize(size);
+   await page.goto(base+'/submit');
+   await shot('start-'+size.width);
+   await visibleActions(page,'.form-actions button,#request-next-step > summary','Request start '+size.width);
+   check('New request needs no model or effort selection '+size.width,await page.locator(retired).count()===0);
+  }
+  await review('request start');
+  const title='[QA] Requester capability and historical settings';
+  await page.setViewportSize(sizes[0]);
+  await page.locator('[name=title]').fill(title);
+  await page.locator('[name=question]').fill('How well do two documented approaches compare for reproducible synthetic research conversions?');
+  await page.locator('[name=category_id]').selectOption({label:'Environment & Climate'});
+  await page.locator('#request-next-step > summary').click();
+  await page.locator('[name=external_tools]').locator('xpath=ancestor::details[1]').locator(':scope > summary').click();
+  await page.locator('[name=external_tools]').selectOption('free');
+  await page.locator('[name=required_software]').fill('Fixture conversion tool');
+  await page.locator('[name=calculation_help]').selectOption('run');
+  await page.getByRole('button',{name:'Review your request',exact:true}).click();
+  const preview=await page.locator('#request-preview-content').innerText();
+  check('Review retains capabilities and concrete dependencies',preview.includes('Fixture conversion tool')&&preview.includes('Run calculations')&&!preview.includes('AI requirements'));
+  await page.getByRole('button',{name:'Back to editing',exact:true}).click();
+  await page.locator('[name=terms]').check();
+  await page.locator('.request-submit-actions').getByRole('button',{name:'Submit for approval',exact:true}).click();
+  await page.getByRole('heading',{name:'Research request submitted',exact:true}).waitFor();
+  const manage=await saveManagementLink(page),managePath=new URL(manage).pathname;
+  rid=managePath.split('/').pop();
+  const fresh=state('inspect');
+  check('Actual request has no model constraints and retains calculation capability',fresh.requirements==='{}'&&fresh.external.required_software==='Fixture conversion tool'&&fresh.external.calculation_help==='run');
+  state('history');
+
+  runPhp(['bin/console.php','admin','requester-capability-qa@example.invalid'],password);
+  admin=await ctx.browser().newContext();
+  const ap=await admin.newPage();
+  await ap.goto(base+'/admin/login');
+  await ap.getByLabel('Email').fill('requester-capability-qa@example.invalid');
+  await ap.getByLabel('Password').fill(password);
+  await ap.getByRole('button',{name:'Sign in',exact:true}).click();
+  for(const size of sizes){
+   await ap.setViewportSize(size);
+   await ap.goto(base+'/admin/research/'+rid);
+   await shot('approval-'+size.width,ap);
+   await visibleActions(ap,'[data-quick-approve] > button,#request-changes > summary','Admin review '+size.width);
+  }
+  await review('admin review');
+  await ap.locator('#full-request-brief > summary').click();
+  await ap.locator('#full-request-brief').getByText('External tools & calculation help',{exact:true}).click();
+  const brief=await ap.locator('#full-request-brief').innerText();
+  check('Admin brief displays software capabilities without old model gate',brief.includes('Fixture conversion tool')&&!brief.includes('legacy-model-identifier')&&!brief.includes('AI requirements'));
+  await ap.getByRole('button',{name:'Approve',exact:true}).click();
+  check('Real approval activates the existing workflow',state('inspect').moderation==='Approved');
+
+  await page.goto(manage);
+  await page.getByRole('heading',{name:'Change status',exact:true}).waitFor();
+  for(const size of sizes){
+   await page.setViewportSize(size);
+   await page.goto(base+managePath);
+   await shot('manage-'+size.width);
+   await visibleActions(page,'#request-new-status,.management-status button','Manage request '+size.width);
+   check('Manage view keeps controls without a model restriction editor '+size.width,await page.locator(retired).count()===0&&await page.getByRole('heading',{name:'Change status',exact:true}).isVisible());
+  }
+  await review('request management');
+  const before=state('capture');
+  check('Historical setting remains in the issued snapshot',before.snapshots.some(snapshot=>snapshot.legacy)&&before.snapshots.some(snapshot=>!snapshot.legacy));
+  const csrf=await page.locator('.management-status [name=csrf]').inputValue();
+  const action={action:'ai-requirements','required_models[]':'expired-model','reasoning_levels[]':'not-an-effort'};
+  const redirected=await page.request.post(base+managePath,{form:{...action,csrf},maxRedirects:0});
+  check('Authorized legacy action redirects to management',redirected.status()===303&&redirected.headers().location===managePath);
+  assert.deepEqual(state('inspect'),before);
+  check('Authorized no-op preserves historical snapshots and audit count',true);
+  const denied=await page.request.post(base+managePath,{form:{...action,csrf:'wrong-token'},maxRedirects:0});
+  check('Legacy action still rejects invalid CSRF',denied.status()===403);
+  anon=await ctx.browser().newContext();
+  const visitor=await anon.newPage();
+  await visitor.goto(base+managePath);
+  const anonToken=await visitor.locator('#capability-exchange [name=csrf]').inputValue();
+  const unauthorized=await anon.request.post(base+managePath,{form:{...action,csrf:anonToken},maxRedirects:0});
+  check('Correct CSRF alone cannot authorize the legacy action',unauthorized.status()===403);
+  assert.deepEqual(state('inspect'),before);
+  check('Rejected attempts cannot mutate the request, snapshots or domain audit',true);
+
+  await page.locator('#request-new-status').selectOption('Paused');
+  await page.locator('.management-status [name=reason]').fill('Pause the isolated QA fixture after confirming management access.');
+  await page.getByRole('button',{name:'Save request status',exact:true}).click();
+  check('Visible management action saves a real request status',state('inspect').status==='Paused');
+  await page.setViewportSize(sizes[2]);
+  await page.evaluate(()=>{
+   const sizes=[...document.querySelectorAll('body,body *')].filter(el=>el instanceof HTMLElement).map(el=>[el,parseFloat(getComputedStyle(el).fontSize)]);
+   for(const [el,size] of sizes)if(Number.isFinite(size))el.style.fontSize=size*2+'px';
+  });
+  await shot('manage-reflow-200');
+  check('Manage request reflows at 200% text',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  await page.getByText('Read request details',{exact:true}).click();
+  check('Enlarged management controls remain usable',await page.getByRole('heading',{name:title,exact:true}).isVisible());
+  check('No requester page JavaScript errors',errors.length===0);
+ }finally{
+  await anon?.close();
+  await admin?.close();
+  if(rid)state('cleanup');
+  fs.writeFileSync(path.join(out,'evidence.json'),JSON.stringify({shots,errors},null,2));
  }
- const touch=await ctx.browser().newContext({viewport:{width:390,height:844},hasTouch:true});const tp=await touch.newPage();
- await tp.goto(base+'/submit');await tp.getByText('AI model & reasoning requirements (optional)',{exact:true}).tap();await tp.locator('[data-ai-model-menu]>summary').tap();await tp.locator('[name="required_models[]"][value=claude-fable-5-1]').tap();check('Real touch input selects versioned model',await tp.locator('[name="required_models[]"][value=claude-fable-5-1]').isChecked());await touch.close();
- await page.setViewportSize({width:1366,height:768});await page.goto(base+'/submit');
- await page.locator('[name=title]').fill('[QA] Requester model alternatives');await page.locator('[name=question]').fill('Synthetic browser verification of versioned model alternatives and independent workflow mode requirements.');await page.locator('[name=category_id]').selectOption({label:'Environment & Climate'});
- await open();await page.locator('[data-ai-model-menu]>summary').click();await model('gpt-6-astra').check();await model('claude-fable-5-1').check();await page.locator('[data-ai-effort-menu]>summary').click();await level('high').check();await higher('high').check();
- await page.getByRole('button',{name:'Review your request',exact:true}).click();check('Preview includes alternatives and minimum',(await page.locator('#request-preview-content').innerText()).includes('gpt-6-astra OR claude-fable-5-1')&&(await page.locator('#request-preview-content').innerText()).includes('high or higher'));
- await page.getByRole('button',{name:'Back to editing',exact:true}).click();await page.locator('[name=terms]').check();await page.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).click();await page.getByRole('heading',{name:'Research request submitted',exact:true}).waitFor();
- const manage=await page.locator('#management-link').inputValue(),rid=new URL(manage).pathname.split('/').pop();
- await saveManagementLink(page);await page.goto(manage);await page.getByRole('heading',{name:'[QA] Requester model alternatives',exact:true}).waitFor();await page.locator('summary').filter({hasText:'AI model & reasoning requirements'}).click();
- await page.locator('[data-ai-model-menu]>summary').click();check('Management retains model alternatives',await model('gpt-6-astra').isChecked()&&await model('claude-fable-5-1').isChecked());await model('gpt-6-astra').uncheck();
- await page.locator('[data-ai-effort-menu]>summary').click();await level('any').check();await level('max').check();await level('ultracode').check();await page.getByRole('button',{name:'Save AI requirements',exact:true}).click();await page.getByText('AI requirements saved. Copy a fresh handoff before starting research.',{exact:true}).waitFor();
- const ac=await ctx.browser().newContext(),ap=await ac.newPage();runPhp(['bin/console.php','admin','requirements-qa@example.invalid'],password);await ap.goto(base+'/admin/login');await ap.getByLabel('Email').fill('requirements-qa@example.invalid');await ap.getByLabel('Password').fill(password);await ap.getByRole('button',{name:'Sign in',exact:true}).click();await ap.goto(base+'/admin/research/'+rid);await ap.locator('#full-request-brief > summary').click();
- check('Admin sees exact effort and separate mode',(await ap.locator('main').innerText()).includes('max exactly')&&(await ap.locator('main').innerText()).includes('Ultracode'));
- const mod=ap.locator('form.moderate').filter({has:ap.locator('[name=type][value=request]')});await revealAdminControls(mod);await mod.locator('[name=state]').selectOption('Approved');await mod.locator('[name=reason]').fill('Synthetic requester AI selection QA.');await mod.getByRole('button',{name:'Save moderation decision'}).click();
- const data=await(await page.request.get(base+'/research/'+rid+'/context.json')).json(),req=data.requester_ai_requirements;
- check('Context retains version, model, exact effort, independent mode',req.version===2&&req.models[0]==='claude-fable-5-1'&&req.efforts[0].level==='max'&&!req.efforts[0].or_higher&&req.modes[0]==='ultracode');
- const url=base+'/research/'+data.research.slug;await page.goto(url);const text=await authorizedHandoff(page);check('Handoff resolves exact effort and mode without substitution',text.includes('max exactly')&&text.includes('workflow_mode=ultracode')&&text.includes('never substitutes'));
- const schema=JSON.parse(text.split('REQUIRED OUTPUT JSON\n')[1].split('\n\nUNTRUSTED TASK DATA')[0]),task=data.workflow.tasks.find(t=>t.kind==='planning');
- const packet=JSON.parse(runPhp(['tests/workflow-browser-state.php','payload',rid,task.id,'progress']));for(const k of ['submission_key','handoff_code','task_revision','context_id'])packet[k]=schema[k];packet.human_interaction={level:'none',details:''};packet.metadata.model='claude-fable-5-1';packet.metadata.provider='Anthropic';packet.metadata.tool='Claude Code';packet.metadata.reasoning='max';
- await page.goto(url+'/tasks/'+task.id);await reservationPickup(page,task.revision);await page.locator('[name=human_level]').selectOption('none');
- await page.locator('[name=payload]').fill(JSON.stringify(packet));await page.getByRole('button',{name:'Check packet',exact:true}).click();await page.locator('[data-workflow-error]').filter({hasText:'Requester AI requirement not met'}).waitFor();check('Actual form rejects missing mode',true);
- packet.metadata.workflow_mode='ultracode';packet.metadata.reasoning='xhigh';await page.locator('[name=payload]').fill(JSON.stringify(packet));await page.getByRole('button',{name:'Check packet',exact:true}).click();await page.locator('[data-workflow-error]').filter({hasText:'Planning requires'}).waitFor();check('Mode cannot bypass planning effort in real form',true);
- packet.metadata.reasoning='max';await page.locator('[name=payload]').fill(JSON.stringify(packet));await page.getByRole('button',{name:'Check packet',exact:true}).click();await page.locator('[data-workflow-error]').filter({hasText:'Packet checks passed'}).waitFor();await page.locator('[name=terms]').check();await page.getByRole('button',{name:'Submit task result',exact:true}).click();await page.getByRole('heading',{name:'Submission accepted',exact:true}).waitFor();await shot('qualifying-mode-result');check('Qualifying Fable Max Ultracode packet accepted',true);
- await page.goto(manage.split('#')[0]);await page.locator('summary').filter({hasText:'AI model & reasoning requirements'}).click();check('Requirement locking is visible after first submission',await page.locator('main').innerText().then(t=>t.includes('locked')));await ac.close();
- await page.setViewportSize({width:683,height:384});await page.goto(base+'/submit');await open();await page.locator('[data-ai-effort-menu]>summary').click();await page.evaluate(()=>document.body.style.fontSize='200%');await page.locator('[data-ai-selection]').scrollIntoViewIfNeeded();await shot('enlarged-text');
- check('Enlarged menus reflow without clipping',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
- await level('high').focus();await page.keyboard.press('Space');await higher('high').focus();await page.keyboard.press('Space');await level('ultracode').focus();await page.keyboard.press('Space');
- check('Enlarged text controls retain keyboard interaction and mode AND effort summary',(await page.locator('[data-ai-effort-summary]').innerText()).includes('high or higher AND Ultracode'));
- check('Enlarged selected controls do not overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await shot('enlarged-controls');
- const nojs=await ctx.browser().newContext({javaScriptEnabled:false,viewport:{width:375,height:667}}),np=await nojs.newPage();await np.goto(base+'/submit');await np.screenshot({path:path.join(out,'nojs-initial-375.png'),fullPage:false});shots.push('nojs-initial-375.png');await np.getByText('AI model & reasoning requirements (optional)',{exact:true}).press('Enter');
- check('No-JavaScript has native checkbox guidance',(await np.locator('main').innerText()).includes('Uncheck Any'));
- await np.locator('[name=title]').fill('[QA] Native AI selection request');await np.locator('[name=question]').fill('Synthetic no-JavaScript creation with separate effort and workflow mode restrictions.');await np.locator('[name=category_id]').selectOption({label:'Environment & Climate'});
- await np.locator('[data-ai-model-menu]>summary').press('Enter');await np.locator('[name="required_models[]"][value=any]').press('Space');await np.locator('[name="required_models[]"][value=claude-fable-5-1]').press('Space');
- await np.locator('[data-ai-effort-menu]>summary').press('Enter');await np.locator('[name="reasoning_levels[]"][value=any]').press('Space');await np.locator('[name="reasoning_levels[]"][value=max]').press('Space');await np.locator('[name="reasoning_levels[]"][value=ultracode]').press('Space');await np.locator('[name=terms]').press('Space');await np.locator('#request-form > .actions').getByRole('button',{name:'Submit for approval',exact:true}).press('Enter');await np.getByRole('heading',{name:'Research request submitted',exact:true}).waitFor();check('Native controls submit model, exact effort and mode without JavaScript',true);await nojs.close();
- check('No JavaScript runtime errors',errors.length===0);
- fs.writeFileSync(path.join(out,'evidence.json'),JSON.stringify({shots,errors},null,2));
- fs.writeFileSync(path.join(out,'index.html'),'<meta charset="utf-8"><title>AI selection QA</title>'+shots.map(s=>'<h2>'+s+'</h2><img style="max-width:100%" src="'+s+'">').join(''));
 }

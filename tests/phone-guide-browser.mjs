@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {root,env} from '../tools/runtime.mjs';
-import {connectVolunteer,chooseVolunteerWorker,openVolunteerTime,readyDashboard} from './session-wizard-actions.mjs';
+import {connectVolunteer,readyDashboard} from './session-wizard-actions.mjs';
 /** Local UI evidence only. Never claims actual handset launch or a new Dot execution. */
 export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) {
  const out=path.join(root,'storage/qa/phone-guide');fs.mkdirSync(out,{recursive:true});
@@ -23,16 +23,16 @@ export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) 
   await reflow(page,'guide');await page.goto(base+'/volunteer/quick-start');
   await page.locator('[data-phone-entry]').click();check('Phone entry opens the actual integrated section',new URL(page.url()).hash==='#phone-cloud'&&await page.locator('#phone-cloud').isVisible());await page.evaluate(()=>{window.__llmGivingQaAnchorScroll={y:scrollY,stable:0};});await page.waitForFunction(()=>{const s=window.__llmGivingQaAnchorScroll,y=scrollY;s.stable=Math.abs(y-s.y)<0.25?s.stable+1:0;s.y=y;const r=document.getElementById('phone-cloud')?.getBoundingClientRect();return s.stable>=6&&r&&r.top>=0&&r.bottom<=innerHeight;},{},{timeout:10000});await page.evaluate(()=>{delete window.__llmGivingQaAnchorScroll;});report.phoneAnchorGeometry=await page.locator('#phone-cloud').evaluate(el=>{const r=el.getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:r.height,viewportHeight:innerHeight};});await screenshot(page,'dot-guide-section');await visibleActions(page,'[data-phone-guide-actions] > a','Phone guide section after navigation');
   await page.locator('[data-phone-guide-actions] a[href^="/volunteer?"]').click();check('Restricted settings action opens exact preselection',new URL(page.url()).search==='?session_profile=restricted_web_v1');
-  await initial(page,'/volunteer?session_profile=restricted_web_v1','restricted-setup','#volunteer-model,#volunteer-effort,[data-ai-continue]');
+  await initial(page,'/volunteer?session_profile=restricted_web_v1','restricted-setup','#volunteer-capabilities,.setup-time-card,[data-volunteer-advanced]>summary,[data-setup-submit]');
   check('Restricted profile preselection is real',await page.locator('[name=session_profile]').inputValue()==='restricted_web_v1');
   check('Setup omits internal proof/debug status',await page.locator('[data-volunteer-profile-note]').count()===0);
-  await chooseVolunteerWorker(page,'sol_max','high');await openVolunteerTime(page);await page.locator('[data-volunteer-advanced]>summary').click();await page.locator('[name=session_profile]').selectOption('general');check('General capability is a real native selection',await page.locator('[name=session_profile]').inputValue()==='general');await page.locator('[name=session_profile]').selectOption('restricted_web_v1');check('Web-only selection is restored',await page.locator('[name=session_profile]').inputValue()==='restricted_web_v1');await page.locator('[name=tool]').fill('Codex cloud worker; Dot browser controller');await page.locator('[data-volunteer-advanced]>summary').click();
-  check('Guide worker configuration is selectable without expanding consent',await page.locator('[name=model]').inputValue()==='gpt-6.1-sol'&&await page.locator('[name=reasoning]').inputValue()==='high');
+  await page.locator('[data-volunteer-advanced]>summary').click();await page.locator('[name=session_profile]').selectOption('general');check('General capability is a real native selection',await page.locator('[name=session_profile]').inputValue()==='general');await page.locator('[name=session_profile]').selectOption('restricted_web_v1');check('Web-only selection is restored',await page.locator('[name=session_profile]').inputValue()==='restricted_web_v1');await page.locator('[data-volunteer-advanced]>summary').click();
+  check('Capability selection needs no worker configuration fields',await page.locator('[name=model],[name=reasoning]').count()===0);
   await connectVolunteer(page);await page.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();
   await initial(page,null,'restricted-authorization','.volunteer-authorization > .form-panel > .primary-actions > *, .volunteer-authorization > .form-panel > .check');
   check('Consent form retains one validated restricted profile',await page.locator('[data-volunteer-consent] input[name=session_profile]').count()===1&&await page.locator('[data-volunteer-consent] input[name=session_profile]').inputValue()==='restricted_web_v1');
-  check('Separate recheck form retains the same validated profile without consent',await page.locator('#startup-settings form input[name=session_profile]').count()===1&&await page.locator('#startup-settings form input[name=session_profile]').inputValue()==='restricted_web_v1'&&await page.locator('#startup-settings form [name=authorize],#startup-settings form [name=terms]').count()===0);
-  check('Server review preserves declared6.1Sol/high selection without claiming effective verification',await page.locator('input[name=model]').inputValue()==='gpt-6.1-sol'&&await page.locator('input[name=reasoning]').inputValue()==='high');
+  check('Separate recheck form retains the same validated profile without consent',await page.locator('#startup-settings form select[name=session_profile]').count()===1&&await page.locator('#startup-settings form select[name=session_profile]').inputValue()==='restricted_web_v1'&&await page.locator('#startup-settings form [name=authorize],#startup-settings form [name=terms]').count()===0);
+  check('Server keeps the Research only authorization',await page.locator('[data-volunteer-consent] input[name=session_profile]').inputValue()==='restricted_web_v1');
   check('Authorization remains unchecked and separate',await page.locator('[name=authorize],[name=authorized_resources],[name=terms]').evaluateAll(els=>els.length===3&&els.every(el=>!el.checked))&&await page.locator('[name=human_level],[name=human_details]').count()===0);
   check('Review omits the removed profile disclosure',await page.locator('.volunteer-profile-details').count()===0);
   check('Restricted review does not solicit irrelevant software consent',await page.locator('[name=tool_terms]').count()===0);
@@ -46,7 +46,7 @@ export async function phoneGuideQa({page,ctx,base,check,visibleActions,report}) 
   check('Private dashboard omits the removed profile disclosure',await page.locator('.volunteer-profile-details').count()===0);
   await page.getByRole('button',{name:'Stop session',exact:true}).click();check('Actual local Stop revokes this synthetic session',(await page.locator('.session-state').innerText()).includes('Session stopped'));
   await page.goto(base+'/volunteer/quick-start');await page.locator('[data-guide-actions] a[href="/volunteer"]').click();check('Guide primary action opens actual general setup',new URL(page.url()).pathname==='/volunteer');
-  await initial(page,'/volunteer','general-setup','#volunteer-model,#volunteer-effort,[data-ai-continue]');
+  await initial(page,'/volunteer','general-setup','#volunteer-capabilities,.setup-time-card,[data-volunteer-advanced]>summary,[data-setup-submit]');
   check('Existing default stays general',await page.locator('[name=session_profile]').inputValue()==='general');
   await connectVolunteer(page);check('Existing general path retains server review',await page.locator('[data-volunteer-consent] input[name=session_profile]').inputValue()==='general'&&await page.locator('[name=tool_terms]').count()===1);
   await page.goto(base+'/volunteer?session_profile=restricted_web_v1');await reflow(page,'restricted-setup');

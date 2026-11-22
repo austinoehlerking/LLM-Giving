@@ -1,5 +1,16 @@
-import {chooseVolunteerWorker,connectVolunteer} from './session-wizard-actions.mjs';
-/** Exact requested model/effort UI regression; native settings and layout are covered by volunteer-inline. */
-export async function workerSettingsQa({page,base,runPhp,check,report}){
- const projects=[];try{const work=JSON.parse(runPhp(['tests/volunteer-real-start-state.php','create','work']));projects.push(work.id);for(const[choice,model]of Object.entries({sol_max:'gpt-6.1-sol',astra_max:'gpt-6-astra',opus_max:'claude-opus-5-5',fable_max:'claude-fable-5-1'}))for(const effort of ['max','xhigh','high']){await page.goto(base+'/volunteer');await chooseVolunteerWorker(page,choice,effort);await connectVolunteer(page);check(choice+' / '+effort+' reaches real server consent unchanged',await page.locator('[data-volunteer-consent] [name=model]').inputValue()===model&&await page.locator('[data-volunteer-consent] [name=reasoning]').inputValue()===effort);check(choice+' / '+effort+' leaves all permissions unchecked',!await page.locator('[name=authorize]').isChecked()&&!await page.locator('[name=terms]').isChecked()&&!await page.locator('[name=authorized_resources]').isChecked());}report.scope='Current inline setup exact model/effort round trip only; no synthetic authorization or provider execution.';}finally{runPhp(['tests/volunteer-real-start-state.php','cleanup'],JSON.stringify({projects,sessions:[]}));}
+import { connectVolunteer } from './session-wizard-actions.mjs';
+export async function workerSettingsQa({page,base,runPhp,check,report}) {
+ const projects=[];
+ try {
+  const work=JSON.parse(runPhp(['tests/volunteer-real-start-state.php','create','work']));
+  projects.push(work.id);
+  for(const profile of ['general','restricted_web_v1']) {
+   await page.goto(base+'/volunteer?model=retired-model&reasoning=provider-adaptive');
+   await page.locator('#volunteer-capabilities').selectOption(profile);
+   await connectVolunteer(page);
+   check(profile+' reaches actual authorization without worker settings',await page.locator('[data-volunteer-consent] [name=session_profile]').inputValue()===profile&&await page.locator('[name=model],[name=reasoning]').count()===0);
+   check(profile+' leaves authorization and terms unchecked',await page.locator('[data-volunteer-consent]>.check input').evaluateAll(list=>list.length===3&&list.every(input=>!input.checked)));
+  }
+  report.scope='Capability-only startup ignores obsolete model fields from legacy setup links without authorizing anything.';
+ } finally{runPhp(['tests/volunteer-real-start-state.php','cleanup'],JSON.stringify({projects,sessions:[]}));}
 }

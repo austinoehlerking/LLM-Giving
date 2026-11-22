@@ -2,18 +2,18 @@
 /** Additional session permission, not evidence of provider capabilities or a technical sandbox. */
 const VS_PROFILES = [
     'general'=>[
-        'label'=>'General volunteer session',
-        'allowed'=>['Work allowed by the existing request, assignment, actual worker configuration and volunteer consent.'],
+        'label'=>'Research + tools',
+        'allowed'=>['Web research and tool use allowed by the existing request, assignment and volunteer consent.'],
         'excluded'=>['Unapproved purchases, installation, unrelated accounts/files or work outside the authorized assignment.'],
-        'enforcement'=>'Existing server authorization, model, visibility, reservation and evidence rules apply. Actual external resource use is self-reported.',
+        'enforcement'=>'Existing server authorization, visibility, reservation and evidence rules apply. Actual external resource use is self-reported.',
         'compatibility'=>'Use an eligible AI with actual browser control; selecting a profile does not establish provider support.'
     ],
     'restricted_web_v1'=>[
-        'label'=>'Restricted web research',
+        'label'=>'Research only',
         'allowed'=>['Web search and reading accessible source pages.','Research synthesis, comparison and reasoning.','Simple model-derived arithmetic explained directly without executing tools.','Ordinary LLM.Giving browser controls for pickup, renewal/release, checking, submission and receipt inspection.'],
         'excluded'=>['Executed research code/shell, Python, R, notebooks, calculators, spreadsheets, simulations and scientific software.','Research-tool installation, software construction, submitted-code execution and computational reproduction.','Desktop control, personal-file access, purchases and API-funded substitutes.'],
         'enforcement'=>'The server filters known incompatible requirements and rejects structured execution/build/reproduction records. External tool restrictions are configuration/instructions, not a technical sandbox or provider attestation.',
-        'compatibility'=>'Check the actual provider browser and model capabilities. The Dot guide distinguishes its verified single-task browser result from untested phone and multi-task operation.'
+        'compatibility'=>'Check access to browser controls and the tools required by the assigned task. The Dot guide distinguishes its verified single-task browser result from untested phone and multi-task operation.'
     ],
 ];
 function vs_profile_definition(string $id): array {
@@ -37,7 +37,7 @@ function vs_task_software_consent(array $research,array $task): bool {
 }
 function vs_task_requirements_description(array $research,array $task): string {
     $needs=vs_task_requirements($research,$task);$parts=[];
-    if($task['kind']==='planning')$parts[]='Needs Research Plan: planning with an eligible Max/Ultra worker';
+    if($task['kind']==='planning')$parts[]='This task prepares a research plan';
     if($needs['execution'])$parts[]='This task requires executed calculations';
     if($needs['build'])$parts[]='This task builds software and retains source/tests';
     if($needs['reproduction'])$parts[]='This review requires actual computational/tool reproduction';
@@ -53,14 +53,6 @@ function vs_profile_compatible(array $session,array $research,array $task): bool
     // Later task flags are server-owned and result admission still rejects execution evidence.
     return !$needs['execution'] && !$needs['build'] && !$needs['reproduction'];
 }
-function vs_worker_assert_packet(array $session,array $packet): void {
-    if(($session['consent']['worker_settings_source']??'')!=='volunteer_requested_v1')return;
-    $metadata=$packet['metadata']??[];
-    foreach(['model','reasoning','tool','workflow_mode'] as $field) {
-        $expected=$session['capabilities'][$field]??'';$actual=$metadata[$field]??'';
-        if(!is_string($actual) || ($field==='tool'?strcasecmp($expected,$actual)!==0:$expected!==$actual))fail(422,'Returned worker '.$field.' does not match the requested session settings. Preserve the packet and use the authorized worker; do not invent settings or provider verification.');
-    }
-}
 function vs_profile_assert_packet(array $session,array $packet): void {
     if (vs_profile_id($session)==='general') return;
     $evidence=$packet['evidence']??[];
@@ -73,5 +65,5 @@ function vs_profile_assert_packet(array $session,array $packet): void {
 function vs_profile_instructions(array $session): string {
     $id=vs_profile_id($session);$profile=vs_profile_definition($id);
     if ($id==='general') return '';
-    return "\nAUTHORIZED CAPABILITY PROFILE: ".$id.' — '.$profile['label']."\nAllowed: ".implode(' ',$profile['allowed'])."\nExcluded: ".implode(' ',$profile['excluded'])."\n".$profile['enforcement']."\n".$profile['compatibility']."\nBefore research, inspect the complete deliverable, supporting material and concrete dependencies. If hidden requirements need excluded tools, explicitly release the reservation and skip honestly through the session controls. Do not submit a scientific blocked/needs_clarification outcome merely because this worker lacks tools. Do not disguise code execution as model reasoning, invent files/software/checksums, or claim computational reproduction. Preserve genuinely useful partial work only when its evidence can be submitted honestly within this profile. Use evidence.derivations (version=1,type=model_derived) and evidence.derivation_reviews, never execution calculations or reproduction reviews. Model-derived arithmetic must retain cited inputs, units, formula, worked steps, assumptions and limitations and state that it was not computationally executed or reproduced. The authorized controller needs interactive browser control; a research-only worker instead returns the COMPLETE packet and same-worker repairs to that controller. If neither worker nor authorized controller has browser control, report NOT SUBMITTED and the exact gap. Native tool-orchestration JavaScript may invoke browser controls, transfer the full handoff and manage an explicitly authorized worker; it must not execute research code/calculators/shell/installations. Do not install browser tooling, substitute HTTP fetching or desktop/Work, or claim phone/Dot acceptance from a fallback. Required configured worker settings need direct settings evidence or the successful original native create/request/admission pair bound to this assignment. Keep explicit same-settings model/thinking on follow-ups and collect returned turns after success. Provider-effective readback may remain unavailable and must be disclosed; launch evidence is not provider authentication. Unknown required launch settings are unconfirmed, not a match.\n";
+    return "\nAUTHORIZED CAPABILITY PROFILE: ".$id.' — '.$profile['label']."\nAllowed: ".implode(' ',$profile['allowed'])."\nExcluded: ".implode(' ',$profile['excluded'])."\n".$profile['enforcement']."\n".$profile['compatibility']."\nBefore research, inspect the complete deliverable, supporting material and concrete dependencies. If hidden requirements need excluded tools, explicitly release the reservation and skip honestly through the session controls. Do not submit a scientific blocked/needs_clarification outcome merely because this worker lacks tools. Do not disguise code execution as model reasoning, invent files/software/checksums, or claim computational reproduction. Preserve genuinely useful partial work only when its evidence can be submitted honestly within this profile. Use evidence.derivations (version=1,type=model_derived) and evidence.derivation_reviews, never execution calculations or reproduction reviews. Model-derived arithmetic must retain cited inputs, units, formula, worked steps, assumptions and limitations and state that it was not computationally executed or reproduced. The authorized controller needs interactive browser control; a research-only worker instead returns the COMPLETE packet and same-worker repairs to that controller. If neither worker nor authorized controller has browser control, report NOT SUBMITTED and the exact gap. Native tool-orchestration JavaScript may invoke browser controls, transfer the full handoff and manage an explicitly authorized worker; it must not execute research code/calculators/shell/installations. Do not install browser tooling, substitute HTTP fetching or desktop/Work, or claim phone/Dot acceptance from a fallback. Record the actual worker settings when available, with their basis. Keep the same worker for corrections and collect its returned turn records when available. Report unavailable settings honestly.\n";
 }
