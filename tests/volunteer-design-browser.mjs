@@ -13,7 +13,7 @@ export async function volunteerDesignQa({page,ctx,base,runPhp,check,visibleActio
  async function authorize(p){for(const name of ['authorize','authorized_resources','terms'])await p.locator('[name='+name+']').check();await p.getByRole('button',{name:'Authorize session',exact:true}).click();await p.getByRole('heading',{name:'Your session is ready',exact:true}).waitFor();const link=await p.locator('#volunteer-private-link').inputValue();const id=new URL(link).pathname.split('/')[2];sessions.push(id);return id;}
  try{
   const initial=[];
-  for(const size of sizes){await page.setViewportSize(size);await page.goto(base+'/volunteer');initial.push(await shot(page,'initial-'+size.width+'x'+size.height));try{await visibleActions(page,'#volunteer-capabilities,.setup-time-card,[data-volunteer-advanced]>summary,[data-setup-submit]','Approved Volunteer '+size.width);check('Initial page starts at scroll zero '+size.width,await page.evaluate(()=>scrollY===0));}catch(error){failures.push(error.message);}}
+  for(const size of sizes){await page.setViewportSize(size);await page.goto(base+'/volunteer');initial.push(await shot(page,'initial-'+size.width+'x'+size.height));try{await visibleActions(page,'.setup-time-card,[data-volunteer-advanced]>summary,[data-setup-submit]','Approved Volunteer '+size.width);check('Initial page starts at scroll zero '+size.width,await page.evaluate(()=>scrollY===0));}catch(error){failures.push(error.message);}}
   console.log('INSPECT APPROVED DESIGN INITIAL VIEWPORTS: '+initial.join(' | '));
   if(env.QA_INSPECT_FIRST==='design'){await new Promise(resolve=>{process.stdin.resume();process.stdin.once('data',()=>{process.stdin.pause();resolve();});});}
   if(failures.length)throw new Error(failures.join('; '));

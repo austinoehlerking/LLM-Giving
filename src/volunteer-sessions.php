@@ -79,7 +79,7 @@ function vs_worker_input(array $post): array {
 }
 function vs_configuration(array $post): array {
     $post=vs_worker_input($post);
-    $profile=text_field($post,'session_profile',0,32)?:'general';
+    $profile=text_field($post,'session_profile',0,32)?: (($post['setup_version']??null)==='3'?VS_SETUP_DEFAULT_PROFILE:'general');
     vs_profile_definition($profile);
     $post=vs_scope_input($post);
     $limits=vs_limits($post);

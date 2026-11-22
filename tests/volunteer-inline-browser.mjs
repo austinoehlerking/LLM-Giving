@@ -8,7 +8,7 @@ export async function volunteerInlineQa({page,ctx,base,runPhp,check,visibleActio
  fs.mkdirSync(out,{recursive:true});
  const projects=[],sessions=[],contexts=[],errors=[];
  const sizes=[{width:1366,height:768},{width:390,height:844},{width:375,height:667}];
- const mainControls='#volunteer-capabilities,.setup-time-card,[data-volunteer-advanced]>summary,[data-setup-submit]';
+ const mainControls='.setup-time-card,[data-volunteer-advanced]>summary,[data-setup-submit]';
  const modelFields='[name=model],[name=reasoning],[name=worker_choice],[name=tool],[name=workflow_mode]';
  const count=()=>JSON.parse(runPhp(['tests/volunteer-real-start-state.php','counts']));
  const preset=(p,value)=>p.locator('[name=session_preset][value='+value+']');
@@ -25,9 +25,9 @@ export async function volunteerInlineQa({page,ctx,base,runPhp,check,visibleActio
    await shot(p,label+'-'+size.width+'x'+size.height);
    await visibleActions(p,mainControls,label+' '+size.width);
    check('Quick try and one Continue before interaction '+label+' '+size.width,await preset(p,'quick').isChecked()&&await p.locator('[data-setup-submit]').count()===1&&await p.evaluate(()=>scrollY===0));
-   check('Capabilities and reasoning guidance with no model fields '+label+' '+size.width,
-    await p.locator('#volunteer-capabilities').isVisible()&&await p.locator(modelFields).count()===0
-      &&(await p.locator('#volunteer-research-advice').innerText()).includes('Extra High, Max'));
+   check('Research only is ready without showing capability or model settings '+label+' '+size.width,
+    !await p.locator('#volunteer-capabilities').isVisible()&&await p.locator('#volunteer-capabilities').inputValue()==='restricted_web_v1'&&await p.locator(modelFields).count()===0
+      &&await p.locator('#volunteer-research-advice').count()===0);
   }
  }
  async function reflow(p,label) {
@@ -59,7 +59,7 @@ export async function volunteerInlineQa({page,ctx,base,runPhp,check,visibleActio
    await preset(page,key).check();
    const before=count();
    await connectVolunteer(page);
-   check(key+' reaches server review with correct limits',await page.locator('.volunteer-authorization>.fine').first().innerText().then(text=>text.includes(limit)));
+   check(key+' reaches server review with correct limits',await page.locator('.volunteer-authorization>.fine').first().innerText().then(text=>text.includes(limit)&&text.includes('Research only')));
    check(key+' keeps consent blank and creates no session or reservation',await page.locator('[data-volunteer-consent] input[type=checkbox]').evaluateAll(list=>list.every(input=>!input.checked))&&JSON.stringify(count())===JSON.stringify(before));
   }
   await page.goto(base+'/volunteer');
@@ -67,7 +67,7 @@ export async function volunteerInlineQa({page,ctx,base,runPhp,check,visibleActio
   await page.locator('[name=minutes]').fill('125');
   await page.locator('[name=assignment_limit]').fill('7');
   await page.locator('[name=concurrent_limit]').selectOption('2');
-  await page.locator('#volunteer-capabilities').selectOption('restricted_web_v1');
+  await page.locator('#volunteer-capabilities').selectOption('general');
   check('Editing numeric values selects custom limits',await preset(page,'custom').isChecked());
   await page.locator('[name=minutes]').fill('1');
   const invalid=count();
@@ -75,15 +75,15 @@ export async function volunteerInlineQa({page,ctx,base,runPhp,check,visibleActio
   check('Invalid custom limit retains the form and makes no session',await page.locator('[data-volunteer-advanced]').evaluate(el=>el.open)&&await page.locator('[name=minutes]').evaluate(el=>el===document.activeElement)&&JSON.stringify(count())===JSON.stringify(invalid));
   await page.locator('[name=minutes]').fill('125');
   await connectVolunteer(page);
-  check('Capability and custom limits reach authorization',await page.locator('.volunteer-authorization>.fine').first().innerText().then(text=>text.includes('125 min or 7 tasks')&&text.includes('Research only')&&text.includes('Up to 2')));
+  check('Capability and custom limits reach authorization',await page.locator('.volunteer-authorization>.fine').first().innerText().then(text=>text.includes('125 min or 7 tasks')&&text.includes('Research + tools')&&text.includes('Up to 2')));
   check('Authorization does not include named worker requirements',await page.locator(modelFields).count()===0);
   await page.locator('#startup-settings>summary').click();
-  await page.locator('#startup-capabilities').selectOption('general');
+  await page.locator('#startup-capabilities').selectOption('restricted_web_v1');
   await page.getByRole('button',{name:'Recheck availability',exact:true}).click();
-  check('Changing capability rechecks availability without authorizing',await page.locator('[data-volunteer-consent] [name=session_profile]').inputValue()==='general'&&!await page.locator('[name=authorize]').isChecked());
+  check('Changing capability rechecks availability without authorizing',await page.locator('[data-volunteer-consent] [name=session_profile]').inputValue()==='restricted_web_v1'&&!await page.locator('[name=authorize]').isChecked());
   await native.setViewportSize(sizes[0]);
   await native.goto(base+'/volunteer?model=retired-model&reasoning=provider-adaptive');
-  await native.locator('#volunteer-capabilities').selectOption('restricted_web_v1');
+  check('Native setup keeps the research-only default behind Advanced options',!await native.locator('#volunteer-capabilities').isVisible()&&await native.locator('#volunteer-capabilities').inputValue()==='restricted_web_v1');
   await connectVolunteer(native);
   check('Native legacy URL reaches authorization without model or reasoning fields',await native.locator('[data-volunteer-consent]').count()===1&&await native.locator(modelFields).count()===0);
   for(const name of ['authorize','authorized_resources','terms']) await native.locator('[name='+name+']').check();
