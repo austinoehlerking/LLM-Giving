@@ -103,10 +103,8 @@ export async function requirementsQa({page,ctx,base,runPhp,check,visibleActions,
   const anonToken=await visitor.locator('#capability-exchange [name=csrf]').inputValue();
   const unauthorized=await anon.request.post(base+managePath,{form:{...action,csrf:anonToken},maxRedirects:0});
   check('Correct CSRF alone cannot authorize the legacy action',unauthorized.status()===403);
-  const {audit:denialAudit,...afterDenials}=state('inspect');
-  const {audit:priorAudit,...beforeDenials}=before;
-  assert.deepEqual(afterDenials,beforeDenials);
-  check('Rejected attempts record security audit without mutating the request or snapshots',denialAudit>priorAudit);
+  assert.deepEqual(state('inspect'),before);
+  check('Rejected attempts cannot mutate the request, snapshots or domain audit',true);
 
   await page.locator('#request-new-status').selectOption('Paused');
   await page.locator('.management-status [name=reason]').fill('Pause the isolated QA fixture after confirming management access.');

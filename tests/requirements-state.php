@@ -34,6 +34,6 @@ echo json_encode([
  'moderation'=>$r['moderation'],
  'status'=>$r['status'],
  'version'=>$r['context_version'],
- 'audit'=>(int)one('SELECT COUNT(*) n FROM audit_events WHERE research_id=?',[$rid])['n'],
+ 'domainAudit'=>(int)one("SELECT COUNT(*) n FROM audit_events WHERE research_id=? AND entity_type<>'route'",[$rid])['n'],
  'snapshots'=>array_map(fn($row)=>['digest'=>hash('sha256',$row['package_json']),'legacy'=>str_contains($row['package_json'],'legacy-model-identifier')],all('SELECT package_json FROM workflow_snapshots WHERE research_id=? ORDER BY id',[$rid])),
 ],JSON_THROW_ON_ERROR);
