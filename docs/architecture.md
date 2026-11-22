@@ -82,7 +82,7 @@ MariaDB migration DDL commits implicitly; take backups before production changes
 
 ## Shared task reservations
 
-The shared reservation service serializes anonymous task pickup for both manual handoffs and the volunteer orchestrator, using server-timed 60-minute leases and actor-before-parent locks. Task recording revalidates a live owned current revision; exact recorded retries retain receipt recovery. Lease ownership never substitutes for consent, moderation, evidence or model policy. Migration 016 is additive; historical handoffs and consent remain unchanged. See [the reservation contract](task-reservations.md) for operations, lock order, transfer, expiry and staged pickup-control integration.
+The shared reservation service serializes anonymous task pickup for both manual handoffs and the volunteer orchestrator, using server-timed 60-minute leases and actor-before-parent locks. Task recording revalidates a live owned current revision; exact recorded retries retain receipt recovery. Lease ownership holds the task while consent, moderation, evidence and task capability checks continue to apply. Migration 016 is additive; historical handoffs and consent remain unchanged. See [the reservation contract](task-reservations.md) for operations, lock order, transfer, expiry and staged pickup-control integration.
 
 ## Volunteer sessions and orchestrator handoffs
 
