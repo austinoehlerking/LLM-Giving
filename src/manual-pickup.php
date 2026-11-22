@@ -12,10 +12,10 @@ function mp_state(array $r,array $task,?string $actor=null): array {
     $expired=(bool)one('SELECT id FROM task_reservations WHERE research_id=? AND task_id=? AND task_revision=? AND actor_hash=? AND ended_at IS NULL AND expires_at<=? LIMIT 1',[$r['id'],$task['id'],$task['revision'],$actor,wr_stamp()]);
     return ['eligible'=>true,'owned'=>false,'available'=>true,'expired'=>$expired,'message'=>$expired?'Your reservation expired. Reacquire before submitting; your entered work and signed identifiers are unchanged.':'No active reservation. Reserve this task before starting or submitting.'];
 }
-function mp_next(array $r,?string $actor=null): ?array {
+function mp_next(array $r,?string $actor=null,?string $kind=null): ?array {
     $actor??=wf_actor();$available=null;
     foreach(wf_tasks($r['id']) as $task){
-        if($task['visibility']!=='public')continue;
+        if($task['visibility']!=='public'||($kind!==null&&$task['kind']!==$kind))continue;
         $state=mp_state($r,$task,$actor);
         if($state['owned'])return $task;
         if($state['available']&&!$available)$available=$task;
