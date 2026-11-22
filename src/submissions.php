@@ -54,7 +54,6 @@ function create_contribution(string $rid,array $d,bool $checkOnly=false,?string 
     $row['evidence']=json_encode($validated['evidence']+['corrections'=>$validated['corrections']],JSON_THROW_ON_ERROR);
     $row+=attribution($d);
     $metadata=$d['metadata']??[]; if(!is_array($metadata)) fail(422,'Metadata must be an object.');
-    if(!in_array($metadata['workflow_mode']??'',['','ultracode',null],true)||strtolower((string)($metadata['reasoning']??''))==='ultracode')fail(422,'Record workflow_mode separately from actual reasoning effort.');
     $meta=['contribution_id'=>$row['id'],'research_id'=>$rid]; $missing=[];
     foreach(META_FIELDS as $key) {
         $value=$metadata[$key]??null;
@@ -67,10 +66,8 @@ function create_contribution(string $rid,array $d,bool $checkOnly=false,?string 
             $value=(int)$str;
         } else { if(strlen($str)>($key==='tools'?5000:($key==='model'||$key==='measurement'?200:($key==='provider'||$key==='harness'?150:($key==='prompt_version'?80:100))))) fail(422,'Metadata too long: '.$key); $value=$str; }
         $meta[$key]=$value;
-        if($value===null && !in_array($key,['duration','harness_version','workflow_mode'],true)) $missing[]=$key;
+        if($value===null && !in_array($key,['duration','harness_version','provider','model','reasoning','workflow_mode'],true)) $missing[]=$key;
     }
-    // Match against the same normalized allowlist that is persisted, not ignored JSON keys.
-    rq_enforce(rq_requirements($r),$meta);
     if($meta['input_tokens']!==null && $meta['output_tokens']!==null && $meta['total_tokens']!==null && $meta['input_tokens']+$meta['output_tokens']!==$meta['total_tokens']) fail(422,'Total tokens must equal input plus output tokens.');
     foreach(['methodology','sources','uncertainty','limitations','previous_work','open_questions','next_actions','safety'] as $k) if($row[$k]==='') $missing[]=$k;
     $meta['missing_fields']=json_encode($missing);

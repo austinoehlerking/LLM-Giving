@@ -13,11 +13,12 @@ try {
  moderate('request',$rid,'Approved','Initial topic approval for disposable workflow test.');
  moderate('request',$other,'Approved','Initial topic approval for isolation test.');
  $p=wt($rid,'planning');wf_start($rid);wcheck(count(wf_tasks($rid))===1,'Repeated initialization is idempotent');
- $agentPrompt=wf_prompt($rid,$p['id']);foreach(wf_policy() as $model){wcheck(str_contains($agentPrompt,$model['model'].': reasoning = '.implode(' or ',$model['efforts'])), 'Task prompt spells out exact model and reasoning: '.$model['model']);}
- wcheck(str_contains($agentPrompt,'ultra is allowed only with tool = Codex.')&&str_contains($agentPrompt,'THIS IS A PLANNING TASK.'),'Prompt includes mandatory planning and Ultra tool restriction');
+ $agentPrompt=wf_prompt($rid,$p['id']);
+ wcheck(str_contains($agentPrompt,wf_research_guidance())&&!str_contains($agentPrompt,'MANDATORY AI CONFIGURATION PREFLIGHT'),'Task prompt offers reasoning guidance without model gates');
+ wcheck(!str_contains($agentPrompt,'reasoning = max or ultra')&&str_contains($agentPrompt,'Leave unknown model settings empty.'),'Task prompt requests truthful optional setup provenance');
  $guide=wf_agent_guide(research($rid));wcheck(str_contains($guide,'/tasks/'.$p['id'].'/prompt.md')&&str_contains($guide,'/package.json')&&str_contains($guide,'acceptance check'),'Agent guide links the real ready task and required context');
  $handoff=wf_handoff_text($rid);wcheck(str_contains($handoff,'NEXT READY TASK PROMPT')&&str_contains($handoff,'Task ID: '.$p['id'])&&str_contains($handoff,'REQUIRED OUTPUT JSON'),'Single handoff includes selected ready task and output schema');
- wcheck(!str_contains($handoff,wf_snapshot($rid)['package_json'])&&str_contains($handoff,'llm-task-context-v2')&&str_contains($handoff,'required_for_planning')&&str_contains($handoff,'THIS IS A PLANNING TASK.'),'Handoff includes a retrievable immutable complete-context directory and mandatory model instructions');
+ wcheck(!str_contains($handoff,wf_snapshot($rid)['package_json'])&&str_contains($handoff,'llm-task-context-v2')&&str_contains($handoff,'required_for_planning')&&str_contains($handoff,wf_research_guidance()),'Handoff includes a retrievable immutable complete-context directory and reasoning guidance');
  $d=wf_test_payload($rid,$p);
  $beforeCounts=[count(all('SELECT id FROM workflow_submissions WHERE research_id=?',[$rid])),count(wf_ledger($rid,true)),count(all('SELECT id FROM workflow_attempts WHERE research_id=?',[$rid]))];
  $originalPolicyBase=setting('terms_version',TERMS_VERSION);
@@ -51,9 +52,11 @@ try {
  $bad=$d;$bad['handoff_code']=str_repeat('0',64);wdeny(fn()=>wf_test_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Tampered handoff code rejected');
  $bad=$d;$bad['submission_key']=uid();wdeny(fn()=>wf_test_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Code binds submission key');
  $bad=$d;$bad['handoff_code']=wf_test_payload($other,wt($other,'planning'))['handoff_code'];wdeny(fn()=>wf_test_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Foreign task handoff code rejected');
- $bad=$d;$bad['metadata']['reasoning']='high';wdeny(fn()=>wf_test_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Planning rejects low effort');
- $bad=$d;$bad['metadata']['model']='unknown-model';wdeny(fn()=>wf_test_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Planning rejects unknown model');
- $bad=$d;$bad['metadata']['model']='claude-opus-5-5';$bad['metadata']['reasoning']='ultra';wdeny(fn()=>wf_test_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Opus Ultra is not invented');
+ $unlisted=$d;$unlisted['metadata']['model']='unlisted-research-model';$unlisted['metadata']['reasoning']='high';
+ wcheck(wf_test_submit($rid,$p['id'],$unlisted,str_repeat('a',64),true)==='','Planning Check accepts an unlisted model and High effort');
+ $unknown=$d;unset($unknown['metadata']['provider'],$unknown['metadata']['model'],$unknown['metadata']['reasoning']);
+ wcheck(wf_test_submit($rid,$p['id'],$unknown,str_repeat('a',64),true)==='','Planning Check accepts missing provider, model and effort');
+ wcheck(wf_metadata($unlisted)['model']==='unlisted-research-model'&&wf_metadata($unknown)['model']==='','Provenance preserves actual values and leaves unknown settings empty');
  $bad=$d;$bad['tasks'][0]['dependencies']=['transport'];wdeny(fn()=>wf_test_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Cycles rejected atomically');
  wcheck(count(wf_tasks($rid))===1,'Invalid plan leaves no partial tasks');
  $bad=$d;$bad['tasks'][1]['dependencies']=['foreign'];wdeny(fn()=>wf_test_submit($rid,$p['id'],$bad,str_repeat('a',64)),422,'Foreign dependencies rejected');
@@ -110,7 +113,7 @@ try {
  wcheck(!str_contains($snap['package_json'],'Use 1,000 metres as the depth threshold'),'Old snapshot retains exact earlier context');
  $assessmentResult=one('SELECT * FROM workflow_submissions WHERE id=?',[$planId]);
  $historicalTasks=wf_assessment_tasks($assessmentResult);
- wcheck(isset($historicalTasks[$assessmentResult['task_id']])&&str_contains($historicalTasks[$assessmentResult['task_id']]['acceptance'],'Max/Ultra'),'Readable acceptance comes from original public context');
+ wcheck(isset($historicalTasks[$assessmentResult['task_id']])&&str_contains($historicalTasks[$assessmentResult['task_id']]['acceptance'],'stopping rules'),'Readable acceptance comes from original public context');
  $reading=wf_findings_overview(['body'=>"A bounded conclusion.\n\nBuilding findings (source S1). Lower cooling demand was measured. Local uncertainty remains.\n\nLimits. No health outcome was measured.",'reason'=>'Fallback']);
  wcheck($reading['summary']==='A bounded conclusion.'&&$reading['takeaways'][0]['title']==='Building findings'&&$reading['takeaways'][1]['text']==='No health outcome was measured.','Summary and takeaways retain authored sentences and limitations');
  $eid=one('SELECT id FROM audit_events WHERE research_id=? LIMIT 1',[$rid])['id'];

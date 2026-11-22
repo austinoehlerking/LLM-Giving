@@ -1,6 +1,6 @@
 # Guided AI request setup
 
-The submission form offers **Copy AI prompt to assist setup** before the public fields. The locally composed prompt starts with the exact quick/in-depth choice, uses the current public draft, and reveals **Paste setup prompt** for the returned JSON. The requester reviews the filled fields, confirms fresh terms and submits for normal approval. Filling never submits or approves a request; volunteer AI browser-return authorization is a separate workflow.
+The submission form offers **Help me draft with AI** before the public fields. The locally composed prompt starts with the exact quick/in-depth choice, uses the current public draft, and reveals **Paste your AI completed draft (JSON)** for the returned JSON. The requester reviews the filled fields, confirms fresh terms and submits for normal approval. Filling never submits or approves a request; volunteer AI browser-return authorization is a separate workflow.
 
 ## Conversation contract
 
@@ -13,11 +13,11 @@ The submission form offers **Copy AI prompt to assist setup** before the public 
 
 ## Import and requirements contract
 
-Conversation revision 4 retains the versioned **llm-giving-request-setup-v3** JSON format and compatible v2 import. The prompt includes exact enabled categories, current model registry/planning policy, field limits and public draft only. Copied prompts omit private identity/contact details, attachments, consent and fork capabilities. Pinned inherited background is data, not the new question or new results.
+Conversation revision 5 uses the **llm-giving-request-setup-v4** JSON format. The importer also accepts v2 and v3 drafts and discards their retired model, reasoning and workflow mode fields. The prompt includes enabled categories, field limits and the public draft. Copied prompts omit private identity/contact details, attachments, consent and fork capabilities. Pinned inherited background is data, not the new question or new results.
 
 The importer validates the entire allowlisted object before changing any field. Malformed, incomplete, oversized or protected data leaves the draft unchanged. A single complete JSON code fence is accepted; truncated output is rejected. Private fields and selected files remain in the form, consent is cleared for fresh review, and import never submits. Values are assigned through native field properties, never executable HTML.
 
-Maybe calculations permit useful work without requiring it; explicit preparation-only, unspecified and required-execution preferences remain distinct. Unknown setup is **None specified**. No mandatory external tools suppresses hidden software values while allowing useful volunteer-chosen tools. Preserve supplied model alternatives and the independent Ultracode/effort contract. Applicable supporting materials are required for work actually performed; do not invent code, executions, dependencies or scientific success criteria. Contributors remain responsible for permissions, purchases and installation authorization.
+Maybe calculations permit useful work without requiring it; explicit preparation-only, unspecified and required-execution preferences remain distinct. Unknown setup is **None specified**. No mandatory external tools suppresses hidden software values while allowing useful volunteer-chosen tools. Applicable supporting materials are required for work actually performed; do not invent code, executions, dependencies or scientific success criteria. Contributors remain responsible for permissions, purchases and installation authorization.
 
 Raw prompt/paste textareas are unnamed and stay out of submitted FormData. Clipboard denial opens/selects the complete prompt for manual copying. Server validation, moderation, immutable evidence and existing research workflows remain authoritative. No runtime AI call, new dependency, endpoint, persistent browser storage or database migration is added.
 

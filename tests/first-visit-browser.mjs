@@ -42,9 +42,9 @@ export async function firstVisitQa({ page, ctx, base, runPhp, check, visibleActi
   }
   async function authorize(url, preset, tasks, minutes) {
     await page.goto(base+url);
-    check('Visible commitment for '+preset,(await page.locator('[data-first-limit]').innerText()).includes(preset));
-    await page.locator('[data-ai-continue]').click();
-    check(preset+' exposes selected model and reasoning with Change',await page.locator('[data-ai-summary-text]').isVisible()&&await page.getByRole('button',{name:'Change model and reasoning'}).isVisible());
+    const chosen=page.locator('.setup-time-card').filter({has:page.locator('[name=session_preset]:checked')});
+    check('Visible commitment for '+preset,await chosen.isVisible()&&(await chosen.innerText()).includes(preset));
+    check('Capability-based setup omits model and reasoning selectors',await page.locator('select[name=model],select[name=reasoning]').count()===0);
     await page.locator('[data-setup-submit]').click();
     check(preset+' review leaves authorization and consent unchecked',await page.locator('[data-volunteer-consent]').isVisible()&&!await page.locator('[name=authorize]').isChecked()&&!await page.locator('[name=terms]').isChecked());
     for (const field of ['authorize','authorized_resources','terms']) await page.locator('[name='+field+']').check();
@@ -129,8 +129,8 @@ export async function firstVisitQa({ page, ctx, base, runPhp, check, visibleActi
     check('Findings CTA opens a reader with public items',new URL(page.url()).pathname.endsWith('/findings')&&await page.locator('.reader-finding').count()>0);
     await enlarged('/research/'+fixture.withFindings,'study');
 
-    await initial('/volunteer','volunteer','#volunteer-model,#volunteer-effort,[data-ai-continue]');
-    check('Handoff is explained before model controls',await page.locator('.volunteer-subtitle').innerText()==='You’ll need an AI tool with browser control. We’ll give you one message to paste into it.');
+    await initial('/volunteer','volunteer','#volunteer-capabilities,[data-setup-submit]');
+    check('Handoff is explained before authorization',await page.locator('.volunteer-subtitle').innerText()==='You’ll need an AI tool with browser control. We’ll give you one message to paste into it.');
     await enlarged('/volunteer','volunteer');
     runPhp(['tests/first-visit-state.php','resume',fixture.id]);
     await page.setViewportSize(sizes[0]);

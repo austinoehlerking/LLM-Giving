@@ -42,7 +42,7 @@ try {
     vp_check($session['session_profile']==='restricted_web_v1'&&$session['consent']['session_profile']==='restricted_web_v1','Stored session and captured consent bind validated profile');
     vp_check($session['consent']['human_disclosure']['level']==='none','Separate human declaration retained');
     vp_check(vs_profile_compatible($session,$r,$t),'Optional Maybe does not exclude narrative work');
-    vp_check(vs_configuration_matches($session,$r,$t),'Restricted compatible work retains model/configuration matching');
+    vp_check(vs_configuration_matches($session,$r,$t),'Restricted compatible work retains capability matching');
     $changed=$r;$changed['external_requirements']=json_encode(['calculation_help'=>'run','external_tools'=>'none']);vp_check(vs_profile_compatible($session,$changed,$t),'Future project execution does not exclude a narrative task');
     $changed=$r;$changed['external_requirements']=json_encode(['calculation_help'=>'maybe','external_tools'=>'none','required_software'=>'Stale spreadsheet']);vp_check(vs_profile_compatible($session,$changed,$t),'Hidden stale software under no mandatory tools does not restrict work');
     $web=$r;$web['external_requirements']=json_encode(['calculation_help'=>'maybe','external_tools'=>'free','required_software'=>'Web browser']);vp_check(vs_profile_compatible($session,$web,$t),'Ordinary web browser dependency is within the allowed profile');
@@ -61,9 +61,9 @@ try {
     $legacySession=$general;unset($legacySession['session_profile']);vp_check(vs_profile_id($legacySession)==='general','Historical profile omission resolves to general');
     $oldRow=one('SELECT * FROM volunteer_sessions WHERE id=?',[$session['id']]);$oldRow['id']=uid();$oldRow['secret_hash']=hash('sha256',uid());unset($oldRow['session_profile']);$oldConsent=json_decode($oldRow['consent'],true);unset($oldConsent['session_profile'],$oldConsent['capability_profile']);$oldRow['consent']=json_encode($oldConsent);insert('volunteer_sessions',$oldRow);$sessions[]=$oldRow['id'];$_SESSION['volunteer_sessions'][$oldRow['id']]=$oldRow['secret_hash'];$oldSession=vs_read($oldRow['id']);vp_check(vs_profile_id($oldSession)==='general'&&one('SELECT consent FROM volunteer_sessions WHERE id=?',[$oldRow['id']])['consent']===$oldRow['consent'],'Historical/default profile retains exact old consent and general capability');
     $unknown=$session;$unknown['session_profile']='forged';vp_denied(fn()=>vs_profile_compatible($unknown,$r,$t),403,'Unknown stored profile fails closed');
-    $model=$r;$model['ai_requirements']=json_encode(['model'=>'claude-opus-5-5','mode'=>'exact','effort'=>'max']);vp_check(!vs_configuration_matches($session,$model,$t),'Restricted profile never overrides exact requester model');
-    $model=$r;$model['ai_requirements']=json_encode(['model'=>'gpt-6-astra','mode'=>'exact','effort'=>'ultra']);vp_check(!vs_configuration_matches($session,$model,$t),'Restricted profile never overrides required reasoning');
-    $planning=wf_tasks($r['id'])[0];$unknownModel=$session;$unknownModel['capabilities']['model']='';vp_check(!vs_configuration_matches($unknownModel,$r,$planning),'Unknown actual planning model is not a match');
+    $model=$r;$model['ai_requirements']=json_encode(['model'=>'claude-opus-5-5','mode'=>'exact','effort'=>'max']);vp_check(vs_configuration_matches($session,$model,$t),'Historical exact model no longer excludes compatible research');
+    $model=$r;$model['ai_requirements']=json_encode(['model'=>'gpt-6-astra','mode'=>'exact','effort'=>'ultra']);vp_check(vs_configuration_matches($session,$model,$t),'Historical reasoning constraint no longer excludes compatible research');
+    $planning=wf_tasks($r['id'])[0];$unknownModel=$session;$unknownModel['capabilities']['model']='';vp_check(vs_configuration_matches($unknownModel,$r,$planning),'Narrative planning matches without current model metadata');
     $a=vs_claim_next($id);$session=vs_read($id);$lease=wr_live($r['id'],$a['task_id']);
     vp_check($a['research_id']===$r['id']&&(int)$session['assignments_used']===1,'Compatible Maybe task picked up under stored profile');
     vp_check(strtotime($lease['expires_at'].' UTC')-$GLOBALS['vp_now']===3600,'Restricted pickup retains exact sixty-minute reservation');
@@ -71,7 +71,7 @@ try {
     vp_check(str_contains($text,'AUTHORIZED CAPABILITY PROFILE: restricted_web_v1')&&str_contains($text,'not a technical sandbox'),'Private handoff carries honest actual profile restrictions');
     vp_check(str_contains($text,'explicitly release')&&str_contains($text,'scientific blocked/needs_clarification'),'Hidden incompatibility instructions avoid falsely blocking research');
     vp_check(!str_contains($archive['body'],$id)&&!str_contains($archive['body'],$g['id']),'Public archive excludes private session binding');
-    $controller=vo_handoff($id,$created['link']);vp_check(str_contains($controller,'"session_profile": "restricted_web_v1"')&&str_contains($controller,'not a technical sandbox')&&str_contains($controller,'never provider-verified'),'Controller uses server profile without claiming sandboxing or provider verification');
+    $controller=vo_handoff($id,$created['link']);vp_check(str_contains($controller,'"session_profile": "restricted_web_v1"')&&str_contains($controller,'not a sandbox guarantee')&&str_contains($controller,'Selecting this profile proves no provider capability'),'Controller uses server profile without claiming sandboxing or provider verification');
     $draft=vs_form_draft(['session_profile'=>'restricted_web_v1','session_secret'=>'not retained']);vp_check($draft===['session_profile'=>'restricted_web_v1'],'Profile draft allowlist excludes private credentials');
     $packet=vp_packet($session,$a);$packet['session_profile']='general';$packet['capabilities']=['execute_code'=>true];
     foreach(['calculations','calculation_reviews','tool_builds','tool_reviews','calculation_checkpoint'] as $field){$forged=$packet;$forged['evidence'][$field]=[['status'=>'executed','verdict'=>'reproduced']];vp_denied(fn()=>vs_record($id,$a['id'],$forged,true),422,'Forged packet profile cannot expand '.$field);}

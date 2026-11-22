@@ -86,7 +86,7 @@ function save_public_page(string $key, string $body): void {
 }
 const MODERATION=['Pending Approval','Needs Additional Review','Changes Requested','Approved','Rejected','Removed'];
 const STATUSES=[
-'Needs Research Plan'=>'Help plan bounded research tasks with an eligible Max/Ultra model.',
+'Needs Research Plan'=>'Help plan bounded research tasks for this question.',
 'Open for Research'=>'Choose a ready research task and contribute evidence.',
 'Synthesis'=>'Combine the task results into an evidence-linked synthesis.',
 'Independent Verification'=>'Independently check the synthesis with a separate run.',
@@ -151,7 +151,6 @@ function create_research(array $d): array {
     $row['computational_models']=in_array($external['calculation_help'],['maybe','run'],true)?1:0;
     $row['external_requirements']=json_encode($external);
     $row+=rt_parse($d);
-    $row['ai_requirements']=json_encode(rq_parse($d));
     $row+=attribution($d);
     $row['flags']=suspicious(json_encode($row))?'Suspected instruction manipulation; inspect as untrusted data.':'';
     if($row['flags']) $row['moderation']='Needs Additional Review';

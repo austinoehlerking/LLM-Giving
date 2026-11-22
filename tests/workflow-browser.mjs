@@ -51,17 +51,18 @@ export async function workflowQa({page,ctx,base,runPhp,check,visibleActions,pass
   }
   await page.setViewportSize({width:683,height:384});await page.goto(url);await page.evaluate(()=>document.body.style.fontSize='200%');await shot(page,'00-handoff-enlarged-text');check('Top handoff enlarged text reflows',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
   await page.setViewportSize(sizes[0]);await page.goto(url+'/tasks/'+plan.id);const prompt=await(await page.request.get(url+'/tasks/'+plan.id+'/prompt.md')).text();
-  check('Prompt includes immutable context and model policy',completeContextEnvelope(prompt)&&prompt.includes('gpt-6-astra'));check('Handoff includes structured evidence and planning rules',prompt.includes('TRUSTED RESEARCH EVIDENCE STANDARD')&&prompt.includes('evidence_needs')&&prompt.includes('counterevidence'));
+  check('Prompt includes immutable context and optional reasoning guidance',completeContextEnvelope(prompt)&&prompt.includes('use Extra High, Max')&&!prompt.includes('MANDATORY AI CONFIGURATION PREFLIGHT'));check('Handoff includes structured evidence and planning rules',prompt.includes('TRUSTED RESEARCH EVIDENCE STANDARD')&&prompt.includes('evidence_needs')&&prompt.includes('counterevidence'));
   const checkBad=payload(plan);checkBad.handoff_code='0'.repeat(64);
   await page.locator('[name=payload]').fill(JSON.stringify(checkBad));await disclose(page);await page.getByRole('button',{name:'Check packet',exact:true}).click();await page.locator('[data-workflow-error]').filter({hasText:'Handoff code does not match'}).waitFor();
   check('Check packet rejects invalid signature before submission',(await task('planning')).state==='Ready');await page.getByRole('button',{name:'Copy AI repair prompt'}).click();const repairPrompt=await page.evaluate(()=>navigator.clipboard.readText());check('Repair prompt preserves identifiers and forbids invented evidence',repairPrompt.includes('Preserve the original handoff_code')&&repairPrompt.includes('invent sources')&&repairPrompt.includes('Handoff code does not match'));await page.locator('[data-workflow-error]').scrollIntoViewIfNeeded();await shot(page,'03a-packet-check-error');await shot(page,'03b-repair-prompt',true);
   const wrong=payload(plan);wrong.handoff_code='0'.repeat(64);await page.locator('[name=payload]').fill(JSON.stringify(wrong));await disclose(page);await page.locator('[name=terms]').check();await page.getByRole('button',{name:'Submit task result',exact:true}).click();check('Wrong handoff code rejected in browser without advancing',(await page.getByRole('alert').innerText()).includes('Handoff code does not match')&&(await task('planning')).state==='Ready');
-  const bad=payload(plan);bad.metadata.reasoning='low';
+  const bad=payload(plan);bad.metadata.run_at_utc='not-a-utc-date';
   await page.locator('[name=payload]').fill(JSON.stringify(bad,null,2));await disclose(page);await page.locator('[name=terms]').check();await page.getByRole('button',{name:'Submit task result',exact:true}).click();
-  check('Invalid reasoning gives actionable validation',await page.getByRole('alert').textContent().then(t=>t.includes('Max/Ultra')));
-  check('Invalid payload retained for correction',(await page.locator('[name=payload]').inputValue()).includes('"low"'));
+  check('Invalid run time gives actionable validation',await page.getByRole('alert').textContent().then(t=>t.includes('real UTC timestamp')));
+  check('Invalid payload retained for correction',(await page.locator('[name=payload]').inputValue()).includes('"not-a-utc-date"'));
   await page.getByRole('alert').scrollIntoViewIfNeeded();await shot(page,'03-validation');
   const clarification=payload(plan,'needs_clarification');clarification.reason='The deep-ocean depth threshold must be defined before comparing studies.';clarification.next_action='The submitter should specify a depth threshold and distinguish export from long-term storage.';
+  delete clarification.metadata.model;delete clarification.metadata.reasoning;
   await submit(page,plan,clarification);
   for(const size of sizes){await page.setViewportSize(size);await page.evaluate(()=>scrollTo(0,0));await shot(page,'04-outcome-'+size.width+'x'+size.height);await visibleActions(page,'.workflow-heading .primary-actions > *','Outcome '+size.width);}
   await page.setViewportSize(sizes[0]);await page.goto(url+'/work');await shot(page,'05-needs-clarification');

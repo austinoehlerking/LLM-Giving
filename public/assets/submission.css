@@ -77,24 +77,10 @@
  .request-form .setup-status:not(:empty){padding:8px 10px;font-size:13px;line-height:1.35}
  .setup-status strong{font-size:14px;margin-bottom:2px}
  .request-form .setup-panel{padding:10px}
- .request-form .setup-panel textarea:not([readonly]){height:80px}
+ .request-form .setup-panel textarea:not([readonly]){height:64px;min-height:64px}
  .request-form .setup-panel label{margin:4px 0}
  .request-form .setup-panel>p{margin:0 0 4px}
 }
-
-/* Native disclosure dropdowns preserve checkbox semantics and touch/keyboard access. */
-.ai-choice-menu{border:1px solid #547180;border-radius:8px;margin:12px 0;min-width:0}
-.ai-choice-menu>summary{padding:12px;min-height:48px;overflow-wrap:anywhere}
-.ai-choice-options{padding:4px 12px 12px}
-.ai-choice-options .check{display:flex;align-items:center;gap:10px;min-height:48px;margin:0;padding:8px 0}
-.ai-choice-options small{display:block;overflow-wrap:anywhere}
-.ai-choice-options input[type=checkbox]{flex:none}
-.ai-effort-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;border-bottom:1px solid #314651}
-[data-ai-selection]{min-width:0}
-[data-ai-summary]{overflow-wrap:anywhere}
-[data-ai-selection][aria-invalid=true]{border-color:#ff9292}
-[data-ai-error]:empty{display:none}
-@media(max-width:480px){.ai-effort-row{grid-template-columns:1fr}.ai-effort-row>.check+label{padding-left:28px}}
 
 /* Compact requester entry and private controls; all actions stay in document flow. */
 .requester-workflow-page .requester-header{max-width:820px;min-height:60px;padding:8px 16px;gap:16px}
