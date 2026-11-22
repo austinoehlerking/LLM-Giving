@@ -1,6 +1,6 @@
 # Volunteer startup and launch contract
 
-Quick try defaults to 15 minutes or one task. Volunteers choose what their AI can do and how much time to give. For in-depth research or independent review, use Extra High, Max, or your AI’s equivalent if available. Model and reasoning can still be reported in completed packets when available.
+Quick try defaults to Research only and 15 minutes or one task. Volunteers can make a different capability choice under Advanced options and review it before authorization. For in-depth research or independent review, use Extra High, Max, or your AI’s equivalent if available. Model and reasoning can still be reported in completed packets when available.
 
 The review page shows a read-only availability preview before authorization. Its Availability details action shows the eligibility reasons and lets a volunteer review a different capability profile. Rechecking changes the proposed configuration only. It cannot claim, renew, release, submit, generate a handoff or snapshot, accept terms, or change an existing session.
 

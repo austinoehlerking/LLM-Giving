@@ -6,6 +6,7 @@ export async function workerSettingsQa({page,base,runPhp,check,report}) {
   projects.push(work.id);
   for(const profile of ['general','restricted_web_v1']) {
    await page.goto(base+'/volunteer?model=retired-model&reasoning=provider-adaptive');
+   await page.locator('[data-volunteer-advanced]>summary').click();
    await page.locator('#volunteer-capabilities').selectOption(profile);
    await connectVolunteer(page);
    check(profile+' reaches actual authorization without worker settings',await page.locator('[data-volunteer-consent] [name=session_profile]').inputValue()===profile&&await page.locator('[name=model],[name=reasoning]').count()===0);

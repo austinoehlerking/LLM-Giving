@@ -16,7 +16,7 @@ export async function volunteerRealStartQa({page,ctx,base,runPhp,check,visibleAc
  try{
   for(const tool of [false,true]){
    const r=JSON.parse(runPhp(['tests/volunteer-real-start-state.php','create',tool?'tool':'research']));projects.push(r.id);
-   await page.goto(base+'/volunteer?scope_kind=research&research_id='+r.id);if(!tool)await initial(page,'setup','#volunteer-capabilities,.setup-time-card,[data-volunteer-advanced]>summary,[data-setup-submit]');
+   await page.goto(base+'/volunteer?scope_kind=research&research_id='+r.id);if(!tool)await initial(page,'setup','.setup-time-card,[data-volunteer-advanced]>summary,[data-setup-submit]');
    const before=count();check('Initial setup has no authorization or session '+tool,await page.locator('[data-volunteer-consent]').count()===0&&JSON.stringify(count())===JSON.stringify(before));
    await page.locator('[data-volunteer-advanced]>summary').click();await page.locator('[name=session_profile]').selectOption('restricted_web_v1');await page.locator('[data-volunteer-advanced]>summary').click();await connectVolunteer(page);
    await page.getByRole('heading',{name:'Authorize this session',exact:true}).waitFor();check('Needs Research Plan is eligible before authorization '+tool,(await page.locator('[data-startup-preflight]').first().innerText()).includes('1 compatible unreserved task'));
